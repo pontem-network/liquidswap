@@ -1,0 +1,26 @@
+[package]
+name = "aptos-swap"
+version = "0.1.0"
+
+[addresses]
+Std = "0x1"
+SwapAdmin = "0x8c109349c6bd91411d6bc962e080c4a3"
+SwapFeeAdmin = "0x9572abb16f9d9e9b009cc1751727129e"
+
+[dependencies.MoveStdlib]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+subdir = "aptos-move/framework/move-stdlib"
+addr_subst = { Std = "0x1" }
+
+[dependencies.CoreFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+subdir = "aptos-move/framework/core"
+addr_subst = { Std = "0x1" }
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+subdir = "aptos-move/framework/aptos-framework"
+addr_subst = { Std = "0x1" }

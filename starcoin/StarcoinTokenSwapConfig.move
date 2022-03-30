@@ -1,4 +1,4 @@
-module SwapAdmin::TokenSwapConfig {
+module SwapAdmin::StarcoinTokenSwapConfig {
     use Std::Config;
     use Std::Signer;
     use Std::Errors;
@@ -59,8 +59,8 @@ module SwapAdmin::TokenSwapConfig {
 
     /// Swap fee allocation mode: LP Providor 5/6, Operation management 1/6
     /// Poundage number of liquidity token pair
-    public fun get_poundage_rate<X: copy + drop + store,
-                                 Y: copy + drop + store>(): (u64, u64) {
+    public fun get_poundage_rate<X: store,
+                                 Y: store>(): (u64, u64) {
 
         if (Config::config_exist_by_address<SwapFeePoundageConfig<X, Y>>(admin_address())) {
             let conf = Config::get_by_address<SwapFeePoundageConfig<X, Y>>(admin_address());
@@ -97,8 +97,8 @@ module SwapAdmin::TokenSwapConfig {
     }
 
     /// Set fee rate for poundage rate, only admin can call
-    public fun set_poundage_rate<X: copy + drop + store,
-                                 Y: copy + drop + store>(signer: &signer,
+    public fun set_poundage_rate<X: store,
+                                 Y: store>(signer: &signer,
                                                          num: u64,
                                                          denum: u64) {
         assert_admin(signer);

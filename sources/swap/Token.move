@@ -1,515 +1,378 @@
-/// Token implementation of Starcoin.
+/// The `Token` module describes the concept of a token in the Pontem framework. It introduces the
+/// resource `Token::Token<TokenType>`, representing a token of given type.
+/// The module defines functions operating on tokens as well as functionality like
+/// minting and burning of tokens.
 module SwapAdmin::Token {
-    use Std::Event;
-    use Std::Signer;
     use Std::Errors;
-    use Std::Math;
+    use Std::Event::{Self, EventHandle};
+    use Std::Signer;
+    use Std::ASCII::String;
+    use PontemFramework::PontAccount;
 
-    spec module {
-        pragma verify = false; // break after enabling v2 compilation scheme
-        pragma aborts_if_is_strict = true;
-    }
-
-    /// The token has a `TokenType` color that tells us what token the
-    /// `value` inside represents.
+    /// The `Token` resource defines the token in the Pontem ecosystem.
+    /// Each "token" is coupled with a type `TokenType` specifying the
+    /// token type, and a `value` field specifying the value of the token.
     struct Token<phantom TokenType> has store {
-        value: u128,
+        /// The value of this token in the base units for `TokenType`
+        value: u64
     }
 
-    /// Token Code which identify a unique Token.
-    struct TokenCode has copy, drop, store {
-        /// address who define the module contains the Token Type.
-        addr: address,
-        /// module which contains the Token Type.
-        module_name: vector<u8>,
-        /// name of the token. may nested if the token is a instantiated generic token type.
-        name: vector<u8>,
-    }
-
-    /// A minting capability allows tokens of type `TokenType` to be minted
-    struct MintCapability<phantom TokenType> has key, store { }
-
-    /// A fixed time mint key which can mint token until global time > end_time
-    struct FixedTimeMintKey<phantom TokenType> has key, store { total: u128, end_time: u64 }
-
-    /// A linear time mint key which can mint token in a period by time-based linear release.
-    struct LinearTimeMintKey<phantom TokenType> has key, store { total: u128, minted: u128, start_time: u64, period: u64 }
-
-    /// A burn capability allows tokens of type `TokenType` to be burned.
-    struct BurnCapability<phantom TokenType> has key, store { }
-
-
-    /// Event emitted when token minted.
+    /// A `MintEvent` is emitted every time a Token is minted. This
+    /// contains the `amount` minted (in base units of the token being
+    /// minted) along with the `symbol` for the token(s) being
+    /// minted, and that is defined in the `symbol` field of the `TokenInfo`
+    /// resource for the token.
     struct MintEvent has drop, store {
-        /// funds added to the system
-        amount: u128,
-        /// full info of Token.
-        token_code: TokenCode,
+        /// Funds added to the system
+        amount: u64,
+        /// Symbol, e.g. "NOX".
+        symbol: String,
     }
 
-    /// Event emitted when token burned.
+    /// A `BurnEvent` is emitted every time Token is burned.
+    /// It contains the `amount` burned in base units for the
+    /// token, along with the `symbol` for the tokens being burned.
     struct BurnEvent has drop, store {
-        /// funds removed from the system
-        amount: u128,
-        /// full info of Token
-        token_code: TokenCode,
+        /// Funds removed from the system
+        amount: u64,
+        /// Symbol, e.g. "NOX".
+        symbol: String,
     }
 
-    /// Token information.
+    /// The `MintCapability` resource defines a capability to allow minting
+    /// of token of `TokenType` by the holder of this capability.
+    /// This capability should be held by minter of the token or can be dropped.
+    struct MintCapability<phantom TokenType> has key, store {}
+
+    /// The `BurnCapability` resource defines a capability to allow tokens
+    /// of `TokenType` token to be burned by the holder of it.
+    /// This capability should be held by minter of the token or can be dropped.
+    /// The token deployer can create additional functions in his token module to allow users to burn their tokens.
+    struct BurnCapability<phantom TokenType> has key, store {}
+
+    /// The `TokenInfo<TokenType>` resource stores the various
+    /// pieces of information needed for a token (`TokenType`) that is
+    /// registered on-chain. This resource _must_ be published under the
+    /// address of token module deployer in order for the registration of
+    /// `TokenType` as a recognized token on-chain to be successful. At
+    /// the time of registration, the `MintCapability<TokenType>` and
+    /// `BurnCapability<TokenType>` capabilities are returned to the caller.
+    /// Unless they are specified otherwise the fields in this resource are immutable.
     struct TokenInfo<phantom TokenType> has key {
-        /// The total value for the token represented by
-        /// `TokenType`. Mutable.
+        /// The total value for the token represented by `TokenType`. Mutable.
         total_value: u128,
-        /// The scaling factor for the coin (i.e. the amount to divide by
-        /// to get to the human-readable representation for this currency).
-        /// e.g. 10^6 for `Coin1`
-        scaling_factor: u128,
-        /// event stream for minting
-        mint_events: Event::EventHandle<MintEvent>,
-        /// event stream for burning
-        burn_events: Event::EventHandle<BurnEvent>,
+        /// Decimals amount of `TokenType` token.
+        decimals: u8,
+        /// The code symbol for this `TokenType`.
+        /// e.g. for "NOX" this is x"504f4e54". No character limit.
+        symbol: String,
+        /// Event stream for minting and where `MintEvent`s will be emitted.
+        mint_events: EventHandle<MintEvent>,
+        /// Event stream for burning, and where `BurnEvent`s will be emitted.
+        burn_events: EventHandle<BurnEvent>,
     }
 
-    const EDEPRECATED_FUNCTION: u64 = 19;
+    /// Maximum u64 value.
+    const MAX_U64: u64 = 18446744073709551615;
+    /// Maximum u128 value.
+    const MAX_U128: u128 = 340282366920938463463374607431768211455;
 
-    const EDESTROY_TOKEN_NON_ZERO: u64 = 16;
-    const EINVALID_ARGUMENT: u64 = 18;
+    /// A property expected of a `TokenInfo` resource didn't hold
+    const ERR_TOKEN_INFO: u64 = 1;
+    /// A property expected of the token provided didn't hold
+    const ERR_INVALID_TOKEN: u64 = 2;
+    /// The destruction of a non-zero token was attempted. Non-zero tokens must be burned.
+    const ERR_DESTRUCTION_OF_NONZERO_TOKEN: u64 = 3;
+    /// A withdrawal greater than the value of the token was attempted.
+    const ERR_AMOUNT_EXCEEDS_TOKEN_VALUE: u64 = 4;
+    /// When token registered not from deployer.
+    const ERR_ACC_IS_NOT_TOKEN_DEPLOYER: u64 = 5;
 
-    /// Token register's address should same as TokenType's address.
-    const ETOKEN_REGISTER: u64 = 101;
+    const ERR_NOT_ADMIN: u64 = 6;
 
-    const EAMOUNT_EXCEEDS_COIN_VALUE: u64 = 102;
-    // Mint key time limit
-    const EMINT_KEY_TIME_LIMIT: u64 = 103;
-
-    const EDESTROY_KEY_NOT_EMPTY: u64 = 104;
-    const EPRECISION_TOO_LARGE: u64 = 105;
-    const EEMPTY_KEY: u64 = 106;
-    const ESPLIT: u64 = 107;
-    const EPERIOD_NEW: u64 = 108;
-    const EMINT_AMOUNT_EQUAL_ZERO: u64 = 109;
-
-    /// 2^128 < 10**39
-    const MAX_PRECISION: u8 = 38;
-
-    /// Register the type `TokenType` as a Token and got MintCapability and BurnCapability.
-    public fun register_token<TokenType: store>(
-        account: &signer,
-        precision: u8,
-    ) {
-        assert!(precision <= MAX_PRECISION, Errors::invalid_argument(EPRECISION_TOO_LARGE));
-        let scaling_factor = Math::pow(10, (precision as u64));
-        let token_address = token_address<TokenType>();
-        assert!(Signer::address_of(account) == token_address, Errors::requires_address(ETOKEN_REGISTER));
-        move_to(account, MintCapability<TokenType> {});
-        move_to(account, BurnCapability<TokenType> {});
-        move_to(
-            account,
-            TokenInfo<TokenType> {
-                total_value: 0,
-                scaling_factor,
-                mint_events: Event::new_event_handle<MintEvent>(account),
-                burn_events: Event::new_event_handle<BurnEvent>(account),
-            },
-        );
+    /// Create a new `Token<TokenType>` with a value of `0`. Anyone can call
+    /// this and it will be successful as long as `TokenType` is a registered token.
+    public fun zero<TokenType>(): Token<TokenType> {
+        assert_is_token<TokenType>();
+        Token<TokenType> { value: 0 }
+    }
+    spec zero {
+        include AbortsIfTokenNotRegistered<TokenType>;
+        ensures result.value == 0;
     }
 
-    spec register_token {
-        include RegisterTokenAbortsIf<TokenType>;
-        include RegisterTokenEnsures<TokenType>;
+    /// Returns the `value` of the passed in `token`. The value is
+    /// represented in the base units for the token represented by
+    /// `TokenType`.
+    public fun value<TokenType>(token: &Token<TokenType>): u128 {
+        token.value as u128
     }
 
-    spec schema RegisterTokenAbortsIf<TokenType> {
-        precision: u8;
-        account: signer;
-        aborts_if precision > MAX_PRECISION;
-        aborts_if Signer::address_of(account) != SPEC_TOKEN_TEST_ADDRESS();
-        aborts_if exists<MintCapability<TokenType>>(Signer::address_of(account));
-        aborts_if exists<BurnCapability<TokenType>>(Signer::address_of(account));
-        aborts_if exists<TokenInfo<TokenType>>(Signer::address_of(account));
+    /// Removes `amount` of value from the passed in `token`. Returns the
+    /// remaining balance of the passed in `token`, along with another token
+    /// with value equal to `amount`. Calls will fail if `amount > Token::value(&token)`.
+    public fun split<TokenType>(token: Token<TokenType>, amount: u64): (Token<TokenType>, Token<TokenType>) {
+        let other = withdraw(&mut token, amount);
+        (token, other)
+    }
+    spec split {
+        include AbortsIfTokenValueLessThanAmount<TokenType> { token, amount };
+        ensures result_1.value == token.value - amount;
+        ensures result_2.value == amount;
     }
 
-    spec schema RegisterTokenEnsures<TokenType> {
-        account: signer;
-        ensures exists<MintCapability<TokenType>>(Signer::address_of(account));
-        ensures exists<BurnCapability<TokenType>>(Signer::address_of(account));
-        ensures exists<TokenInfo<TokenType>>(Signer::address_of(account));
+    /// Withdraw `amount` from the passed-in `token`, where the original token is modified in place.
+    /// After this function is executed, the original `token` will have
+    /// `value = original_value - amount`, and the new token will have a `value = amount`.
+    /// Calls will abort if the passed-in `amount` is greater than the
+    /// value of the passed-in `token`.
+    public fun withdraw<TokenType>(token: &mut Token<TokenType>, amount: u64): Token<TokenType> {
+        // Check that `amount` is less than the token's value
+        assert!(token.value >= amount, Errors::limit_exceeded(ERR_AMOUNT_EXCEEDS_TOKEN_VALUE));
+        token.value = token.value - amount;
+        Token { value: amount }
+    }
+    spec withdraw {
+        include AbortsIfTokenValueLessThanAmount<TokenType> { token, amount };
+        ensures token.value == old(token.value) - amount;
+        ensures result.value == amount;
+    }
+    spec schema AbortsIfTokenValueLessThanAmount<TokenType> {
+        token: Token<TokenType>;
+        amount: u64;
+
+        aborts_if token.value < amount with Errors::LIMIT_EXCEEDED;
     }
 
-    /// Remove mint capability from `signer`.
-    public fun remove_mint_capability<TokenType: store>(signer: &signer): MintCapability<TokenType>
-    acquires MintCapability {
-        move_from<MintCapability<TokenType>>(Signer::address_of(signer))
+    /// Return a `Token<TokenType>` worth `token.value` and reduces the `value` of the input `token` to
+    /// zero. Does not abort.
+    public fun withdraw_all<TokenType>(token: &mut Token<TokenType>): Token<TokenType> {
+        let val = token.value;
+        withdraw(token, val)
+    }
+    spec withdraw_all {
+        ensures result.value == old(token.value);
+        ensures token.value == 0;
     }
 
-    spec remove_mint_capability {
-        aborts_if !exists<MintCapability<TokenType>>(Signer::address_of(signer));
-        ensures !exists<MintCapability<TokenType>>(Signer::address_of(signer));
+    /// Takes two tokens as input, returns a single token with the total value of both tokens.
+    /// Destroys on of the input tokens.
+    public fun join<TokenType>(token1: Token<TokenType>, token2: Token<TokenType>): Token<TokenType>  {
+        deposit(&mut token1, token2);
+        token1
+    }
+    spec join {
+        include AbortsIfSumMaxU64<TokenType> { token1, token2 };
+        ensures result.value == token1.value + token2.value;
     }
 
-    /// Add mint capability to `signer`.
-    public fun add_mint_capability<TokenType: store>(signer: &signer, cap: MintCapability<TokenType>) {
-        move_to(signer, cap)
+    /// "Merges" the two tokens.
+    /// The token passed in by reference will have a value equal to the sum of the two tokens
+    /// The `check` tokens is consumed in the process
+    public fun deposit<TokenType>(token: &mut Token<TokenType>, check: Token<TokenType>) {
+        let Token { value } = check;
+        assert!(MAX_U64 - token.value >= value, Errors::limit_exceeded(ERR_INVALID_TOKEN));
+        token.value = token.value + value;
+    }
+    spec deposit {
+        include AbortsIfSumMaxU64<TokenType> { token1: token, token2: check };
+        ensures token.value == old(token.value) + check.value;
+    }
+    spec schema AbortsIfSumMaxU64<TokenType> {
+        token1: Token<TokenType>;
+        token2: Token<TokenType>;
+
+        aborts_if token1.value + token2.value > max_u64() with Errors::LIMIT_EXCEEDED;
     }
 
-    spec add_mint_capability {
-        aborts_if exists<MintCapability<TokenType>>(Signer::address_of(signer));
-        ensures exists<MintCapability<TokenType>>(Signer::address_of(signer));
+    /// Destroy a zero-value token. Calls will fail if the `value` in the passed-in `token` is non-zero
+    /// so it is impossible to "burn" any non-zero amount of `Pontem` without having
+    /// a `BurnCapability` for the specific `TokenType`.
+    public fun destroy_zero<TokenType>(token: Token<TokenType>) {
+        let Token { value } = token;
+        assert!(value == 0, Errors::invalid_argument(ERR_DESTRUCTION_OF_NONZERO_TOKEN))
+    }
+    spec destroy_zero {
+        aborts_if token.value > 0 with Errors::INVALID_ARGUMENT;
     }
 
-    /// Destroy the given mint capability.
-    public fun destroy_mint_capability<TokenType: store>(cap: MintCapability<TokenType>) {
-        let MintCapability<TokenType> { } = cap;
-    }
-
-    spec destroy_mint_capability {
-    }
-
-    /// remove the token burn capability from `signer`.
-    public fun remove_burn_capability<TokenType: store>(signer: &signer): BurnCapability<TokenType>
-    acquires BurnCapability {
-        move_from<BurnCapability<TokenType>>(Signer::address_of(signer))
-    }
-
-    spec remove_burn_capability {
-        aborts_if !exists<BurnCapability<TokenType>>(Signer::address_of(signer));
-        ensures !exists<BurnCapability<TokenType>>(Signer::address_of(signer));
-    }
-
-    /// Add token burn capability to `signer`.
-    public fun add_burn_capability<TokenType: store>(signer: &signer, cap: BurnCapability<TokenType>) {
-        move_to(signer, cap)
-    }
-
-    spec add_burn_capability {
-        aborts_if exists<BurnCapability<TokenType>>(Signer::address_of(signer));
-        ensures exists<BurnCapability<TokenType>>(Signer::address_of(signer));
-    }
-
-    /// Destroy the given burn capability.
-    public fun destroy_burn_capability<TokenType: store>(cap: BurnCapability<TokenType>) {
-        let BurnCapability<TokenType> { } = cap;
-    }
-
-    spec destroy_burn_capability {
-    }
-
-    /// Return `amount` tokens.
-    /// Fails if the sender does not have a published MintCapability.
-    public fun mint<TokenType: store>(account: &signer, amount: u128): Token<TokenType>
-    acquires TokenInfo, MintCapability {
-        mint_with_capability(
-            borrow_global<MintCapability<TokenType>>(Signer::address_of(account)),
-            amount,
-        )
-    }
-
-    spec mint {
-        aborts_if spec_abstract_total_value<TokenType>() + amount > MAX_U128;
-        aborts_if !exists<MintCapability<TokenType>>(Signer::address_of(account));
-    }
-
-    /// Mint a new Token::Token worth `amount`.
-    /// The caller must have a reference to a MintCapability.
-    /// Only the Association account can acquire such a reference, and it can do so only via
-    /// `borrow_sender_mint_capability`
-    public fun mint_with_capability<TokenType: store>(
-        _capability: &MintCapability<TokenType>,
-        amount: u128,
+    /// Mint new tokens of `TokenType`.
+    /// The function requires `MintCapability`, returns created tokens `Token<TokenType>`.
+    public fun mint<TokenType>(
+        value: u128,
+        _capability: &MintCapability<TokenType>
     ): Token<TokenType> acquires TokenInfo {
-        do_mint(amount)
-    }
+        assert_is_token<TokenType>();
 
-    spec mint_with_capability {
-        aborts_if spec_abstract_total_value<TokenType>() + amount > MAX_U128;
-        ensures spec_abstract_total_value<TokenType>() ==
-                old(global<TokenInfo<TokenType>>(SPEC_TOKEN_TEST_ADDRESS()).total_value) + amount;
-    }
-
-    fun do_mint<TokenType: store>(amount: u128): Token<TokenType> acquires TokenInfo {
         // update market cap resource to reflect minting
-        let (token_address, module_name, token_name) = name_of_token<TokenType>();
-        let info = borrow_global_mut<TokenInfo<TokenType>>(token_address);
-        info.total_value = info.total_value + amount;
-        Event::emit_event(
-            &mut info.mint_events,
-            MintEvent {
-                amount,
-                token_code: TokenCode { addr: token_address, module_name, name: token_name },
-            },
-        );
-        Token<TokenType> { value: amount }
-    }
+        let info = borrow_global_mut<TokenInfo<TokenType>>(@SwapAdmin);
+        assert!(MAX_U128 - info.total_value >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
-    spec do_mint {
-        aborts_if !exists<TokenInfo<TokenType>>(SPEC_TOKEN_TEST_ADDRESS());
-        aborts_if spec_abstract_total_value<TokenType>() + amount > MAX_U128;
-    }
+        info.total_value = info.total_value + value;
 
-    /// Deprecated since @v3
-    /// Issue a `FixedTimeMintKey` with given `MintCapability`.
-    public fun issue_fixed_mint_key<TokenType: store>( _capability: &MintCapability<TokenType>,
-                                                       _amount: u128, _period: u64): FixedTimeMintKey<TokenType>{
-        abort Errors::internal(EDEPRECATED_FUNCTION)
-    }
+//        Event::emit_event(
+//            &mut info.mint_events,
+//            MintEvent{
+//                amount: value,
+//                symbol,
+//            }
+//        );
 
-    spec issue_fixed_mint_key {
+        Token<TokenType> { value: value as u64 }
     }
+//    spec mint {
+//        let deployer_addr = get_deployer_addr<TokenType>();
+//        modifies global<TokenInfo<TokenType>>(deployer_addr);
+//
+//        include AbortsIfTokenNotRegistered<TokenType>;
+//        let token_info = global<TokenInfo<TokenType>>(deployer_addr);
+//        aborts_if token_info.total_value + value > max_u128() with Errors::LIMIT_EXCEEDED;
+//
+//        let post post_token_info = global<TokenInfo<TokenType>>(deployer_addr);
+//        ensures exists<TokenInfo<TokenType>>(deployer_addr);
+//        ensures post_token_info == update_field(token_info, total_value, token_info.total_value + value);
+//        ensures result.value == value;
+//    }
 
-    /// Deprecated since @v3
-    /// Issue a `LinearTimeMintKey` with given `MintCapability`.
-    public fun issue_linear_mint_key<TokenType: store>( _capability: &MintCapability<TokenType>,
-                                                        _amount: u128, _period: u64): LinearTimeMintKey<TokenType>{
-        abort Errors::internal(EDEPRECATED_FUNCTION)
-    }
-
-    spec issue_linear_mint_key {
-    }
-
-    /// Destroy `LinearTimeMintKey`, for deprecated
-    public fun destroy_linear_time_key<TokenType: store>(key: LinearTimeMintKey<TokenType>): (u128, u128, u64, u64) {
-        let LinearTimeMintKey<TokenType> { total, minted, start_time, period} = key;
-        (total, minted, start_time, period)
-    }
-
-    public fun read_linear_time_key<TokenType: store>(key: &LinearTimeMintKey<TokenType>): (u128, u128, u64, u64) {
-        (key.total, key.minted, key.start_time, key.period)
-    }
-
-    /// Burn some tokens of `signer`.
-    public fun burn<TokenType: store>(account: &signer, tokens: Token<TokenType>)
-    acquires TokenInfo, BurnCapability {
-        burn_with_capability(
-            borrow_global<BurnCapability<TokenType>>(Signer::address_of(account)),
-            tokens,
-        )
-    }
-
-    spec burn {
-        aborts_if spec_abstract_total_value<TokenType>() - tokens.value < 0;
-        aborts_if !exists<BurnCapability<TokenType>>(Signer::address_of(account));
-    }
-
-    /// Burn tokens with the given `BurnCapability`.
-    public fun burn_with_capability<TokenType: store>(
-        _capability: &BurnCapability<TokenType>,
-        tokens: Token<TokenType>,
+    /// Burn `to_burn` tokens.
+    /// The function requires `BurnCapability`.
+    public fun burn<TokenType> (
+        admin_acc: &signer,
+        to_burn: Token<TokenType>,
     ) acquires TokenInfo {
-        let (token_address, module_name, token_name) = name_of_token<TokenType>();
-        let info = borrow_global_mut<TokenInfo<TokenType>>(token_address);
-        let Token { value } = tokens;
-        info.total_value = info.total_value - value;
+        assert_is_token<TokenType>();
+        assert_is_admin(admin_acc);
+
+        let admin_addr = Signer::address_of(admin_acc);
+        let symbol = symbol<TokenType>();
+
+        // Destroying tokens.
+        let Token { value } = to_burn;
+        let info = borrow_global_mut<TokenInfo<TokenType>>(admin_addr);
+
+        assert!(info.total_value >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
+        info.total_value = info.total_value - (value as u128);
+
         Event::emit_event(
             &mut info.burn_events,
             BurnEvent {
                 amount: value,
-                token_code: TokenCode { addr: token_address, module_name, name: token_name },
-            },
+                symbol,
+            }
         );
     }
 
-    spec burn_with_capability {
-        aborts_if spec_abstract_total_value<TokenType>() - tokens.value < 0;
-        ensures spec_abstract_total_value<TokenType>() ==
-                old(global<TokenInfo<TokenType>>(SPEC_TOKEN_TEST_ADDRESS()).total_value) - tokens.value;
+    /// Register new token.
+    /// Should be called the deployer of module contains `TokenType`.
+    /// Registering new token.
+    public fun register_token<TokenType>(
+        acc: &signer,
+        decimals: u8,
+        symbol: String,
+    ): (MintCapability<TokenType>, BurnCapability<TokenType>) {
+        assert_is_admin(acc);
+        assert!(
+            !exists<TokenInfo<TokenType>>(Signer::address_of(acc)),
+            Errors::already_published(ERR_TOKEN_INFO)
+        );
+
+        move_to(acc, TokenInfo<TokenType> {
+            total_value: 0,
+            decimals,
+            symbol,
+            mint_events: Event::new_event_handle<MintEvent>(acc),
+            burn_events: Event::new_event_handle<BurnEvent>(acc),
+        });
+        (MintCapability<TokenType>{}, BurnCapability<TokenType>{})
     }
+//    spec register_token {
+//        let acc_addr = Signer::address_of(acc);
+//        aborts_if exists<TokenInfo<TokenType>>(acc_addr) with Errors::ALREADY_PUBLISHED;
+//        aborts_if acc_addr != get_deployer_addr<TokenType>() with Errors::CUSTOM;
+//    }
 
-    /// Create a new Token::Token<TokenType> with a value of 0
-    public fun zero<TokenType: store>(): Token<TokenType> {
-        Token<TokenType> { value: 0 }
+    /// Returns the total amount of token minted of type `TokenType`.
+    public fun total_value<TokenType>(): u128
+    acquires TokenInfo {
+        assert_is_token<TokenType>();
+        borrow_global<TokenInfo<TokenType>>(@SwapAdmin).total_value
     }
+    /// Returns the market cap of `TokenType`.
+//    spec fun spec_total_value<TokenType>(): u128 {
+//        spec_token_info<TokenType>().total_value
+//    }
 
-    spec zero {
-    }
+//    /// Get deployer of token.
+//    fun get_deployer_addr<TokenType>(): address {
+//        let deployer_addr = Reflect::mod_address_of<TokenType>();
+//        // implementation detail:
+//        // Node signs deployment PontemFramework modules with @Root, but deploys them at @Std.
+//        // That @Std module -> @Root signature relationship should be reflected in get_deployer_addr() calls.
+//        if (deployer_addr == @Std) {
+//            @Root
+//        } else {
+//            deployer_addr
+//        }
+//    }
 
+//    /// Returns `true` if the type `TokenType` is a registered token.
+//    /// Returns `false` otherwise.
+//    public fun is_token<TokenType>(): bool {
+//        let deployer_addr = get_deployer_addr<TokenType>();
+//        exists<TokenInfo<TokenType>>(deployer_addr)
+//    }
 
-    /// Public accessor for the value of a token
-    public fun value<TokenType: store>(token: &Token<TokenType>): u128 {
-        token.value
-    }
+//    /// Returns the decimals for the `TokenType` token as defined
+//    /// in its `TokenInfo`.
+//    public fun decimals<TokenType>(): u8
+//    acquires TokenInfo {
+//        assert_is_token<TokenType>();
+//        let deployer = get_deployer_addr<TokenType>();
+//        borrow_global<TokenInfo<TokenType>>(deployer).decimals
+//    }
+//    spec fun spec_decimals<TokenType>(): u8 {
+//        spec_token_info<TokenType>().decimals
+//    }
 
-    spec value {
-        aborts_if false;
-    }
+//    /// Returns the token code for the registered token as defined in
+//    /// its `TokenInfo` resource.
+//    public fun symbol<TokenType>(): String
+//    acquires TokenInfo {
+//        //        assert_is_token<TokenType>();
+//        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
+//        //        let deployer = get_deployer_addr<TokenType>();
+//        *&borrow_global<TokenInfo<TokenType>>(get_deployer_addr<TokenType>()).symbol
+//    }
+//    spec symbol {
+//        include AbortsIfTokenNotRegistered<TokenType>;
+//        ensures result == spec_symbol<TokenType>();
+//    }
+//    spec fun spec_symbol<TokenType>(): String {
+//        spec_token_info<TokenType>().symbol
+//    }
 
-    /// Splits the given token into two and returns them both
-    public fun split<TokenType: store>(
-        token: Token<TokenType>,
-        value: u128,
-    ): (Token<TokenType>, Token<TokenType>) {
-        let other = withdraw(&mut token, value);
-        (token, other)
-    }
-
-    spec split {
-        aborts_if token.value < value;
-        ensures old(token.value) == result_1.value + result_2.value;
-    }
-
-    /// "Divides" the given token into two, where the original token is modified in place.
-    /// The original token will have value = original value - `value`
-    /// The new token will have a value = `value`
-    /// Fails if the tokens value is less than `value`
-    public fun withdraw<TokenType: store>(
-        token: &mut Token<TokenType>,
-        value: u128,
-    ): Token<TokenType> {
-        // Check that `value` is less than the token's value
-        assert!(token.value >= value, Errors::limit_exceeded(EAMOUNT_EXCEEDS_COIN_VALUE));
-        token.value = token.value - value;
-        Token { value }
-    }
-
-    spec withdraw {
-        aborts_if token.value < value;
-        ensures result.value == value;
-        ensures token.value == old(token).value - value;
-    }
-
-    /// Merges two tokens of the same token and returns a new token whose
-    /// value is equal to the sum of the two inputs
-    public fun join<TokenType: store>(
-        token1: Token<TokenType>,
-        token2: Token<TokenType>,
-    ): Token<TokenType> {
-        deposit(&mut token1, token2);
-        token1
-    }
-
-    spec join {
-        aborts_if token1.value + token2.value > max_u128();
-        ensures old(token1).value + old(token2).value == result.value;
-        ensures token1.value + token2.value == result.value;
-    }
-
-    /// "Merges" the two tokens
-    /// The token passed in by reference will have a value equal to the sum of the two tokens
-    /// The `check` token is consumed in the process
-    public fun deposit<TokenType: store>(token: &mut Token<TokenType>, check: Token<TokenType>) {
-        let Token { value } = check;
-        token.value = token.value + value;
-    }
-
-    spec deposit {
-        aborts_if token.value + check.value > max_u128();
-        ensures old(token).value + check.value == token.value;
-    }
-
-    /// Destroy a token
-    /// Fails if the value is non-zero
-    /// The amount of Token in the system is a tightly controlled property,
-    /// so you cannot "burn" any non-zero amount of Token
-    public fun destroy_zero<TokenType: store>(token: Token<TokenType>) {
-        let Token { value } = token;
-        assert!(value == 0, Errors::invalid_state(EDESTROY_TOKEN_NON_ZERO))
-    }
-
-    spec destroy_zero {
-        aborts_if token.value > 0;
-    }
-
-    /// Returns the scaling_factor for the `TokenType` token.
-    public fun scaling_factor<TokenType: store>(): u128 acquires TokenInfo {
-        let token_address = token_address<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(token_address).scaling_factor
-    }
-
-    spec scaling_factor {
-        aborts_if false;
-    }
-
-    /// Return the total amount of token of type `TokenType`.
-    public fun market_cap<TokenType: store>(): u128 acquires TokenInfo {
-        let token_address = token_address<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(token_address).total_value
-    }
-
-    spec market_cap {
-        aborts_if false;
-    }
-
-    /// Return true if the type `TokenType` is a registered in `token_address`.
-    public fun is_registered_in<TokenType: store>(token_address: address): bool {
-        exists<TokenInfo<TokenType>>(token_address)
-    }
-
-    spec is_registered_in {
-        aborts_if false;
-    }
-
-    /// Return true if the type `TokenType1` is same with `TokenType2`
-    public fun is_same_token<TokenType1: store, TokenType2: store>(): bool {
-        return token_code<TokenType1>() == token_code<TokenType2>()
-    }
-
-    spec is_same_token {
-        aborts_if false;
-    }
-
-    /// Return the TokenType's address
-    public fun token_address<TokenType: store>(): address {
-        let (addr, _, _) = name_of<TokenType>();
-        addr
-    }
-
-    // The specification of this function is abstracted to avoid the complexity to
-    // return a real address to caller
-    spec token_address {
-        pragma opaque = true;
-        aborts_if false;
-        ensures [abstract] exists<TokenInfo<TokenType>>(result);
-        ensures [abstract] result == SPEC_TOKEN_TEST_ADDRESS();
-        ensures [abstract] global<TokenInfo<TokenType>>(result).total_value == 100000000u128;
-    }
-
-    /// Return the token code for the registered token.
-    public fun token_code<TokenType: store>(): TokenCode {
-        let (addr, module_name, name) = name_of<TokenType>();
-        TokenCode {
-            addr,
-            module_name,
-            name
-        }
-    }
-
-    spec token_code {
-        pragma opaque = true;
-        aborts_if false;
-        // ensures [abstract] result == spec_token_code<TokenType>();
-    }
-
-    /// We use an uninterpreted function to represent the result of derived address. The actual value
-    /// does not matter for the verification of callers.
-    spec fun spec_token_code<TokenType>(): TokenCode;
-
-    /// Return Token's module address, module name, and type name of `TokenType`.
-    native fun name_of<TokenType: store>(): (address, vector<u8>, vector<u8>);
-
-    spec name_of {
-        pragma opaque = true;
-        aborts_if false;
-    }
-
-    fun name_of_token<TokenType: store>(): (address, vector<u8>, vector<u8>) {
-        name_of<TokenType>()
-    }
-
-    // The specification of this function is abstracted to avoid the complexity to
-    // return a real address to caller
-    spec name_of_token {
-        pragma opaque = true;
-        aborts_if false;
-        ensures [abstract] exists<TokenInfo<TokenType>>(result_1);
-        ensures [abstract] result_1 == SPEC_TOKEN_TEST_ADDRESS();
-        ensures [abstract] global<TokenInfo<TokenType>>(result_1).total_value == 100000000u128;
+    public fun assert_is_admin(acc: &signer) {
+        assert!(Signer::address_of(acc) == @SwapAdmin, ERR_NOT_ADMIN);
     }
 
 
-    spec fun SPEC_TOKEN_TEST_ADDRESS(): address {
-        @0x2
+    ///////////////////////////////////////////////////////////////////////////
+    // Helper functions
+    ///////////////////////////////////////////////////////////////////////////
+
+    /// Asserts that `TokenType` is a registered token.
+    public fun assert_is_token<TokenType>() {
+        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
+    }
+    spec assert_is_token {
+        include AbortsIfTokenNotRegistered<TokenType>;
+    }
+    spec schema AbortsIfTokenNotRegistered<TokenType> {
+        aborts_if !is_token<TokenType>() with Errors::NOT_PUBLISHED;
     }
 
-    spec fun spec_abstract_total_value<TokenType>(): u128 {
-        global<TokenInfo<TokenType>>(SPEC_TOKEN_TEST_ADDRESS()).total_value
-    }
+//    spec fun spec_token_info<TokenType>(): TokenInfo<TokenType> {
+//        let deployer_addr = get_deployer_addr<TokenType>();
+//        global<TokenInfo<TokenType>>(deployer_addr)
+//    }
 }

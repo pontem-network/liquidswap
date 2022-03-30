@@ -4,8 +4,10 @@ version = "0.1.0"
 
 [addresses]
 Std = "0x1"
+PontemFramework = "0x1"
 SwapAdmin = "0x8c109349c6bd91411d6bc962e080c4a3"
 SwapFeeAdmin = "0x9572abb16f9d9e9b009cc1751727129e"
+Bridge = "0xb6d69dd935edf7f2054acf12eb884df8"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

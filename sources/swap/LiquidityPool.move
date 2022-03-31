@@ -12,12 +12,14 @@ module SwapAdmin::LiquidityPool {
     const LP_TOKEN_DECIMALS: u8 = 9;
 
     /// Minimal liquidity.
-    const MINIMAL_LIQUIDITY: u64 = 1000;
+    const MINIMAL_LIQUIDITY: u128 = 1000;
+
+    // TODO: events.
 
     /// Liquidity pool with reserves
     /// LP token should go outside of this module.
     /// Probably we only need mint capability?
-    struct LiquidityPool<X: store, Y: store, phantom LP> has key {
+    struct LiquidityPool<X: store, Y: store, phantom LP> has key, store {
         token_x_reserve: Token<X>,
         token_y_reserve: Token<Y>,
         lp_mint_cap: Token::MintCapability<LP>,
@@ -48,12 +50,58 @@ module SwapAdmin::LiquidityPool {
         move_to(account, token_pair);
     }
 
+    /// Mint new liquidity.
+    public fun mint_liquidity<X: store, Y: store, LP>(owner: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> acquires LiquidityPool {
+        let total_supply: u128 = Token::total_value<LP>();
+
+        let (x_reserve, y_reserve) = get_reserves<X, Y, LP>(owner);
+
+        let x_value = Token::value<X>(&token_x);
+        let y_value = Token::value<Y>(&token_y);
+
+        let liquidity = if (total_supply == 0) {
+            SafeMath::sqrt_u256(SafeMath::mul_u128(x_value, y_value)) - MINIMAL_LIQUIDITY
+        } else {
+            let x_liquidity = SafeMath::safe_mul_div_u128(x_value, total_supply, x_reserve);
+            let y_liquidity = SafeMath::safe_mul_div_u128(y_value, total_supply, y_reserve);
+
+            if (x_liquidity < y_liquidity) {
+                x_liquidity
+            } else {
+                y_liquidity
+            }
+        };
+
+        // TODO: error here.
+        assert!(liquidity > 0, 103);
+
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
+        Token::deposit(&mut liquidity_pool.token_x_reserve, token_x);
+        Token::deposit(&mut liquidity_pool.token_y_reserve, token_y);
+
+        let lp_tokens = Token::mint<LP>(liquidity, &liquidity_pool.lp_mint_cap);
+
+        // TODO: We should update oracle.
+
+        lp_tokens
+    }
+
     /// Caller should call this function to determine the order of A, B
     public fun compare_token<X, Y>(): u8 {
         let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
         let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());
         let ret: u8 = Compare::cmp_bcs_bytes(&x_bytes, &y_bytes);
         ret
+    }
+
+    /// Get reserves of a token pair.
+    /// The order of type args should be sorted.
+    public fun get_reserves<X: store, Y: store, LP>(owner: address): (u128, u128) acquires LiquidityPool {
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner);
+        let x_reserve = Token::value(&liquidity_pool.token_x_reserve);
+        let y_reserve = Token::value(&liquidity_pool.token_y_reserve);
+
+        (x_reserve, y_reserve)
     }
 
     // TODO: common method to add liquidity and for register_liquidity_pool and add_liquidity.

@@ -74,6 +74,8 @@ module SwapAdmin::LiquidityPool {
 
     public fun swap<In, Out>(in: Token<In>): Token<Out> {}
 
+    public fun claim_fees<X, Y>(acc: &signer): Token<LPToken<X, Y>> {}
+
     fun collect_fee<In: store, phantom Out: store>(token: Token<In>): Token<In>
     acquires LiquidityPool {
         // extract 0.3% fee from `token`

@@ -3,6 +3,8 @@ module SwapAdmin::LiquidityPool {
     use Std::Signer;
     use Std::Vector;
     use Std::ASCII::{String, Self};
+    use Std::BCS;
+    use Std::Compare;
     use SwapAdmin::Token::{Self, Token};
     use SwapAdmin::SafeMath;
 
@@ -15,38 +17,43 @@ module SwapAdmin::LiquidityPool {
     /// Liquidity pool with reserves
     /// LP token should go outside of this module.
     /// Probably we only need mint capability?
-    struct LiquidityPool<X: store, Y: store> has key {
+    struct LiquidityPool<X: store, Y: store, phantom LP> has key {
         token_x_reserve: Token<X>,
         token_y_reserve: Token<Y>,
+        lp_mint_cap: Token::MintCapability<LP>,
+        lp_burn_cap: Token::BurnCapability<LP>,
     }
 
-    /// TODO: move to seperated file.
-    /// LP token resource?
-    struct LPToken<phantom X, phantom Y> {}
-
-    /// TODO: move to seperated file.
-    /// LPToken Capabilities?
-    struct LPTokenCapabilities<X, Y> has key {
-        mint_cap: Token::MintCapability<LPToken<X, Y>>,
-        burn_cap: Token::BurnCapability<LPToken<X, Y>>,
-    }
-
-    /// Register liquidity pool (by paris).
-    /// TODO:
-    /// Add burn, mint capability.
-    /// Check total supply is zero.
-    public fun register_liquidity_pool<X: store, Y: store>(account: &signer) {
+    /// Register liquidity pool (by pairs).
+    public fun register_liquidity_pool<X: store, Y: store, LP>(account: &signer, lp_mint_cap: Token::MintCapability<LP>, lp_burn_cap: Token::BurnCapability<LP>) {
         Token::assert_is_token<X>();
         Token::assert_is_token<Y>();
 
+        let cmp = compare_token<X, Y>();
+
+        // TODO: Error code.
+        assert!(cmp != 0, 101);
+
+        // TODO: Error code.
+        assert!(Token::total_value<LP>() == 0, 102);
+
         // TODO: check that token pair is valid (order of terms).
-        let token_pair = LiquidityPool<X, Y>{
+        let token_pair = LiquidityPool<X, Y, LP>{
             token_x_reserve: Token::zero<X>(),
             token_y_reserve: Token::zero<Y>(),
+            lp_mint_cap: lp_mint_cap,
+            lp_burn_cap: lp_burn_cap,
         };
 
         move_to(account, token_pair);
-        ///register_lp_token<X, Y>(account);
+    }
+
+    /// Caller should call this function to determine the order of A, B
+    public fun compare_token<X, Y>(): u8 {
+        let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
+        let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());
+        let ret: u8 = Compare::cmp_bcs_bytes(&x_bytes, &y_bytes);
+        ret
     }
 
     // TODO: common method to add liquidity and for register_liquidity_pool and add_liquidity.

@@ -8,6 +8,8 @@ module SwapAdmin::LiquidityPool {
     use SwapAdmin::Token::{Self, Token};
     use SwapAdmin::SafeMath;
 
+    // Constants.
+
     /// LP token default decimals.
     const LP_TOKEN_DECIMALS: u8 = 9;
 
@@ -16,7 +18,7 @@ module SwapAdmin::LiquidityPool {
 
     // TODO: events.
 
-    /// Liquidity pool with reserves
+    /// Liquidity pool with reserves.
     /// LP token should go outside of this module.
     /// Probably we only need mint capability?
     struct LiquidityPool<X: store, Y: store, phantom LP> has key, store {
@@ -30,6 +32,7 @@ module SwapAdmin::LiquidityPool {
     public fun register_liquidity_pool<X: store, Y: store, LP>(account: &signer, lp_mint_cap: Token::MintCapability<LP>, lp_burn_cap: Token::BurnCapability<LP>) {
         Token::assert_is_token<X>();
         Token::assert_is_token<Y>();
+        Token::assert_is_token<LP>();
 
         let cmp = compare_token<X, Y>();
 
@@ -81,9 +84,51 @@ module SwapAdmin::LiquidityPool {
 
         let lp_tokens = Token::mint<LP>(liquidity, &liquidity_pool.lp_mint_cap);
 
-        // TODO: We should update oracle.
+        // TODO: We should update oracle?
 
         lp_tokens
+    }
+
+    /// Swap tokens (can swap both x and y in the same time).
+    /// In the most of situation only X or Y tokens argument has value (similar with *_out, only one _out will be non-zero).
+    /// Because an user usually exchanges only one token, yet function allow to exchange both tokens.
+    /// * x_in - X tokens to swap.
+    /// * x_out - exptected amount of X tokens to get out.
+    /// * y_in - Y tokens to swap.
+    /// * y_out - exptected amount of Y tokens to get out.
+    /// Returns - both exchanged X and Y token.
+    public fun swap<X: store, Y: store, LP>(owner: address, x_in: Token<X>, x_out: u128, y_in: Token<Y>, y_out: u128): (Token<X>, Token<Y>)  acquires LiquidityPool {
+        let x_in_value = Token::value(&x_in);
+        let y_in_value = Token::value(&y_in);
+
+        // TODO: error here.
+        assert!(x_in_value > 0 || y_in_value > 0, 104);
+
+        let (x_reserve, y_reserve) = get_reserves<X, Y, LP>(owner);
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
+
+        // Deposit new tokens to liquidity pool.
+        Token::deposit(&mut liquidity_pool.token_x_reserve, x_in);
+        Token::deposit(&mut liquidity_pool.token_y_reserve, y_in);
+
+        // Withdraw expected amount from reserves.
+        let x_swapped = Token::withdraw(&mut liquidity_pool.token_x_reserve, x_out);
+        let y_swapped = Token::withdraw(&mut liquidity_pool.token_y_reserve, y_out);
+
+        // Get new reserves.
+        let x_reserve_new = Token::value(&liquidity_pool.token_x_reserve);
+        let y_reserve_new = Token::value(&liquidity_pool.token_y_reserve);        
+
+        // Check we can do swap with provided info.
+        let x_adjusted = x_reserve_new * 3 - x_in_value * 1000;
+        let y_adjusted = y_reserve_new * 3 - y_in_value * 1000;
+        let cmp_order = SafeMath::safe_compare_mul_u128(x_adjusted, y_adjusted, x_reserve, y_reserve * 1000000);
+
+        // TODO: error and compare (equal, greater than) from safe math.
+        assert!((0 == cmp_order || 2 == cmp_order), 105);
+
+        // Return swapped amount.
+        (x_swapped, y_swapped)
     }
 
     /// Caller should call this function to determine the order of A, B
@@ -104,7 +149,7 @@ module SwapAdmin::LiquidityPool {
         (x_reserve, y_reserve)
     }
 
-    // TODO: common method to add liquidity and for register_liquidity_pool and add_liquidity.
+    
 
     // public fun mint_liquidity<X: store, Y: store>(token_x: Token<X>, token_y: Token<Y>): Token<LPToken<X, Y>>
     // acquires LiquidityPool, LPTokenCapabilities {

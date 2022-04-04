@@ -4,11 +4,13 @@ module SwapAdmin::LiquidityPool {
     use Std::ASCII::String;
     use Std::BCS;
     use Std::Compare;
+    use CoreFramework::Timestamp;
     use SwapAdmin::Token::{Self, Token};
     use SwapAdmin::SafeMath;
+    use SwapAdmin::FixedPoint128;
+    use Std::U256::{U256, Self};
 
     // Constants.
-
     /// LP token default decimals.
     const LP_TOKEN_DECIMALS: u8 = 9;
 
@@ -42,6 +44,9 @@ module SwapAdmin::LiquidityPool {
     struct LiquidityPool<phantom X, phantom Y, phantom LP> has key, store {
         token_x_reserve: Token<X>,
         token_y_reserve: Token<Y>,
+        last_block_timestamp: u64,
+        last_price_x_cumulative: U256,
+        last_price_y_cumulative: U256,
         lp_mint_cap: Token::MintCapability<LP>,
         lp_burn_cap: Token::BurnCapability<LP>,
     }
@@ -61,6 +66,9 @@ module SwapAdmin::LiquidityPool {
         let token_pair = LiquidityPool<X, Y, LP>{
             token_x_reserve: Token::zero<X>(),
             token_y_reserve: Token::zero<Y>(),
+            last_block_timestamp: 0,
+            last_price_x_cumulative: U256::zero(),
+            last_price_y_cumulative: U256::zero(),
             lp_mint_cap: lp_mint_cap,
             lp_burn_cap: lp_burn_cap,
         };
@@ -98,7 +106,7 @@ module SwapAdmin::LiquidityPool {
 
         let lp_tokens = Token::mint<LP>(liquidity, &liquidity_pool.lp_mint_cap);
 
-        // TODO: We should update oracle?
+        update_oracle<X, Y, LP>(owner, x_reserve, y_reserve);
 
         lp_tokens
     }
@@ -139,10 +147,34 @@ module SwapAdmin::LiquidityPool {
 
         assert!((SafeMath::CNST_EQUAL() == cmp_order || SafeMath::CNST_GREATER_THAN() == cmp_order), ERR_INCORRECT_SWAP);
 
-        // TODO: We should update oracle?
+        update_oracle<X, Y, LP>(owner, x_reserve, y_reserve);
 
         // Return swapped amount.
         (x_swapped, y_swapped)
+    }
+
+    /// Update prices.
+    fun update_oracle<X: store, Y: store, LP>(owner: address, x_reserve: u128, y_reserve: u128) acquires LiquidityPool {
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
+        
+        let last_block_timestamp = liquidity_pool.last_block_timestamp;
+
+        let block_timestamp = Timestamp::now_seconds() % (1u64 << 32);
+
+        let time_elapsed: u64 = block_timestamp - last_block_timestamp;
+
+        if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
+            // If we are not in the same block.
+            // TODO: see if possible rewrite without FixedPoint128 and U256 (yet i'm really not sure, too big numbers).
+            // Uniswap is using the following library https://github.com/Uniswap/v2-core/blob/master/contracts/libraries/UQ112x112.sol
+            // And doing it so - https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L77.
+            let last_price_x_cumulative = U256::mul(FixedPoint128::to_u256(FixedPoint128::div(FixedPoint128::encode(y_reserve), x_reserve)), U256::from_u64(time_elapsed));
+            let last_price_y_cumulative = U256::mul(FixedPoint128::to_u256(FixedPoint128::div(FixedPoint128::encode(x_reserve), y_reserve)), U256::from_u64(time_elapsed));
+            liquidity_pool.last_price_x_cumulative = U256::add(*&liquidity_pool.last_price_x_cumulative, last_price_x_cumulative);
+            liquidity_pool.last_price_y_cumulative = U256::add(*&liquidity_pool.last_price_y_cumulative, last_price_y_cumulative);
+        };
+
+        liquidity_pool.last_block_timestamp = block_timestamp;
     }
 
     /// Caller should call this function to determine the order of A, B.
@@ -154,12 +186,21 @@ module SwapAdmin::LiquidityPool {
     }
 
     /// Get reserves of a token pair.
-    /// The order of type args should be sorted.
     public fun get_reserves<X: store, Y: store, LP>(owner: address): (u128, u128) acquires LiquidityPool {
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner);
         let x_reserve = Token::value(&liquidity_pool.token_x_reserve);
         let y_reserve = Token::value(&liquidity_pool.token_y_reserve);
 
         (x_reserve, y_reserve)
+    }
+
+    /// Get current prices.
+    public fun get_cumulative_info<X: store, Y: store, LP>(owner: address): (U256, U256, u64) acquires LiquidityPool {
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner);
+        let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
+        let last_price_y_cumulative = *&liquidity_pool.last_price_y_cumulative;
+        let last_block_timestamp = liquidity_pool.last_block_timestamp;
+
+        (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
     }
 }

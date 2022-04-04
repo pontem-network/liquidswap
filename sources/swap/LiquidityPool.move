@@ -16,7 +16,6 @@ module SwapAdmin::LiquidityPool {
     const MINIMAL_LIQUIDITY: u128 = 1000;
 
     // Error codes.
-
     /// When tokens used to create pair have wrong ordering.
     const ERR_WRONG_PAIR_ORDERING: u64 = 101;
 
@@ -116,7 +115,6 @@ module SwapAdmin::LiquidityPool {
         let x_in_value = Token::value(&x_in);
         let y_in_value = Token::value(&y_in);
 
-        // TODO: error here.
         assert!(x_in_value > 0 || y_in_value > 0, ERR_EMPTY_IN);
 
         let (x_reserve, y_reserve) = get_reserves<X, Y, LP>(owner);
@@ -139,14 +137,15 @@ module SwapAdmin::LiquidityPool {
         let y_adjusted = y_reserve_new * 3 - y_in_value * 1000;
         let cmp_order = SafeMath::safe_compare_mul_u128(x_adjusted, y_adjusted, x_reserve, y_reserve * 1000000);
 
-        // TODO: error and compare (equal, greater than) from safe math.
-        assert!((0 == cmp_order || 2 == cmp_order), ERR_INCORRECT_SWAP);
+        assert!((SafeMath::CNST_EQUAL() == cmp_order || SafeMath::CNST_GREATER_THAN() == cmp_order), ERR_INCORRECT_SWAP);
+
+        // TODO: We should update oracle?
 
         // Return swapped amount.
         (x_swapped, y_swapped)
     }
 
-    /// Caller should call this function to determine the order of A, B
+    /// Caller should call this function to determine the order of A, B.
     public fun compare_token<X, Y>(): u8 {
         let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
         let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());

@@ -48,6 +48,18 @@ module SwapAdmin::SafeMath {
         U256::div(U256::mul(x_u256, y_u256), z_u256)
     }
 
+    public fun CNST_EQUAL(): u8 {
+        EQUAL
+    }
+
+    public fun CNST_LESS_THAN(): u8 {
+        LESS_THAN
+    }    
+
+    public fun CNST_GREATER_THAN(): u8 {
+        GREATER_THAN
+    }
+
     #[test]
     public fun test_safe_mul_div_u128() {
         let x: u128 = 9446744073709551615;

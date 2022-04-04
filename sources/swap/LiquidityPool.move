@@ -1,13 +1,13 @@
 /// Liquidity pool.
-module SwapAdmin::LiquidityPool {
+module AptosSwap::LiquidityPool {
     use Std::Signer;
     use Std::ASCII::String;
     use Std::BCS;
     use Std::Compare;
     use CoreFramework::Timestamp;
-    use SwapAdmin::Token::{Self, Token};
-    use SwapAdmin::SafeMath;
-    use SwapAdmin::FixedPoint128;
+    use AptosSwap::Token::{Self, Token};
+    use AptosSwap::SafeMath;
+    use AptosSwap::FixedPoint128;
     use Std::U256::{U256, Self};
 
     // Constants.

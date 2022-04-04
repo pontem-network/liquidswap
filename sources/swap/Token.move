@@ -4,7 +4,7 @@
 /// resource `Token::Token<TokenType>`, representing a token of given type.
 /// The module defines functions operating on tokens as well as functionality like
 /// minting and burning of tokens.
-module SwapAdmin::Token {
+module AptosSwap::Token {
     use Std::Errors;
     use Std::Event::{Self, EventHandle};
     use Std::Signer;
@@ -207,7 +207,7 @@ module SwapAdmin::Token {
         assert_is_token<TokenType>();
 
         // update market cap resource to reflect minting
-        let info = borrow_global_mut<TokenInfo<TokenType>>(@SwapAdmin);
+        let info = borrow_global_mut<TokenInfo<TokenType>>(@AptosSwap);
         assert!(MAX_U128 - info.total_value >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
         info.total_value = info.total_value + value;
@@ -297,7 +297,7 @@ module SwapAdmin::Token {
     public fun total_value<TokenType>(): u128
     acquires TokenInfo {
         assert_is_token<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(@SwapAdmin).total_value
+        borrow_global<TokenInfo<TokenType>>(@AptosSwap).total_value
     }
     /// Returns the market cap of `TokenType`.
 //    spec fun spec_total_value<TokenType>(): u128 {
@@ -349,7 +349,7 @@ module SwapAdmin::Token {
 //    }
 
     public fun assert_is_admin(acc: &signer) {
-        assert!(Signer::address_of(acc) == @SwapAdmin, ERR_NOT_ADMIN);
+        assert!(Signer::address_of(acc) == @AptosSwap, ERR_NOT_ADMIN);
     }
 
 

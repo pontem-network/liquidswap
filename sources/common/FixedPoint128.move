@@ -1,4 +1,4 @@
-address SwapAdmin {
+address AptosSwap {
 module FixedPoint128 {
     use Std::Errors;
     use Std::U256::{Self, U256};

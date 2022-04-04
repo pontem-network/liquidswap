@@ -7,18 +7,18 @@ AptosSwap = "0x11"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+rev = "012f07809431e936d32a9be8620089ad1834d4e9"
 subdir = "aptos-move/framework/move-stdlib"
 addr_subst = { Std = "0x1" }
 
 [dependencies.CoreFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+rev = "012f07809431e936d32a9be8620089ad1834d4e9"
 subdir = "aptos-move/framework/core"
 addr_subst = { Std = "0x1" }
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "b27288b0d9a6f2a95aeccc3e6a477ec57ea535a9"
+rev = "012f07809431e936d32a9be8620089ad1834d4e9"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }

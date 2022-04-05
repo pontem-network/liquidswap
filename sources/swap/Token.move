@@ -1,20 +1,22 @@
+/// TEMPORARY CLONED FROM PONTEM STDLIB, as Aptos still doesn't support tokens.
+
 /// The `Token` module describes the concept of a token in the Pontem framework. It introduces the
 /// resource `Token::Token<TokenType>`, representing a token of given type.
 /// The module defines functions operating on tokens as well as functionality like
 /// minting and burning of tokens.
-module SwapAdmin::Token {
+module AptosSwap::Token {
     use Std::Errors;
     use Std::Event::{Self, EventHandle};
     use Std::Signer;
-    use Std::ASCII::String;
-    use PontemFramework::PontAccount;
+    use Std::ASCII::{Self, String};
+    //use PontemFramework::PontAccount;
 
     /// The `Token` resource defines the token in the Pontem ecosystem.
     /// Each "token" is coupled with a type `TokenType` specifying the
     /// token type, and a `value` field specifying the value of the token.
     struct Token<phantom TokenType> has store {
         /// The value of this token in the base units for `TokenType`
-        value: u64
+        value: u128
     }
 
     /// A `MintEvent` is emitted every time a Token is minted. This
@@ -24,7 +26,7 @@ module SwapAdmin::Token {
     /// resource for the token.
     struct MintEvent has drop, store {
         /// Funds added to the system
-        amount: u64,
+        amount: u128,
         /// Symbol, e.g. "NOX".
         symbol: String,
     }
@@ -34,7 +36,7 @@ module SwapAdmin::Token {
     /// token, along with the `symbol` for the tokens being burned.
     struct BurnEvent has drop, store {
         /// Funds removed from the system
-        amount: u64,
+        amount: u128,
         /// Symbol, e.g. "NOX".
         symbol: String,
     }
@@ -105,13 +107,13 @@ module SwapAdmin::Token {
     /// represented in the base units for the token represented by
     /// `TokenType`.
     public fun value<TokenType>(token: &Token<TokenType>): u128 {
-        token.value as u128
+        token.value
     }
 
     /// Removes `amount` of value from the passed in `token`. Returns the
     /// remaining balance of the passed in `token`, along with another token
     /// with value equal to `amount`. Calls will fail if `amount > Token::value(&token)`.
-    public fun split<TokenType>(token: Token<TokenType>, amount: u64): (Token<TokenType>, Token<TokenType>) {
+    public fun split<TokenType>(token: Token<TokenType>, amount: u128): (Token<TokenType>, Token<TokenType>) {
         let other = withdraw(&mut token, amount);
         (token, other)
     }
@@ -126,7 +128,7 @@ module SwapAdmin::Token {
     /// `value = original_value - amount`, and the new token will have a `value = amount`.
     /// Calls will abort if the passed-in `amount` is greater than the
     /// value of the passed-in `token`.
-    public fun withdraw<TokenType>(token: &mut Token<TokenType>, amount: u64): Token<TokenType> {
+    public fun withdraw<TokenType>(token: &mut Token<TokenType>, amount: u128): Token<TokenType> {
         // Check that `amount` is less than the token's value
         assert!(token.value >= amount, Errors::limit_exceeded(ERR_AMOUNT_EXCEEDS_TOKEN_VALUE));
         token.value = token.value - amount;
@@ -139,7 +141,7 @@ module SwapAdmin::Token {
     }
     spec schema AbortsIfTokenValueLessThanAmount<TokenType> {
         token: Token<TokenType>;
-        amount: u64;
+        amount: u128;
 
         aborts_if token.value < amount with Errors::LIMIT_EXCEEDED;
     }
@@ -171,7 +173,7 @@ module SwapAdmin::Token {
     /// The `check` tokens is consumed in the process
     public fun deposit<TokenType>(token: &mut Token<TokenType>, check: Token<TokenType>) {
         let Token { value } = check;
-        assert!(MAX_U64 - token.value >= value, Errors::limit_exceeded(ERR_INVALID_TOKEN));
+        assert!(MAX_U128 - token.value >= value, Errors::limit_exceeded(ERR_INVALID_TOKEN));
         token.value = token.value + value;
     }
     spec deposit {
@@ -205,7 +207,7 @@ module SwapAdmin::Token {
         assert_is_token<TokenType>();
 
         // update market cap resource to reflect minting
-        let info = borrow_global_mut<TokenInfo<TokenType>>(@SwapAdmin);
+        let info = borrow_global_mut<TokenInfo<TokenType>>(@AptosSwap);
         assert!(MAX_U128 - info.total_value >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
         info.total_value = info.total_value + value;
@@ -218,7 +220,7 @@ module SwapAdmin::Token {
 //            }
 //        );
 
-        Token<TokenType> { value: value as u64 }
+        Token<TokenType> { value }
     }
 //    spec mint {
 //        let deployer_addr = get_deployer_addr<TokenType>();
@@ -295,7 +297,7 @@ module SwapAdmin::Token {
     public fun total_value<TokenType>(): u128
     acquires TokenInfo {
         assert_is_token<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(@SwapAdmin).total_value
+        borrow_global<TokenInfo<TokenType>>(@AptosSwap).total_value
     }
     /// Returns the market cap of `TokenType`.
 //    spec fun spec_total_value<TokenType>(): u128 {
@@ -317,10 +319,9 @@ module SwapAdmin::Token {
 
 //    /// Returns `true` if the type `TokenType` is a registered token.
 //    /// Returns `false` otherwise.
-//    public fun is_token<TokenType>(): bool {
-//        let deployer_addr = get_deployer_addr<TokenType>();
-//        exists<TokenInfo<TokenType>>(deployer_addr)
-//    }
+      public fun is_token<TokenType>(): bool {
+          true // Temporary.
+      }
 
 //    /// Returns the decimals for the `TokenType` token as defined
 //    /// in its `TokenInfo`.
@@ -336,13 +337,9 @@ module SwapAdmin::Token {
 
 //    /// Returns the token code for the registered token as defined in
 //    /// its `TokenInfo` resource.
-//    public fun symbol<TokenType>(): String
-//    acquires TokenInfo {
-//        //        assert_is_token<TokenType>();
-//        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
-//        //        let deployer = get_deployer_addr<TokenType>();
-//        *&borrow_global<TokenInfo<TokenType>>(get_deployer_addr<TokenType>()).symbol
-//    }
+      public fun symbol<TokenType>(): String  {
+          ASCII::string(b"tmp") // Just tmp for now
+      }
 //    spec symbol {
 //        include AbortsIfTokenNotRegistered<TokenType>;
 //        ensures result == spec_symbol<TokenType>();
@@ -352,7 +349,7 @@ module SwapAdmin::Token {
 //    }
 
     public fun assert_is_admin(acc: &signer) {
-        assert!(Signer::address_of(acc) == @SwapAdmin, ERR_NOT_ADMIN);
+        assert!(Signer::address_of(acc) == @AptosSwap, ERR_NOT_ADMIN);
     }
 
 

@@ -1,4 +1,4 @@
-module SwapAdmin::SafeMath {
+module AptosSwap::SafeMath {
     use Std::Errors;
     use Std::U256::{Self, U256};
     use Std::Math;
@@ -46,6 +46,18 @@ module SwapAdmin::SafeMath {
         let y_u256 = U256::from_u128(y);
         let z_u256 = U256::from_u128(z);
         U256::div(U256::mul(x_u256, y_u256), z_u256)
+    }
+
+    public fun CNST_EQUAL(): u8 {
+        EQUAL
+    }
+
+    public fun CNST_LESS_THAN(): u8 {
+        LESS_THAN
+    }    
+
+    public fun CNST_GREATER_THAN(): u8 {
+        GREATER_THAN
     }
 
     #[test]

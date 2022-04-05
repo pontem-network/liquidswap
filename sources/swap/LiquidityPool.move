@@ -1,99 +1,206 @@
-module SwapAdmin::LiquidityPool {
+/// Liquidity pool.
+module AptosSwap::LiquidityPool {
     use Std::Signer;
-    use Std::Vector;
-    use Std::ASCII::{String, Self};
-    use SwapAdmin::Token::{Self, Token};
-    use SwapAdmin::SafeMath;
+    use Std::ASCII::String;
+    use Std::BCS;
+    use Std::Compare;
+    use CoreFramework::Timestamp;
+    use AptosSwap::Token::{Self, Token};
+    use AptosSwap::SafeMath;
+    use AptosSwap::FixedPoint128;
+    use Std::U256::{U256, Self};
 
+    // Constants.
+    /// LP token default decimals.
     const LP_TOKEN_DECIMALS: u8 = 9;
 
-    const MINIMAL_LIQUIDITY: u64 = 1000;
+    /// Minimal liquidity.
+    const MINIMAL_LIQUIDITY: u128 = 1000;
 
-    struct LiquidityPool<X: store, Y: store> has key {
+    // Error codes.
+    /// When tokens used to create pair have wrong ordering.
+    const ERR_WRONG_PAIR_ORDERING: u64 = 101;
+
+    /// When provided LP token already has minted supply.
+    const ERR_LP_HAS_SUPPLY: u64 = 102;
+
+    /// When pair already exists on account.
+    const ERR_PAIR_EXISTS: u64 = 103;
+
+    /// When not enough liquidity minted.
+    const ERR_NOT_ENOUGH_LIQUIDITY: u64 = 104;
+
+    /// When both X and Y provided for swap are equal zero.
+    const ERR_EMPTY_IN: u64 = 105;
+
+    /// When incorrect INs/OUTs arguments passed during swap and math doesn't work.
+    const ERR_INCORRECT_SWAP: u64 = 106;
+
+    // TODO: events.
+
+    /// Liquidity pool with reserves.
+    /// LP token should go outside of this module.
+    /// Probably we only need mint capability?
+    struct LiquidityPool<phantom X, phantom Y, phantom LP> has key, store {
         token_x_reserve: Token<X>,
         token_y_reserve: Token<Y>,
-        lp_providers: vector<address>,
+        last_block_timestamp: u64,
+        last_price_x_cumulative: U256,
+        last_price_y_cumulative: U256,
+        lp_mint_cap: Token::MintCapability<LP>,
+        lp_burn_cap: Token::BurnCapability<LP>,
     }
 
-    struct LPToken<phantom X, phantom Y> {}
-
-    struct LPTokenCapabilities<X, Y> has key {
-        mint_cap: Token::MintCapability<LPToken<X, Y>>,
-        burn_cap: Token::BurnCapability<LPToken<X, Y>>,
-    }
-
-    public fun register_liquidity_pool<X: store, Y: store>(admin_acc: &signer) {
-        Token::assert_is_admin(admin_acc);
+    /// Register liquidity pool (by pairs).
+    public fun register_liquidity_pool<X: store, Y: store, LP>(account: &signer, lp_mint_cap: Token::MintCapability<LP>, lp_burn_cap: Token::BurnCapability<LP>) {
         Token::assert_is_token<X>();
         Token::assert_is_token<Y>();
+        Token::assert_is_token<LP>();
 
-        // TODO: check that token pair is valid (order of terms)
+        let cmp = compare_token<X, Y>();
 
-        let token_pair = LiquidityPool<X, Y>{
+        assert!(cmp != 0, ERR_WRONG_PAIR_ORDERING);
+        assert!(Token::total_value<LP>() == 0, ERR_LP_HAS_SUPPLY);
+        assert!(!exists<LiquidityPool<X, Y, LP>>(Signer::address_of(account)), ERR_PAIR_EXISTS);
+
+        let token_pair = LiquidityPool<X, Y, LP>{
             token_x_reserve: Token::zero<X>(),
             token_y_reserve: Token::zero<Y>(),
-            lp_providers: Vector::empty<address>(),
+            last_block_timestamp: 0,
+            last_price_x_cumulative: U256::zero(),
+            last_price_y_cumulative: U256::zero(),
+            lp_mint_cap: lp_mint_cap,
+            lp_burn_cap: lp_burn_cap,
         };
-        move_to(admin_acc, token_pair);
 
-        register_lp_token<X, Y>(admin_acc);
+        move_to(account, token_pair);
     }
 
-    public fun mint_liquidity<X: store, Y: store>(token_x: Token<X>, token_y: Token<Y>): Token<LPToken<X, Y>>
-    acquires LiquidityPool, LPTokenCapabilities {
-        let lp_tokens_total = Token::total_value<LPToken<X, Y>>();
-        let x_value = Token::value(&token_x);
-        let y_value = Token::value(&token_y);
+    /// Mint new liquidity.
+    public fun mint_liquidity<X: store, Y: store, LP>(owner: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> acquires LiquidityPool {
+        let total_supply: u128 = Token::total_value<LP>();
 
-        let pool = borrow_global<LiquidityPool<X, Y>>(@SwapAdmin);
-        let x_reserve = Token::value(&pool.token_x_reserve);
-        let y_reserve = Token::value(&pool.token_y_reserve);
+        let (x_reserve, y_reserve) = get_reserves<X, Y, LP>(owner);
 
-        let lp_tokens_generated = if (lp_tokens_total == 0) {
-            // empty pool: liquidity tokens num is sqrt(x * y)
-            let lp_tokens = SafeMath::sqrt_u256(SafeMath::mul_u128(x_value, y_value));
-            lp_tokens
+        let x_value = Token::value<X>(&token_x);
+        let y_value = Token::value<Y>(&token_y);
+
+        let liquidity = if (total_supply == 0) {
+            SafeMath::sqrt_u256(SafeMath::mul_u128(x_value, y_value)) - MINIMAL_LIQUIDITY
         } else {
-            // lp_tokens_received = (num_tokens_provided / num_tokens_in_pool) * lp_tokens_total
-            let x_liquidity = SafeMath::safe_mul_div_u128(x_value, lp_tokens_total, x_reserve);
-            let y_liquidity = SafeMath::safe_mul_div_u128(x_value, lp_tokens_total, y_reserve);
-            // take minimum of two, so it's incentivised to provide tokens with the same value
-            if (x_liquidity < y_liquidity) x_liquidity else y_liquidity
+            let x_liquidity = SafeMath::safe_mul_div_u128(x_value, total_supply, x_reserve);
+            let y_liquidity = SafeMath::safe_mul_div_u128(y_value, total_supply, y_reserve);
+
+            if (x_liquidity < y_liquidity) {
+                x_liquidity
+            } else {
+                y_liquidity
+            }
         };
-        assert!(lp_tokens_generated > 0, 2);
 
-        Token::deposit(&mut pool.token_x_reserve, token_x);
-        Token::deposit(&mut pool.token_y_reserve, token_y);
+        assert!(liquidity > 0, ERR_NOT_ENOUGH_LIQUIDITY);
 
-        let caps = borrow_global<LPTokenCapabilities<X, Y>>(@SwapAdmin);
-        let lp_tokens = Token::mint(lp_tokens_generated, &caps.mint_cap);
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
+        Token::deposit(&mut liquidity_pool.token_x_reserve, token_x);
+        Token::deposit(&mut liquidity_pool.token_y_reserve, token_y);
+
+        let lp_tokens = Token::mint<LP>(liquidity, &liquidity_pool.lp_mint_cap);
+
+        update_oracle<X, Y, LP>(owner, x_reserve, y_reserve);
+
         lp_tokens
     }
 
-    public fun burn_liquidity<X, Y>(lp_token: Token<LPToken<X, Y>>): (Token<X>, Token<Y>) {}
+    /// Swap tokens (can swap both x and y in the same time).
+    /// In the most of situation only X or Y tokens argument has value (similar with *_out, only one _out will be non-zero).
+    /// Because an user usually exchanges only one token, yet function allow to exchange both tokens.
+    /// * x_in - X tokens to swap.
+    /// * x_out - exptected amount of X tokens to get out.
+    /// * y_in - Y tokens to swap.
+    /// * y_out - exptected amount of Y tokens to get out.
+    /// Returns - both exchanged X and Y token.
+    public fun swap<X: store, Y: store, LP>(owner: address, x_in: Token<X>, x_out: u128, y_in: Token<Y>, y_out: u128): (Token<X>, Token<Y>)  acquires LiquidityPool {
+        let x_in_value = Token::value(&x_in);
+        let y_in_value = Token::value(&y_in);
 
-    public fun swap<In, Out>(in: Token<In>): Token<Out> {}
+        assert!(x_in_value > 0 || y_in_value > 0, ERR_EMPTY_IN);
 
-    public fun claim_fees<X, Y>(acc: &signer): Token<LPToken<X, Y>> {}
+        let (x_reserve, y_reserve) = get_reserves<X, Y, LP>(owner);
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
 
-    fun collect_fee<In: store, phantom Out: store>(token: Token<In>): Token<In>
-    acquires LiquidityPool {
-        // extract 0.3% fee from `token`
-        // TODO: correct fee computation
-        let (token, fee) = Token::split(token, Token::value(&token) * 3 / 100);
-        // find right LiquidityPool: order In/Out, extract it's pool
-        // TODO: ordering
-        let pool = borrow_global<LiquidityPool<In, Out>>(@SwapAdmin);
-        // record how many lp tokens were there at the moment of the swap
-        // it will be used in claiming fee lp tokens later
+        // Deposit new tokens to liquidity pool.
+        Token::deposit(&mut liquidity_pool.token_x_reserve, x_in);
+        Token::deposit(&mut liquidity_pool.token_y_reserve, y_in);
 
-        // deposit fee to the pool
+        // Withdraw expected amount from reserves.
+        let x_swapped = Token::withdraw(&mut liquidity_pool.token_x_reserve, x_out);
+        let y_swapped = Token::withdraw(&mut liquidity_pool.token_y_reserve, y_out);
+
+        // Get new reserves.
+        let x_reserve_new = Token::value(&liquidity_pool.token_x_reserve);
+        let y_reserve_new = Token::value(&liquidity_pool.token_y_reserve);        
+
+        // Check we can do swap with provided info.
+        let x_adjusted = x_reserve_new * 3 - x_in_value * 1000;
+        let y_adjusted = y_reserve_new * 3 - y_in_value * 1000;
+        let cmp_order = SafeMath::safe_compare_mul_u128(x_adjusted, y_adjusted, x_reserve, y_reserve * 1000000);
+
+        assert!((SafeMath::CNST_EQUAL() == cmp_order || SafeMath::CNST_GREATER_THAN() == cmp_order), ERR_INCORRECT_SWAP);
+
+        update_oracle<X, Y, LP>(owner, x_reserve, y_reserve);
+
+        // Return swapped amount.
+        (x_swapped, y_swapped)
     }
 
-    fun register_lp_token<X, Y>(admin_acc: &signer) {
-        let (mint_cap, burn_cap) =
-            Token::register_token<LPToken<X, Y>>(admin_acc, LP_TOKEN_DECIMALS, ASCII::string(b"LP"));
-        let caps = LPTokenCapabilities<X, Y>{ mint_cap, burn_cap };
-        move_to(admin_acc, caps);
+    /// Update prices.
+    fun update_oracle<X: store, Y: store, LP>(owner: address, x_reserve: u128, y_reserve: u128) acquires LiquidityPool {
+        let liquidity_pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner);
+        
+        let last_block_timestamp = liquidity_pool.last_block_timestamp;
+
+        let block_timestamp = Timestamp::now_seconds() % (1u64 << 32);
+
+        let time_elapsed: u64 = block_timestamp - last_block_timestamp;
+
+        if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
+            // If we are not in the same block.
+            // TODO: see if possible rewrite without FixedPoint128 and U256 (yet i'm really not sure, too big numbers).
+            // Uniswap is using the following library https://github.com/Uniswap/v2-core/blob/master/contracts/libraries/UQ112x112.sol
+            // And doing it so - https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L77.
+            let last_price_x_cumulative = U256::mul(FixedPoint128::to_u256(FixedPoint128::div(FixedPoint128::encode(y_reserve), x_reserve)), U256::from_u64(time_elapsed));
+            let last_price_y_cumulative = U256::mul(FixedPoint128::to_u256(FixedPoint128::div(FixedPoint128::encode(x_reserve), y_reserve)), U256::from_u64(time_elapsed));
+            liquidity_pool.last_price_x_cumulative = U256::add(*&liquidity_pool.last_price_x_cumulative, last_price_x_cumulative);
+            liquidity_pool.last_price_y_cumulative = U256::add(*&liquidity_pool.last_price_y_cumulative, last_price_y_cumulative);
+        };
+
+        liquidity_pool.last_block_timestamp = block_timestamp;
+    }
+
+    /// Caller should call this function to determine the order of A, B.
+    public fun compare_token<X, Y>(): u8 {
+        let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
+        let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());
+        let ret: u8 = Compare::cmp_bcs_bytes(&x_bytes, &y_bytes);
+        ret
+    }
+
+    /// Get reserves of a token pair.
+    public fun get_reserves<X: store, Y: store, LP>(owner: address): (u128, u128) acquires LiquidityPool {
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner);
+        let x_reserve = Token::value(&liquidity_pool.token_x_reserve);
+        let y_reserve = Token::value(&liquidity_pool.token_y_reserve);
+
+        (x_reserve, y_reserve)
+    }
+
+    /// Get current prices.
+    public fun get_cumulative_info<X: store, Y: store, LP>(owner: address): (U256, U256, u64) acquires LiquidityPool {
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner);
+        let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
+        let last_price_y_cumulative = *&liquidity_pool.last_price_y_cumulative;
+        let last_block_timestamp = liquidity_pool.last_block_timestamp;
+
+        (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
     }
 }

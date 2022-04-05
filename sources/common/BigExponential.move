@@ -1,10 +1,7 @@
 // Copyright (c) The Elements Studio Core Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-address SwapAdmin {
-
-module BigExponential {
-
+module AptosSwap::BigExponential {
     use Std::Errors;
     use Std::U256::{Self, U256};
 
@@ -116,5 +113,4 @@ module BigExponential {
         };
         U256::as_u128(x)
     }
-}
 }

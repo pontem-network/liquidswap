@@ -48,15 +48,15 @@ module AptosSwap::SafeMath {
         U256::div(U256::mul(x_u256, y_u256), z_u256)
     }
 
-    public fun CNST_EQUAL(): u8 {
+    public fun CONST_EQUALS(): u8 {
         EQUAL
     }
 
-    public fun CNST_LESS_THAN(): u8 {
+    public fun CONST_LESS_THAN(): u8 {
         LESS_THAN
     }    
 
-    public fun CNST_GREATER_THAN(): u8 {
+    public fun CONST_GREATER_THAN(): u8 {
         GREATER_THAN
     }
 

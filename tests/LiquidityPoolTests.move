@@ -36,6 +36,11 @@ module AptosSwap::LiquidityPoolTests {
             Token::register_token<TestLPToken>(&pool_owner, 10, string(b"TestLPToken"));
         LiquidityPool::register_liquidity_pool<BTC, USDT, TestLPToken>(&pool_owner, mint_cap, burn_cap);
 
+        let (x_res_val, y_res_val) =
+            LiquidityPool::get_reserves_size<BTC, USDT, TestLPToken>(pool_owner_addr);
+        assert!(x_res_val == 0, 3);
+        assert!(y_res_val == 0, 4);
+
         let (x_price, y_price, _) =
             LiquidityPool::get_price_info<BTC, USDT, TestLPToken>(pool_owner_addr, false);
         assert!(U256::as_u128(x_price) == 0, 1);

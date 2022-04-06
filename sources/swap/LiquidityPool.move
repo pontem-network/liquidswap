@@ -227,6 +227,7 @@ module AptosSwap::LiquidityPool {
     /// Get reserves of a token pair.
     public fun get_reserves_size<X: store, Y: store, LP>(owner_addr: address): (u128, u128)
     acquires LiquidityPool {
+        assert_correct_token_order<X, Y>(owner_addr);
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner_addr);

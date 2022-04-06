@@ -57,22 +57,22 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Register liquidity pool (by pairs).
-    public fun register_liquidity_pool<X: store, Y: store, LP>(owner: &signer, lp_mint_cap: Token::MintCapability<LP>, lp_burn_cap: Token::BurnCapability<LP>) {
+    public fun register_liquidity_pool<X: store, Y: store, LP>(owner: &signer,
+                                                               lp_mint_cap: Token::MintCapability<LP>,
+                                                               lp_burn_cap: Token::BurnCapability<LP>) {
+        Token::assert_is_token<X>();
+        Token::assert_is_token<Y>();
+        assert_correct_token_order<X, Y>();
+
+        Token::assert_is_token<LP>();
+        assert!(Token::total_value<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
+
         let owner_addr = Signer::address_of(owner);
-
-        Token::assert_is_token<X>(owner_addr);
-        Token::assert_is_token<Y>(owner_addr);
-        Token::assert_is_token<LP>(owner_addr);
-
-        assert_correct_token_order<X, Y>(owner_addr);
-
-        assert!(Token::total_value<LP>(owner_addr) == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
-
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
 
         let pool = LiquidityPool<X, Y, LP>{
-            token_x_reserve: Token::zero<X>(owner_addr),
-            token_y_reserve: Token::zero<Y>(owner_addr),
+            token_x_reserve: Token::zero<X>(),
+            token_y_reserve: Token::zero<Y>(),
             last_block_timestamp: 0,
             last_price_x_cumulative: U256::zero(),
             last_price_y_cumulative: U256::zero(),
@@ -87,7 +87,7 @@ module AptosSwap::LiquidityPool {
     acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let total_supply: u128 = Token::total_value<LP>(owner_addr);
+        let total_supply: u128 = Token::total_value<LP>();
 
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(owner_addr);
 
@@ -112,7 +112,7 @@ module AptosSwap::LiquidityPool {
         Token::deposit(&mut pool.token_x_reserve, token_x);
         Token::deposit(&mut pool.token_y_reserve, token_y);
 
-        let lp_tokens = Token::mint<LP>(owner_addr, provided_liquidity, &pool.lp_mint_cap);
+        let lp_tokens = Token::mint<LP>(provided_liquidity, &pool.lp_mint_cap);
 
         update_oracle<X, Y, LP>(pool, x_reserve, y_reserve);
 
@@ -126,7 +126,7 @@ module AptosSwap::LiquidityPool {
         let burned_lp_value = Token::value(&lp_tokens);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);
 
-        let lp_tokens_total = Token::total_value<LP>(owner_addr);
+        let lp_tokens_total = Token::total_value<LP>();
         let x_reserve = Token::value(&pool.token_x_reserve);
         let y_reserve = Token::value(&pool.token_y_reserve);
 
@@ -138,7 +138,7 @@ module AptosSwap::LiquidityPool {
         let y_token = Token::withdraw(&mut pool.token_y_reserve, y_value);
 
         update_oracle<X, Y, LP>(pool, x_reserve - x_value, y_reserve - y_value);
-        Token::burn(owner_addr, lp_tokens, &pool.lp_burn_cap);
+        Token::burn(lp_tokens, &pool.lp_burn_cap);
 
         (x_token, y_token)
     }
@@ -210,16 +210,16 @@ module AptosSwap::LiquidityPool {
         pool.last_block_timestamp = block_timestamp;
     }
 
-    fun assert_correct_token_order<X, Y>(owner_addr: address) {
-        let cmp = compare_token<X, Y>(owner_addr);
+    fun assert_correct_token_order<X, Y>() {
+        let cmp = compare_token<X, Y>();
         // can only be LESS_THAN, alphabetical order
         assert!(cmp == 1, ERR_WRONG_PAIR_ORDERING);
     }
 
     /// Caller should call this function to determine the order of A, B.
-    fun compare_token<X, Y>(owner_addr: address): u8 {
-        let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>(owner_addr));
-        let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>(owner_addr));
+    fun compare_token<X, Y>(): u8 {
+        let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
+        let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());
         let ret: u8 = Compare::cmp_bcs_bytes(&x_bytes, &y_bytes);
         ret
     }
@@ -227,7 +227,7 @@ module AptosSwap::LiquidityPool {
     /// Get reserves of a token pair.
     public fun get_reserves_size<X: store, Y: store, LP>(owner_addr: address): (u128, u128)
     acquires LiquidityPool {
-        assert_correct_token_order<X, Y>(owner_addr);
+        assert_correct_token_order<X, Y>();
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner_addr);
@@ -240,7 +240,7 @@ module AptosSwap::LiquidityPool {
     /// Get current prices.
     public fun get_price_info<X: store, Y: store, LP>(owner_addr: address, _reverse: bool): (U256, U256, u64)
     acquires LiquidityPool {
-        assert_correct_token_order<X, Y>(owner_addr);
+        assert_correct_token_order<X, Y>();
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner_addr);

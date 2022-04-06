@@ -4,6 +4,7 @@ version = "0.1.0"
 
 [addresses]
 AptosSwap = "0x11"
+TokenAdmin = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

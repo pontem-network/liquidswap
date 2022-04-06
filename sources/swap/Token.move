@@ -94,8 +94,8 @@ module AptosSwap::Token {
 
     /// Create a new `Token<TokenType>` with a value of `0`. Anyone can call
     /// this and it will be successful as long as `TokenType` is a registered token.
-    public fun zero<TokenType>(owner_addr: address): Token<TokenType> {
-        assert_is_token<TokenType>(owner_addr);
+    public fun zero<TokenType>(): Token<TokenType> {
+        assert_is_token<TokenType>();
         Token<TokenType>{ value: 0 }
     }
     //    spec zero {
@@ -201,14 +201,13 @@ module AptosSwap::Token {
     /// Mint new tokens of `TokenType`.
     /// The function requires `MintCapability`, returns created tokens `Token<TokenType>`.
     public fun mint<TokenType>(
-        owner_addr: address,
         value: u128,
         _capability: &MintCapability<TokenType>
     ): Token<TokenType> acquires TokenInfo {
-        assert_is_token<TokenType>(owner_addr);
+        assert_is_token<TokenType>();
 
         // update market cap resource to reflect minting
-        let info = borrow_global_mut<TokenInfo<TokenType>>(@AptosSwap);
+        let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
         assert!(MAX_U128 - info.total_value >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
         info.total_value = info.total_value + value;
@@ -240,15 +239,14 @@ module AptosSwap::Token {
     /// Burn `to_burn` tokens.
     /// The function requires `BurnCapability`.
     public fun burn<TokenType>(
-        owner_addr: address,
         to_burn: Token<TokenType>,
         _burn_cap: &BurnCapability<TokenType>,
     ) acquires TokenInfo {
-        assert_is_token<TokenType>(owner_addr);
+        assert_is_token<TokenType>();
 
         // Destroying tokens.
         let Token{ value } = to_burn;
-        let info = borrow_global_mut<TokenInfo<TokenType>>(owner_addr);
+        let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
 
         assert!(info.total_value >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
         info.total_value = info.total_value - (value as u128);
@@ -291,10 +289,10 @@ module AptosSwap::Token {
     //    }
 
     /// Returns the total amount of token minted of type `TokenType`.
-    public fun total_value<TokenType>(owner_addr: address): u128
+    public fun total_value<TokenType>(): u128
     acquires TokenInfo {
-        assert_is_token<TokenType>(owner_addr);
-        borrow_global<TokenInfo<TokenType>>(owner_addr).total_value
+        assert_is_token<TokenType>();
+        borrow_global<TokenInfo<TokenType>>(@TokenAdmin).total_value
     }
 
     /// Returns the market cap of `TokenType`.
@@ -317,8 +315,8 @@ module AptosSwap::Token {
 
     //    /// Returns `true` if the type `TokenType` is a registered token.
     //    /// Returns `false` otherwise.
-    public fun is_token<TokenType>(owner_addr: address): bool {
-        exists<TokenInfo<TokenType>>(owner_addr)
+    public fun is_token<TokenType>(): bool {
+        exists<TokenInfo<TokenType>>(@TokenAdmin)
     }
 
     //    /// Returns the decimals for the `TokenType` token as defined
@@ -335,9 +333,9 @@ module AptosSwap::Token {
 
     //    /// Returns the token code for the registered token as defined in
     //    /// its `TokenInfo` resource.
-    public fun symbol<TokenType>(owner_addr: address): String acquires TokenInfo {
-        assert!(is_token<TokenType>(owner_addr), Errors::not_published(ERR_TOKEN_INFO));
-        *&borrow_global<TokenInfo<TokenType>>(owner_addr).symbol
+    public fun symbol<TokenType>(): String acquires TokenInfo {
+        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
+        *&borrow_global<TokenInfo<TokenType>>(@TokenAdmin).symbol
 
     }
     //    spec symbol {
@@ -358,8 +356,8 @@ module AptosSwap::Token {
     ///////////////////////////////////////////////////////////////////////////
 
     /// Asserts that `TokenType` is a registered token.
-    public fun assert_is_token<TokenType>(owner_addr: address) {
-        assert!(is_token<TokenType>(owner_addr), Errors::not_published(ERR_TOKEN_INFO));
+    public fun assert_is_token<TokenType>() {
+        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
     }
     //    spec assert_is_token {
     //        include AbortsIfTokenNotRegistered<TokenType>;

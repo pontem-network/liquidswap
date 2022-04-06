@@ -212,8 +212,8 @@ module AptosSwap::LiquidityPool {
 
     fun assert_correct_token_order<X, Y>(owner_addr: address) {
         let cmp = compare_token<X, Y>(owner_addr);
-        // should be LESS_THAN or EQUAL
-        assert!(cmp != 2, ERR_WRONG_PAIR_ORDERING);
+        // can only be LESS_THAN, alphabetical order
+        assert!(cmp == 1, ERR_WRONG_PAIR_ORDERING);
     }
 
     /// Caller should call this function to determine the order of A, B.

@@ -66,7 +66,7 @@ module AptosSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
-    fun test_add_some_liquidity_to_existing_pool(core: signer, token_admin: signer, pool_owner: signer)
+    fun test_add_liquidity_and_then_burn_it(core: signer, token_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
         register_tokens(&token_admin);
@@ -90,6 +90,16 @@ module AptosSwap::LiquidityPoolTests {
         assert!(x_res == 100100, 2);
         assert!(y_res == 100100, 3);
 
-        move_to(&pool_owner, Balance<LP> { tokens: lp_tokens });
+        let (btc_return, usdt_return) =
+            LiquidityPool::burn_liquidity<BTC, USDT, LP>(pool_owner_addr, lp_tokens);
+        assert!(Token::value(&btc_return) == 100100, 1);
+        assert!(Token::value(&usdt_return) == 100100, 1);
+
+        let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 0, 2);
+        assert!(y_res == 0, 3);
+
+        Token::burn(btc_return, &caps.btc_burn_cap);
+        Token::burn(usdt_return, &caps.usdt_burn_cap);
     }
 }

@@ -18,9 +18,9 @@ module AptosSwap::LiquidityPool {
     const MINIMAL_LIQUIDITY: u128 = 1000;
 
     /// Current fee is 0.3%
-    const FEE_NUMERATOR: u128 = 3;
+    const FEE_MULTIPLIER: u128 = 3;
     /// It's fee denumenator.
-    const FEE_DENOMINATOR: u128 = 1000;
+    const FEE_SCALE: u128 = 1000;
 
     // Error codes.
     /// When tokens used to create pair have wrong ordering.
@@ -195,22 +195,24 @@ module AptosSwap::LiquidityPool {
         let x_reserve_new = Token::value(&pool.token_x_reserve);
         let y_reserve_new = Token::value(&pool.token_y_reserve);
 
-        // Check we can do swap with provided info.
-        // x_reserve_new = x_reserve + (t_in - t_out)
-        // x_adj = x_reserve_new
-        let x_adjusted = x_reserve_new * FEE_DENOMINATOR - x_in_value * FEE_NUMERATOR;
-        let y_adjusted = y_reserve_new * FEE_DENOMINATOR - y_in_value * FEE_NUMERATOR;
+        // Confirm that lp_value for the pool hasn't been reduced.
+        // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
+        // and make sure lp_value doesn't decrease.
 
-        // r1 = x_adj * y_adj
-        let r1 = U256::mul(U256::from_u128(x_adjusted), U256::from_u128(y_adjusted));
-        // r2 = x_res * y_res * 1_000_000
-        let r2 = U256::mul(U256::from_u128(x_reserve), U256::from_u128(y_reserve * 1000000));
-        let ord = U256::compare(&r1, &r2);
-        // assert(r1 >= r2)
-        assert!(
-            ord == SafeMath::CONST_EQUALS() || ord == SafeMath::CONST_GREATER_THAN(),
-            ERR_INCORRECT_SWAP
+        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
+        // (all of it scaled to 1000 to be able to achieve this math in integers)
+        let x_res_new_after_fee = x_reserve_new * FEE_SCALE - x_in_value * FEE_MULTIPLIER;
+        let y_res_new_after_fee = y_reserve_new * FEE_SCALE - y_in_value * FEE_MULTIPLIER;
+
+        let lp_value_before_swap = U256::mul(
+            U256::from_u128(x_reserve),
+            U256::from_u128(y_reserve * FEE_SCALE * FEE_SCALE)  // FEE_SCALE squared here to get to the same dim
         );
+        let lp_value_after_swap_and_fee =
+            U256::mul(U256::from_u128(x_res_new_after_fee), U256::from_u128(y_res_new_after_fee));
+        // invariant: lp_value_after_swap_and_fee >= lp_value_before_swap
+        let ord = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
+        assert!(ord != SafeMath::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
 
         update_oracle<X, Y, LP>(pool, x_reserve, y_reserve);
 
@@ -274,6 +276,6 @@ module AptosSwap::LiquidityPool {
 
     /// Get fees numerator, denumerator.
     public fun get_fees_config(): (u128, u128) {
-        (FEE_NUMERATOR, FEE_DENOMINATOR)
+        (FEE_MULTIPLIER, FEE_SCALE)
     }
 }

@@ -106,7 +106,7 @@ module AptosSwap::Token {
     /// Returns the `value` of the passed in `token`. The value is
     /// represented in the base units for the token represented by
     /// `TokenType`.
-    public fun value<TokenType>(token: &Token<TokenType>): u128 {
+    public fun num<TokenType>(token: &Token<TokenType>): u128 {
         token.value
     }
 

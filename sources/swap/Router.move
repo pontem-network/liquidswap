@@ -8,8 +8,6 @@ module AptosSwap::Router {
     use Std::U256::U256;
 
     // Errors.
-    /// When invalid pair provided.
-    const ERR_INVALID_PAIR: u64 = 101;
     /// Wrong amount used.
     const ERR_WRONG_AMOUNT: u64 = 102;
     /// Wrong reserve used.
@@ -65,8 +63,8 @@ module AptosSwap::Router {
         token_y: Token<Y>,
         amount_y_min: u128
     ): Token<LP> {
-        let value_x = Token::value(&token_x);
-        let value_y = Token::value(&token_y);
+        let value_x = Token::num(&token_x);
+        let value_y = Token::num(&token_y);
 
         let (exp_amount_x, exp_amount_y) = calc_required_liquidity<X, Y, LP>(owner_addr, value_x, value_y, amount_x_min, amount_y_min);
 
@@ -96,7 +94,7 @@ module AptosSwap::Router {
         let (reserve_x, reserve_y) = get_reserves_size<X, Y, LP>(owner_addr);
         let (fee_n, fee_d) = LiquidityPool::get_fees_config();
 
-        let amount_in = Token::value(&token_in);
+        let amount_in = Token::num(&token_in);
         let amount_out = get_amount_out(amount_in, reserve_x, reserve_y, fee_n, fee_d);
 
         assert!(amount_out >= amount_out_min, ERR_AMOUNT_OUT_LESS_THAN_MIN);
@@ -146,7 +144,8 @@ module AptosSwap::Router {
         if (TokenSymbols::is_sorted<X, Y>()) {
             LiquidityPool::get_reserves_size<X, Y, LP>(owner_addr)
         } else {
-            LiquidityPool::get_reserves_size<Y, X, LP>(owner_addr)
+            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(owner_addr)
+            (x_res, y_res)
         }
     }
 
@@ -155,7 +154,8 @@ module AptosSwap::Router {
         if (TokenSymbols::is_sorted<X, Y>()) {
             LiquidityPool::get_cumulative_prices<X, Y, LP>(owner_addr)
         } else {
-            LiquidityPool::get_cumulative_prices<Y, X, LP>(owner_addr)
+            let (y, x, t) = LiquidityPool::get_cumulative_prices<Y, X, LP>(owner_addr);
+            (x, y, t)
         }
     }
 

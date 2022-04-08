@@ -37,7 +37,7 @@ module AptosSwap::LiquidityPoolTests {
 
         let (mint_cap, burn_cap) =
             Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
-        LiquidityPool::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         let (x_res_val, y_res_val) =
             LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
@@ -45,7 +45,7 @@ module AptosSwap::LiquidityPoolTests {
         assert!(y_res_val == 0, 4);
 
         let (x_price, y_price, _) =
-            LiquidityPool::get_price_info<BTC, USDT, LP>(pool_owner_addr, false);
+            LiquidityPool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
         assert!(U256::as_u128(x_price) == 0, 1);
         assert!(U256::as_u128(y_price) == 0, 2);
     }
@@ -58,11 +58,11 @@ module AptosSwap::LiquidityPoolTests {
 
         let (mint_cap, burn_cap) =
             Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
-        LiquidityPool::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
         let (_x_price, _y_price, _) =
-            LiquidityPool::get_price_info<USDT, BTC, LP>(pool_owner_addr, false);
+            LiquidityPool::get_cumulative_prices<USDT, BTC, LP>(pool_owner_addr);
     }
 
     #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
@@ -76,14 +76,14 @@ module AptosSwap::LiquidityPoolTests {
 
         let (mint_cap, burn_cap) =
             Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
-        LiquidityPool::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         let btc_tokens = Token::mint(100100, &caps.btc_mint_cap);
         let usdt_tokens = Token::mint(100100, &caps.usdt_mint_cap);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let lp_tokens =
-            LiquidityPool::mint_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_tokens, usdt_tokens);
+            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_tokens, usdt_tokens);
         assert!(Token::value(&lp_tokens) == 99100, 1);
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);

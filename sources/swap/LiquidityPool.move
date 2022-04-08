@@ -17,6 +17,11 @@ module AptosSwap::LiquidityPool {
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u128 = 1000;
 
+    /// Current fee is 0.3%
+    const FEE_NUMERATOR: u128 = 3;
+    /// It's fee denumenator.
+    const FEE_DENUMENATOR: u128 = 1000;
+
     // Error codes.
     /// When tokens used to create pair have wrong ordering.
     const ERR_WRONG_PAIR_ORDERING: u64 = 101;
@@ -57,7 +62,7 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Register liquidity pool (by pairs).
-    public fun register_liquidity_pool<X: store, Y: store, LP>(owner: &signer,
+    public fun register<X: store, Y: store, LP>(owner: &signer,
                                                                lp_mint_cap: Token::MintCapability<LP>,
                                                                lp_burn_cap: Token::BurnCapability<LP>) {
         Token::assert_is_token<X>();
@@ -65,6 +70,8 @@ module AptosSwap::LiquidityPool {
         assert_correct_token_order<X, Y>();
 
         Token::assert_is_token<LP>();
+        
+        // TODO: check LP decimals.
         assert!(Token::total_value<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
 
         let owner_addr = Signer::address_of(owner);
@@ -83,7 +90,7 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Mint new liquidity.
-    public fun mint_liquidity<X: store, Y: store, LP>(owner_addr: address, token_x: Token<X>, token_y: Token<Y>): Token<LP>
+    public fun add_liquidity<X: store, Y: store, LP>(owner_addr: address, token_x: Token<X>, token_y: Token<Y>): Token<LP>
     acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
@@ -176,8 +183,8 @@ module AptosSwap::LiquidityPool {
         let y_reserve_new = Token::value(&pool.token_y_reserve);
 
         // Check we can do swap with provided info.
-        let x_adjusted = x_reserve_new * 3 - x_in_value * 1000;
-        let y_adjusted = y_reserve_new * 3 - y_in_value * 1000;
+        let x_adjusted = x_reserve_new * FEE_DENUMENATOR - x_in_value * FEE_NUMERATOR;
+        let y_adjusted = y_reserve_new * FEE_DENUMENATOR - y_in_value * FEE_NUMERATOR;
         let cmp_order = SafeMath::safe_compare_mul_u128(x_adjusted, y_adjusted, x_reserve, y_reserve * 1000000);
 
         assert!((SafeMath::CONST_EQUALS() == cmp_order || SafeMath::CONST_GREATER_THAN() == cmp_order), ERR_INCORRECT_SWAP);
@@ -210,14 +217,14 @@ module AptosSwap::LiquidityPool {
         pool.last_block_timestamp = block_timestamp;
     }
 
-    fun assert_correct_token_order<X, Y>() {
+    public fun assert_correct_token_order<X, Y>() {
         let cmp = compare_token<X, Y>();
         // can only be LESS_THAN, alphabetical order
-        assert!(cmp == 1, ERR_WRONG_PAIR_ORDERING);
+        assert!(cmp == SafeMath::CONST_LESS_THAN(), ERR_WRONG_PAIR_ORDERING);
     }
 
     /// Caller should call this function to determine the order of A, B.
-    fun compare_token<X, Y>(): u8 {
+    public fun compare_token<X, Y>(): u8 {
         let x_bytes = BCS::to_bytes<String>(&Token::symbol<X>());
         let y_bytes = BCS::to_bytes<String>(&Token::symbol<Y>());
         let ret: u8 = Compare::cmp_bcs_bytes(&x_bytes, &y_bytes);
@@ -238,7 +245,7 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Get current prices.
-    public fun get_price_info<X: store, Y: store, LP>(owner_addr: address, _reverse: bool): (U256, U256, u64)
+    public fun get_cumulative_prices<X: store, Y: store, LP>(owner_addr: address): (U256, U256, u64)
     acquires LiquidityPool {
         assert_correct_token_order<X, Y>();
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
@@ -249,5 +256,15 @@ module AptosSwap::LiquidityPool {
         let last_block_timestamp = liquidity_pool.last_block_timestamp;
 
         (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
+    }
+
+    /// Check if lp exists at address
+    public fun lp_exists_at<X: store, Y: store, LP>(owner: address): bool {
+        exists<LiquidityPool<X, Y, LP>>(owner)
+    }
+
+    /// Get fees numerator, denumerator.
+    public fun get_fees_config(): (u128, u128) {
+        (FEE_NUMERATOR, FEE_DENUMENATOR)
     }
 }

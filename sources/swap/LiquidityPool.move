@@ -74,7 +74,7 @@ module AptosSwap::LiquidityPool {
         Token::assert_is_token<LP>();
 
         // TODO: check LP decimals.
-        assert!(Token::total_value<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
+        assert!(Token::total_minted<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
 
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
@@ -99,18 +99,18 @@ module AptosSwap::LiquidityPool {
     ): Token<LP> acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let total_supply: u128 = Token::total_value<LP>();
+        let lp_total_minted: u128 = Token::total_minted<LP>();
 
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(owner_addr);
 
         let x_value = Token::value<X>(&token_x);
         let y_value = Token::value<Y>(&token_y);
 
-        let provided_liquidity = if (total_supply == 0) {
+        let provided_liquidity = if (lp_total_minted == 0) {
             SafeMath::sqrt_u256(SafeMath::mul_u128(x_value, y_value)) - MINIMAL_LIQUIDITY
         } else {
-            let x_liquidity = SafeMath::safe_mul_div_u128(x_value, total_supply, x_reserve);
-            let y_liquidity = SafeMath::safe_mul_div_u128(y_value, total_supply, y_reserve);
+            let x_liquidity = SafeMath::safe_mul_div_u128(x_value, lp_total_minted, x_reserve);
+            let y_liquidity = SafeMath::safe_mul_div_u128(y_value, lp_total_minted, y_reserve);
 
             if (x_liquidity < y_liquidity) {
                 x_liquidity
@@ -138,7 +138,7 @@ module AptosSwap::LiquidityPool {
         let burned_lp_value = Token::value(&lp_tokens);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);
 
-        let lp_tokens_total = Token::total_value<LP>();
+        let lp_tokens_total = Token::total_minted<LP>();
         let x_reserve = Token::value(&pool.token_x_reserve);
         let y_reserve = Token::value(&pool.token_y_reserve);
 

@@ -62,7 +62,7 @@ module AptosSwap::Token {
     /// Unless they are specified otherwise the fields in this resource are immutable.
     struct TokenInfo<phantom TokenType> has key {
         /// The total value for the token represented by `TokenType`. Mutable.
-        total_value: u128,
+        total_minted: u128,
         /// Decimals amount of `TokenType` token.
         decimals: u8,
         /// The code symbol for this `TokenType`.
@@ -208,9 +208,9 @@ module AptosSwap::Token {
 
         // update market cap resource to reflect minting
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
-        assert!(MAX_U128 - info.total_value >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
+        assert!(MAX_U128 - info.total_minted >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
-        info.total_value = info.total_value + value;
+        info.total_minted = info.total_minted + value;
 
         //        Event::emit_event(
         //            &mut info.mint_events,
@@ -248,8 +248,8 @@ module AptosSwap::Token {
         let Token{ value } = to_burn;
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
 
-        assert!(info.total_value >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
-        info.total_value = info.total_value - (value as u128);
+        assert!(info.total_minted >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
+        info.total_minted = info.total_minted - (value as u128);
 
         Event::emit_event(
             &mut info.burn_events,
@@ -274,7 +274,7 @@ module AptosSwap::Token {
         );
 
         move_to(acc, TokenInfo<TokenType>{
-            total_value: 0,
+            total_minted: 0,
             decimals,
             symbol,
             mint_events: Event::new_event_handle<MintEvent>(acc),
@@ -289,10 +289,10 @@ module AptosSwap::Token {
     //    }
 
     /// Returns the total amount of token minted of type `TokenType`.
-    public fun total_value<TokenType>(): u128
+    public fun total_minted<TokenType>(): u128
     acquires TokenInfo {
         assert_is_token<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(@TokenAdmin).total_value
+        borrow_global<TokenInfo<TokenType>>(@TokenAdmin).total_minted
     }
 
     /// Returns the market cap of `TokenType`.

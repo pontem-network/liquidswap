@@ -89,23 +89,22 @@ module AptosSwap::Router {
     public fun swap_exact_token_for_token<X: store, Y: store, LP>(
         owner_addr: address,
         token_in: Token<X>,
-        amount_out_min: u128
+        minimum_token_out: u128
     ): Token<Y> {
-        let (reserve_x, reserve_y) = get_reserves_size<X, Y, LP>(owner_addr);
-        let (fee_n, fee_d) = LiquidityPool::get_fees_config();
+        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(owner_addr);
+        let (fee_mult, fee_scale) = LiquidityPool::get_fees_config();
 
-        let amount_in = Token::num(&token_in);
-        let amount_out = get_amount_out(amount_in, reserve_x, reserve_y, fee_n, fee_d);
+        let token_in_num = Token::num(&token_in);
+        let token_out_num = get_token_out_num(token_in_num, x_reserve_num, y_reserve_num);
 
-        assert!(amount_out >= amount_out_min, ERR_AMOUNT_OUT_LESS_THAN_MIN);
+        assert!(token_out_num >= minimum_token_out, ERR_AMOUNT_OUT_LESS_THAN_MIN);
 
         let (zero, token_out);
         if (TokenSymbols::is_sorted<X, Y>()) {
-            (zero, token_out) = LiquidityPool::swap<X, Y, LP>(owner_addr, token_in, 0, Token::zero(), amount_out);
+            (zero, token_out) = LiquidityPool::swap<X, Y, LP>(owner_addr, token_in, 0, Token::zero(), token_out_num);
         } else {
-            (token_out, zero) = LiquidityPool::swap<Y, X, LP>(owner_addr, Token::zero(), amount_out, token_in, 0);
+            (token_out, zero) = LiquidityPool::swap<Y, X, LP>(owner_addr, Token::zero(), token_out_num, token_in, 0);
         };
-
         Token::destroy_zero(zero);
 
         token_out
@@ -163,12 +162,20 @@ module AptosSwap::Router {
     /// * amount_in - exactly amount of tokens to swap.
     /// * reserve_in - reserves of token we are going to swap.
     /// * reserve_out - reserves of token we are going to get.
-    /// * fee_n - fee numerator.
-    /// * fee_d - fee denumerator.
-    public fun get_amount_out(amount_in: u128, reserve_in: u128, reserve_out: u128, fee_n: u128, fee_d: u128): u128 {
-        let amount = amount_in * (fee_d - fee_n); // Get amount with fees * denumenator.
-        let new_reserves_in = reserve_in * fee_d + amount; // Get new reserve in.
-        SafeMath::safe_mul_div_u128(amount, reserve_out, new_reserves_in) // Get exact amount.
+    public fun get_token_out_num(token_in_num: u128, reserve_in_num: u128, reserve_out_num: u128): u128 {
+        let (fee_num, fee_scale) = LiquidityPool::get_fees_config();
+        // 0.997 for 0.3% fee
+        let fee_multiplier = fee_scale -fee_num;
+        // x_in * 0.997 (scaled to 1000)
+        let token_in_num_after_fees = token_in_num * fee_multiplier;
+        // x_reserve size after adding amount_in (scaled to 1000)
+        let new_reserves_in_num = reserve_in_num * fee_scale + token_in_num_after_fees; // Get new reserve in.
+        // Multiply token_in by the current exchange rate
+        // current_exchange_rate = reserve_out / reserve_in
+        // amount_in * current_echange_rate -> amount_out
+        SafeMath::safe_mul_div_u128(
+            token_in_num,
+            reserve_out_num, new_reserves_in_num)
     }
 
     /// Get amount in by amount out.

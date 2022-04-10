@@ -21,7 +21,7 @@ module AptosSwap::Router {
     /// Irrationally swap.
     const ERR_IRRATIONALLY: u64 = 107;
     /// Amount out less than minimum.
-    const ERR_AMOUNT_OUT_LESS_THAN_MIN: u64 = 108;
+    const ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 108;
 
     /// Check liquidity pool exists at owner address.
     public fun pool_exists_at<X: store, Y: store, LP>(owner_addr: address) {
@@ -92,12 +92,13 @@ module AptosSwap::Router {
         minimum_token_out: u128
     ): Token<Y> {
         let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(owner_addr);
-        let (fee_mult, fee_scale) = LiquidityPool::get_fees_config();
 
         let token_in_num = Token::num(&token_in);
         let token_out_num = get_token_out_num(token_in_num, x_reserve_num, y_reserve_num);
-
-        assert!(token_out_num >= minimum_token_out, ERR_AMOUNT_OUT_LESS_THAN_MIN);
+        assert!(
+            token_out_num >= minimum_token_out,
+            ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
+        );
 
         let (zero, token_out);
         if (TokenSymbols::is_sorted<X, Y>()) {
@@ -143,7 +144,7 @@ module AptosSwap::Router {
         if (TokenSymbols::is_sorted<X, Y>()) {
             LiquidityPool::get_reserves_size<X, Y, LP>(owner_addr)
         } else {
-            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(owner_addr)
+            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(owner_addr);
             (x_res, y_res)
         }
     }
@@ -165,17 +166,20 @@ module AptosSwap::Router {
     public fun get_token_out_num(token_in_num: u128, reserve_in_num: u128, reserve_out_num: u128): u128 {
         let (fee_num, fee_scale) = LiquidityPool::get_fees_config();
         // 0.997 for 0.3% fee
-        let fee_multiplier = fee_scale -fee_num;
+        let fee_multiplier = fee_scale - fee_num;
         // x_in * 0.997 (scaled to 1000)
         let token_in_num_after_fees = token_in_num * fee_multiplier;
         // x_reserve size after adding amount_in (scaled to 1000)
         let new_reserves_in_num = reserve_in_num * fee_scale + token_in_num_after_fees; // Get new reserve in.
-        // Multiply token_in by the current exchange rate
+        // Multiply token_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in * current_echange_rate -> amount_out
-        SafeMath::safe_mul_div_u128(
-            token_in_num,
-            reserve_out_num, new_reserves_in_num)
+        let token_out_num_scaled = SafeMath::safe_mul_div_u128(
+            token_in_num_after_fees,
+            reserve_out_num * fee_scale, new_reserves_in_num);
+        // TODO: should it be here??
+        let token_out_num = token_out_num_scaled / fee_scale;
+        token_out_num
     }
 
     /// Get amount in by amount out.

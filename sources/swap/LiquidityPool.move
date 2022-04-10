@@ -33,6 +33,9 @@ module AptosSwap::LiquidityPool {
     const ERR_POOL_EXISTS_FOR_PAIR: u64 = 103;
 
     /// When not enough liquidity minted.
+    const ERR_NOT_ENOUGH_INITIAL_LIQUIDITY: u64 = 1035;
+
+    /// When not enough liquidity minted.
     const ERR_NOT_ENOUGH_LIQUIDITY: u64 = 104;
 
     /// When both X and Y provided for swap are equal zero.
@@ -107,7 +110,9 @@ module AptosSwap::LiquidityPool {
         let y_added_num = Token::num<Y>(&token_y);
 
         let provided_liquidity = if (lp_total_minted == 0) {
-            SafeMath::sqrt_u256(SafeMath::mul_u128(x_added_num, y_added_num)) - MINIMAL_LIQUIDITY
+            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_added_num, y_added_num));
+            assert!(initial_liquidity > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
+            initial_liquidity - MINIMAL_LIQUIDITY
         } else {
             let x_liquidity = SafeMath::safe_mul_div_u128(x_added_num, lp_total_minted, x_reserve_num);
             let y_liquidity = SafeMath::safe_mul_div_u128(y_added_num, lp_total_minted, y_reserve_num);
@@ -211,8 +216,8 @@ module AptosSwap::LiquidityPool {
         let lp_value_after_swap_and_fee =
             U256::mul(U256::from_u128(x_res_new_after_fee), U256::from_u128(y_res_new_after_fee));
         // invariant: lp_value_after_swap_and_fee >= lp_value_before_swap
-        let ord = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
-        assert!(ord != SafeMath::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
+        let order = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
+        assert!(order != SafeMath::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
 
         update_oracle<X, Y, LP>(pool, x_reserve_num, y_reserve_num);
 

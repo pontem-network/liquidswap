@@ -174,12 +174,10 @@ module AptosSwap::Router {
         // Multiply token_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in * current_echange_rate -> amount_out
-        let token_out_num_scaled = SafeMath::safe_mul_div_u128(
-            token_in_num_after_fees,
-            reserve_out_num * fee_scale, new_reserves_in_num);
-        // TODO: should it be here??
-        let token_out_num = token_out_num_scaled / fee_scale;
-        token_out_num
+        SafeMath::safe_mul_div_u128(
+            token_in_num_after_fees,  // scaled to 1000
+            reserve_out_num,
+            new_reserves_in_num)  // scaled to 1000
     }
 
     /// Get amount in by amount out.

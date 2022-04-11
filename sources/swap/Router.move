@@ -47,7 +47,7 @@ module AptosSwap::Router {
 
     /// Add liquidity to pool using without rationality checks.
     /// Call `calc_required_liquidity` to get optimal amounts first, and only use returned amount for `token_x` and `token_y`.
-    public fun add_liquidity_raw<X: store, Y: store, LP>(owner: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> {
+    public fun add_liquidity_inner<X: store, Y: store, LP>(owner: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> {
         if (TokenSymbols::is_sorted<X, Y>()) {
             LiquidityPool::add_liquidity<X, Y, LP>(owner, token_x, token_y)
         } else {
@@ -63,13 +63,14 @@ module AptosSwap::Router {
         token_y: Token<Y>,
         minimum_token_y_num: u128
     ): Token<LP> {
-        let value_x = Token::num(&token_x);
-        let value_y = Token::num(&token_y);
+        let token_x_num = Token::num(&token_x);
+        let token_y_num = Token::num(&token_y);
 
-        let (exp_amount_x, exp_amount_y) = calc_required_liquidity<X, Y, LP>(pool_addr, value_x, value_y, minimum_token_x_num, minimum_token_y_num);
+        let (optimal_x, optimal_y) =
+            calc_optimal_token_nums<X, Y, LP>(pool_addr, token_x_num, token_y_num, minimum_token_x_num, minimum_token_y_num);
 
-        assert!(exp_amount_x == value_x && value_y == exp_amount_y, ERR_IRRATIONALLY);
-        add_liquidity_raw<X, Y, LP>(pool_addr, token_x, token_y)
+        assert!(optimal_x == token_x_num && token_y_num == optimal_y, ERR_IRRATIONALLY);
+        add_liquidity_inner<X, Y, LP>(pool_addr, token_x, token_y)
     }
 
     /// Burn liquidity and get token X and Y back.
@@ -114,7 +115,7 @@ module AptosSwap::Router {
     /// TODO: swap_token_for_exact_token? yet probably just script can solve it.
 
     /// Calculate amounts needed for adding new liquidity for both X and Y.
-    public fun calc_required_liquidity<X: store, Y: store, LP>(
+    public fun calc_optimal_token_nums<X: store, Y: store, LP>(
         owner: address,
         amount_x_desired: u128,
         amount_y_desired: u128,
@@ -126,15 +127,15 @@ module AptosSwap::Router {
         if (reserves_x == 0 && reserves_y == 0) {
             return (amount_x_desired, amount_y_desired)
         } else {
-            let amount_y_optimal = quote(amount_x_desired, reserves_x, reserves_y);
-            if (amount_y_optimal <= amount_y_desired) {
-                assert!(amount_y_optimal >= amount_y_min, ERR_INSUFFICIENT_Y_AMOUNT);
-                return (amount_x_desired, amount_y_optimal)
+            let amount_y_returned = exchange(amount_x_desired, reserves_x, reserves_y);
+            if (amount_y_returned <= amount_y_desired) {
+                assert!(amount_y_returned >= amount_y_min, ERR_INSUFFICIENT_Y_AMOUNT);
+                return (amount_x_desired, amount_y_returned)
             } else {
-                let amount_x_optimal = quote(amount_y_desired, reserves_y, reserves_x);
-                assert!(amount_x_optimal <= amount_x_desired, ERR_OVERLIMIT_X);
-                assert!(amount_x_optimal >= amount_x_min, ERR_INSUFFICIENT_X_AMOUNT);
-                return (amount_x_optimal, amount_y_desired)
+                let amount_x_returned = exchange(amount_y_desired, reserves_y, reserves_x);
+                assert!(amount_x_returned <= amount_x_desired, ERR_OVERLIMIT_X);
+                assert!(amount_x_returned >= amount_x_min, ERR_INSUFFICIENT_X_AMOUNT);
+                return (amount_x_returned, amount_y_desired)
             }
         }
     }
@@ -194,10 +195,12 @@ module AptosSwap::Router {
     }
 
     /// Return amount of liquidity need to for `amount_x`.
-    public fun quote(amount_x: u128, reserves_x: u128, reserve_y: u128): u128 {
+    public fun exchange(amount_x: u128, reserves_x: u128, reserve_y: u128): u128 {
         assert!(amount_x > 0, ERR_WRONG_AMOUNT);
         assert!(reserves_x > 0 && reserve_y > 0, ERR_WRONG_RESERVE);
 
+        // exchange_price = reserve_y / reserve_x
+        // amount_y_returned = amount_x * exchange_price
         SafeMath::safe_mul_div_u128(amount_x, reserve_y, reserves_x)
     }
 }

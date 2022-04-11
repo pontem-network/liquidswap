@@ -102,20 +102,21 @@ module AptosSwap::LiquidityPool {
     ): Token<LP> acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_address), ERR_POOL_DOES_NOT_EXIST);
 
-        let lp_total_minted: u128 = Token::total_minted<LP>();
+        let lp_tokens_total: u128 = Token::total_minted<LP>();
 
         let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(pool_address);
 
-        let x_added_num = Token::num<X>(&token_x);
-        let y_added_num = Token::num<Y>(&token_y);
+        let x_provided_num = Token::num<X>(&token_x);
+        let y_provided_num = Token::num<Y>(&token_y);
 
-        let provided_liquidity = if (lp_total_minted == 0) {
-            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_added_num, y_added_num));
+        let provided_liquidity = if (lp_tokens_total == 0) {
+            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_provided_num, y_provided_num));
             assert!(initial_liquidity > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liquidity - MINIMAL_LIQUIDITY
         } else {
-            let x_liquidity = SafeMath::safe_mul_div_u128(x_added_num, lp_total_minted, x_reserve_num);
-            let y_liquidity = SafeMath::safe_mul_div_u128(y_added_num, lp_total_minted, y_reserve_num);
+            // (x_provided / x_reserve) * lp_tokens_total
+            let x_liquidity = SafeMath::safe_mul_div_u128(x_provided_num, lp_tokens_total, x_reserve_num);
+            let y_liquidity = SafeMath::safe_mul_div_u128(y_provided_num, lp_tokens_total, y_reserve_num);
 
             if (x_liquidity < y_liquidity) {
                 x_liquidity

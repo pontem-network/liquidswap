@@ -2,7 +2,6 @@ script {
     use Std::PontAccount;
     use Std::Signer;
 
-    use AptosSwap::Token;
     use AptosSwap::Router;
 
     fun add_liquidity<X: store, Y: store, LP>(
@@ -20,8 +19,8 @@ script {
             Router::add_liquidity<X, Y, LP>(pool_addr, token_x, token_x_num_min, token_y, token_y_num_min);
 
         let provider_addr = Signer::address_of(&provider);
-        PontAccount::deposit_token(provider_addr, token_x_remainder, provider_addr);
-        PontAccount::deposit_token(provider_addr, token_y_remainder, provider_addr);
-        PontAccount::deposit_token(provider_addr, lp_tokens, pool_addr);
+        PontAccount::deposit_token(provider_addr, token_x_remainder);
+        PontAccount::deposit_token(provider_addr, token_y_remainder);
+        PontAccount::deposit_token(provider_addr, lp_tokens);
     }
 }

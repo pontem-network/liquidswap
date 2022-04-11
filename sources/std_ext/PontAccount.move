@@ -62,17 +62,32 @@ module Std::PontAccount {
     const ERR_CANNOT_CREATE_AT_CORE_ADDRESS: u64 = 5;
 
     /// Deposit `Token<TokenType>` to `to_addr` address.
-    public fun deposit_token<TokenType>(to_addr: address, token: Token<TokenType>, from_addr: address)
-    acquires PontAccount, Balance {
-        deposit_token_with_metadata(from_addr, to_addr, token, b"")
+    public fun deposit_token<TokenType>(to_addr: address, token: Token<TokenType>)
+    acquires Balance {
+        Token::assert_is_token<TokenType>();
+
+        // Check that the `token` amount is non-zero
+        let token_amount = Token::num(&token);
+        assert!(token_amount > 0, Errors::invalid_argument(ERR_ZERO_DEPOSIT_AMOUNT));
+
+        // Create signer for `to_addr` to create PontAccount and Balance resources.
+        let to_addr_acc = create_signer(to_addr);
+
+        // Create PontAccount storage for events, if doesn't exist.
+        ensure_pont_account_exists(&to_addr_acc);
+
+        if (!has_token_balance<TokenType>(to_addr)) {
+            create_token_balance<TokenType>(&to_addr_acc);
+        };
+
+        // Deposit the `to_deposit` token
+        Token::deposit(&mut borrow_global_mut<Balance<TokenType>>(to_addr).token, token);
     }
 
     public fun deposit_token_with_metadata<TokenType>(
-        from_addr: address,
         to_addr: address,
         token: Token<TokenType>,
-        metadata: vector<u8>
-    ) acquires Balance, PontAccount {
+    ) acquires Balance {
         Token::assert_is_token<TokenType>();
 
         // Check that the `token` amount is non-zero
@@ -116,12 +131,11 @@ module Std::PontAccount {
         from_acc: &signer,
         to_addr: address,
         amount: u128,
-    ) acquires PontAccount, Balance {
+    ) acquires Balance {
         transfer_tokens_with_metadata<TokenType>(
             from_acc,
             to_addr,
             amount,
-            b""
         );
     }
 
@@ -129,17 +143,10 @@ module Std::PontAccount {
     public fun transfer_tokens_with_metadata<TokenType>(
         from_acc: &signer,
         to_addr: address,
-        amount: u128,
-        metadata: vector<u8>,
-    ) acquires PontAccount, Balance {
+        amount: u128
+    ) acquires Balance {
         let tokens = withdraw_tokens<TokenType>(from_acc, amount);
-        let from_acc_addr = Signer::address_of(from_acc);
-        deposit_token_with_metadata<TokenType>(
-            from_acc_addr,
-            to_addr,
-            tokens,
-            copy metadata
-        );
+        deposit_token(to_addr, tokens);
     }
 
     /// Return the current balance of the account at `addr`.
@@ -174,10 +181,6 @@ module Std::PontAccount {
 
     fun ensure_pont_account_exists(acc: &signer) {
         let addr = Signer::address_of(acc);
-        assert!(
-            addr != @PontemFramework,
-            Errors::invalid_argument(ERR_CANNOT_CREATE_AT_CORE_ADDRESS)
-        );
         if (!exists<PontAccount>(addr)) {
             move_to(acc, PontAccount{
                 received_events: Event::new_event_handle<ReceivedPaymentEvent>(acc),

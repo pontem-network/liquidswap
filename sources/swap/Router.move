@@ -57,19 +57,19 @@ module AptosSwap::Router {
 
     /// Add liquidity to pool with rationality checks.
     public fun add_liquidity<X: store, Y: store, LP>(
-        owner_addr: address,
+        pool_addr: address,
         token_x: Token<X>,
-        amount_x_min: u128,
+        minimum_token_x_num: u128,
         token_y: Token<Y>,
-        amount_y_min: u128
+        minimum_token_y_num: u128
     ): Token<LP> {
         let value_x = Token::num(&token_x);
         let value_y = Token::num(&token_y);
 
-        let (exp_amount_x, exp_amount_y) = calc_required_liquidity<X, Y, LP>(owner_addr, value_x, value_y, amount_x_min, amount_y_min);
+        let (exp_amount_x, exp_amount_y) = calc_required_liquidity<X, Y, LP>(pool_addr, value_x, value_y, minimum_token_x_num, minimum_token_y_num);
 
         assert!(exp_amount_x == value_x && value_y == exp_amount_y, ERR_IRRATIONALLY);
-        add_liquidity_raw<X, Y, LP>(owner_addr, token_x, token_y)
+        add_liquidity_raw<X, Y, LP>(pool_addr, token_x, token_y)
     }
 
     /// Burn liquidity and get token X and Y back.

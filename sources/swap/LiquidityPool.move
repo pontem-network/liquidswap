@@ -96,15 +96,15 @@ module AptosSwap::LiquidityPool {
 
     /// Mint new liquidity.
     public fun add_liquidity<X: store, Y: store, LP>(
-        owner_addr: address,
+        pool_address: address,
         token_x: Token<X>,
         token_y: Token<Y>
     ): Token<LP> acquires LiquidityPool {
-        assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_address), ERR_POOL_DOES_NOT_EXIST);
 
         let lp_total_minted: u128 = Token::total_minted<LP>();
 
-        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(owner_addr);
+        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(pool_address);
 
         let x_added_num = Token::num<X>(&token_x);
         let y_added_num = Token::num<Y>(&token_y);
@@ -125,7 +125,7 @@ module AptosSwap::LiquidityPool {
         };
         assert!(provided_liquidity > 0, ERR_NOT_ENOUGH_LIQUIDITY);
 
-        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_address);
         Token::deposit(&mut pool.token_x_reserve, token_x);
         Token::deposit(&mut pool.token_y_reserve, token_y);
 

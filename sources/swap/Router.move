@@ -62,15 +62,18 @@ module AptosSwap::Router {
         minimum_token_x_num: u128,
         token_y: Token<Y>,
         minimum_token_y_num: u128
-    ): Token<LP> {
+    ): (Token<X>, Token<Y>, Token<LP>) {
         let token_x_num = Token::num(&token_x);
         let token_y_num = Token::num(&token_y);
 
         let (optimal_x, optimal_y) =
             calc_optimal_token_nums<X, Y, LP>(pool_addr, token_x_num, token_y_num, minimum_token_x_num, minimum_token_y_num);
 
-        assert!(optimal_x == token_x_num && token_y_num == optimal_y, ERR_IRRATIONALLY);
-        add_liquidity_inner<X, Y, LP>(pool_addr, token_x, token_y)
+        let (x_remainder, token_x_opt) = Token::split(token_x, optimal_x);
+        let (y_remainder, token_y_opt) = Token::split(token_y, optimal_y);
+        let lp_tokens = add_liquidity_inner<X, Y, LP>(pool_addr, token_x_opt, token_y_opt);
+
+        (x_remainder, y_remainder, lp_tokens)
     }
 
     /// Burn liquidity and get token X and Y back.

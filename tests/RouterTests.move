@@ -111,16 +111,54 @@ module AptosSwap::RouterTests {
         add_tokens_to_balance(&pool_owner, token_y);
         add_tokens_to_balance(&pool_owner, lp_tokens);
     }
-//
-//    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
-//    fun test_remove_liquidity(core: signer, token_admin: signer, pool_owner: signer) acquires Caps {
-//        Genesis::setup(&core);
-//        register_tokens(&token_admin);
-//
-//        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
-//
-//        Router::remove_liquidity<>()
-//    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_add_liquidity_to_pool_reverse(core: signer, token_admin: signer, pool_owner: signer) acquires Caps, Balance {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
+
+        let caps = borrow_global<Caps>(Signer::address_of(&token_admin));
+        let btc_tokens = Token::mint(101, &caps.btc_mint_cap);
+        let usdt_tokens = Token::mint(9000, &caps.usdt_mint_cap);
+        let pool_addr = Signer::address_of(&pool_owner);
+
+        let (token_y, token_x, lp_tokens) =
+            Router::add_liquidity<USDT, BTC, LP>(pool_addr, usdt_tokens, 9000, btc_tokens, 10);
+        // 101 - 90 = 11
+        assert!(Token::value(&token_x) == 11, 1);
+        assert!(Token::value(&token_y) == 0, 2);
+        // 8.91 ~ 8
+        assert!(Token::value(&lp_tokens) == 8, 3);
+
+        add_tokens_to_balance(&pool_owner, token_x);
+        add_tokens_to_balance(&pool_owner, token_y);
+        add_tokens_to_balance(&pool_owner, lp_tokens);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_remove_liquidity(core: signer, token_admin: signer, pool_owner: signer) acquires Caps, Balance {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
+
+        let pool_addr = Signer::address_of(&pool_owner);
+        let lp_balance = borrow_global_mut<Balance<LP>>(pool_addr);
+        let lp_tokens_to_burn = Token::withdraw(&mut lp_balance.tokens, 2);
+        let (token_x, token_y) =
+            Router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_tokens_to_burn);
+        let (usdt_reserve, btc_reserve) = Router::get_reserves_size<USDT, BTC, LP>(pool_addr);
+        assert!(usdt_reserve == 8080, 3);
+        assert!(btc_reserve == 81, 4);
+
+        assert!(Token::value(&token_x) == 20, 1);
+        assert!(Token::value(&token_y) == 2020, 2);
+
+        add_tokens_to_balance(&pool_owner, token_x);
+        add_tokens_to_balance(&pool_owner, token_y);
+    }
 
     #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
     fun test_swap_exact_token_for_token(core: signer, token_admin: signer, pool_owner: signer) acquires Caps {

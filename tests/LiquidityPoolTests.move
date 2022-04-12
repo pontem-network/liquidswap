@@ -1,3 +1,4 @@
+#[test_only]
 module AptosSwap::LiquidityPoolTests {
     use Std::ASCII::string;
     use Std::Signer;
@@ -36,7 +37,7 @@ module AptosSwap::LiquidityPoolTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let (mint_cap, burn_cap) =
-            Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
         LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         let (x_res_val, y_res_val) =
@@ -57,7 +58,7 @@ module AptosSwap::LiquidityPoolTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let (mint_cap, burn_cap) =
-            Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
         LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
@@ -75,7 +76,7 @@ module AptosSwap::LiquidityPoolTests {
         let caps = borrow_global<Caps>(token_admin_addr);
 
         let (mint_cap, burn_cap) =
-            Token::register_token<LP>(&token_admin, 10, string(b"TestLPToken"));
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
         LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
 
         let btc_tokens = Token::mint(100100, &caps.btc_mint_cap);
@@ -101,5 +102,77 @@ module AptosSwap::LiquidityPoolTests {
 
         Token::burn(btc_return, &caps.btc_burn_cap);
         Token::burn(usdt_return, &caps.usdt_burn_cap);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_swap_tokens(core: signer, token_admin: signer, pool_owner: signer)
+    acquires Caps {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        let token_admin_addr = Signer::address_of(&token_admin);
+        let caps = borrow_global<Caps>(token_admin_addr);
+
+        let (lp_mint_cap, lp_burn_cap) =
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        let btc_tokens = Token::mint(100100, &caps.btc_mint_cap);
+        let usdt_tokens = Token::mint(100100, &caps.usdt_mint_cap);
+
+        let lp_tokens =
+            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_tokens, usdt_tokens);
+        move_to(&pool_owner, Balance<LP> { tokens: lp_tokens });
+
+        let btc_tokens_to_exchange = Token::mint(2, &caps.btc_mint_cap);
+        let (zero, usdt_tokens) =
+            LiquidityPool::swap<BTC, USDT, LP>(
+                pool_owner_addr,
+                btc_tokens_to_exchange, 0,
+                Token::zero<USDT>(), 1
+            );
+        assert!(Token::value(&usdt_tokens) == 1, 1);
+
+        let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 100102, 2);
+        assert!(y_res == 100099, 2);
+
+        Token::destroy_zero(zero);
+        Token::burn(usdt_tokens, &caps.usdt_burn_cap);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    #[expected_failure(abort_code = 106)]
+    fun test_cannot_swap_tokens_and_reduce_value_of_pool(core: signer, token_admin: signer, pool_owner: signer)
+    acquires Caps {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        let token_admin_addr = Signer::address_of(&token_admin);
+        let caps = borrow_global<Caps>(token_admin_addr);
+
+        let (lp_mint_cap, lp_burn_cap) =
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        let btc_tokens = Token::mint(100100, &caps.btc_mint_cap);
+        let usdt_tokens = Token::mint(100100, &caps.usdt_mint_cap);
+
+        let lp_tokens =
+            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_tokens, usdt_tokens);
+        move_to(&pool_owner, Balance<LP> { tokens: lp_tokens });
+
+        // 1 minus fee for 1
+        let btc_tokens_to_exchange = Token::mint(1, &caps.btc_mint_cap);
+        let (zero, usdt_tokens) =
+            LiquidityPool::swap<BTC, USDT, LP>(
+                pool_owner_addr,
+                btc_tokens_to_exchange, 0,
+                Token::zero<USDT>(), 1
+            );
+        Token::destroy_zero(zero);
+        Token::burn(usdt_tokens, &caps.usdt_burn_cap);
     }
 }

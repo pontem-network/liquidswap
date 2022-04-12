@@ -1,3 +1,0 @@
-module AptosSwap::Scripts {
-    
-}

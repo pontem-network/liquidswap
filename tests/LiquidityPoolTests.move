@@ -85,7 +85,7 @@ module AptosSwap::LiquidityPoolTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let lp_tokens =
             LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_tokens, usdt_tokens);
-        assert!(Token::num(&lp_tokens) == 99100, 1);
+        assert!(Token::value(&lp_tokens) == 99100, 1);
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_res == 100100, 2);
@@ -93,8 +93,8 @@ module AptosSwap::LiquidityPoolTests {
 
         let (btc_return, usdt_return) =
             LiquidityPool::burn_liquidity<BTC, USDT, LP>(pool_owner_addr, lp_tokens);
-        assert!(Token::num(&btc_return) == 100100, 1);
-        assert!(Token::num(&usdt_return) == 100100, 1);
+        assert!(Token::value(&btc_return) == 100100, 1);
+        assert!(Token::value(&usdt_return) == 100100, 1);
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_res == 0, 2);
@@ -132,7 +132,7 @@ module AptosSwap::LiquidityPoolTests {
                 btc_tokens_to_exchange, 0,
                 Token::zero<USDT>(), 1
             );
-        assert!(Token::num(&usdt_tokens) == 1, 1);
+        assert!(Token::value(&usdt_tokens) == 1, 1);
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_res == 100102, 2);

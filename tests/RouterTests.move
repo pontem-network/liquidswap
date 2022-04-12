@@ -65,7 +65,7 @@ module AptosSwap::RouterTests {
 
         let usdt_tokens =
             Router::swap_exact_token_for_token<BTC, USDT, LP>(pool_owner_addr, btc_tokens_to_swap, 90);
-        assert!(Token::num(&usdt_tokens) == 98, 1);
+        assert!(Token::value(&usdt_tokens) == 98, 1);
 
         Token::burn(usdt_tokens, &caps.usdt_burn_cap);
     }

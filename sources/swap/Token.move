@@ -9,7 +9,6 @@ module AptosSwap::Token {
     use Std::Event::{Self, EventHandle};
     use Std::Signer;
     use Std::ASCII::String;
-    //use PontemFramework::PontAccount;
 
     /// The `Token` resource defines the token in the Pontem ecosystem.
     /// Each "token" is coupled with a type `TokenType` specifying the
@@ -62,7 +61,7 @@ module AptosSwap::Token {
     /// Unless they are specified otherwise the fields in this resource are immutable.
     struct TokenInfo<phantom TokenType> has key {
         /// The total value for the token represented by `TokenType`. Mutable.
-        total_minted: u128,
+        total_supply: u128,
         /// Decimals amount of `TokenType` token.
         decimals: u8,
         /// The code symbol for this `TokenType`.
@@ -98,15 +97,11 @@ module AptosSwap::Token {
         assert_is_token<TokenType>();
         Token<TokenType>{ value: 0 }
     }
-    //    spec zero {
-    //        include AbortsIfTokenNotRegistered<TokenType>;
-    //        ensures result.value == 0;
-    //    }
 
     /// Returns the `value` of the passed in `token`. The value is
     /// represented in the base units for the token represented by
     /// `TokenType`.
-    public fun num<TokenType>(token: &Token<TokenType>): u128 {
+    public fun value<TokenType>(token: &Token<TokenType>): u128 {
         token.value
     }
 
@@ -116,11 +111,6 @@ module AptosSwap::Token {
     public fun split<TokenType>(token: Token<TokenType>, amount: u128): (Token<TokenType>, Token<TokenType>) {
         let other = withdraw(&mut token, amount);
         (token, other)
-    }
-    spec split {
-        include AbortsIfTokenValueLessThanAmount<TokenType> { token, amount };
-        ensures result_1.value == token.value - amount;
-        ensures result_2.value == amount;
     }
 
     /// Withdraw `amount` from the passed-in `token`, where the original token is modified in place.
@@ -134,17 +124,6 @@ module AptosSwap::Token {
         token.value = token.value - amount;
         Token{ value: amount }
     }
-    spec withdraw {
-        include AbortsIfTokenValueLessThanAmount<TokenType> { token, amount };
-        ensures token.value == old(token.value) - amount;
-        ensures result.value == amount;
-    }
-    spec schema AbortsIfTokenValueLessThanAmount<TokenType> {
-        token: Token<TokenType>;
-        amount: u128;
-
-        aborts_if token.value < amount with Errors::LIMIT_EXCEEDED;
-    }
 
     /// Return a `Token<TokenType>` worth `token.value` and reduces the `value` of the input `token` to
     /// zero. Does not abort.
@@ -152,20 +131,12 @@ module AptosSwap::Token {
         let val = token.value;
         withdraw(token, val)
     }
-    spec withdraw_all {
-        ensures result.value == old(token.value);
-        ensures token.value == 0;
-    }
 
     /// Takes two tokens as input, returns a single token with the total value of both tokens.
     /// Destroys on of the input tokens.
     public fun join<TokenType>(token1: Token<TokenType>, token2: Token<TokenType>): Token<TokenType> {
         deposit(&mut token1, token2);
         token1
-    }
-    spec join {
-        include AbortsIfSumMaxU64<TokenType> { token1, token2 };
-        ensures result.value == token1.value + token2.value;
     }
 
     /// "Merges" the two tokens.
@@ -176,16 +147,6 @@ module AptosSwap::Token {
         assert!(MAX_U128 - token.value >= value, Errors::limit_exceeded(ERR_INVALID_TOKEN));
         token.value = token.value + value;
     }
-    spec deposit {
-        include AbortsIfSumMaxU64<TokenType> { token1: token, token2: check };
-        ensures token.value == old(token.value) + check.value;
-    }
-    spec schema AbortsIfSumMaxU64<TokenType> {
-        token1: Token<TokenType>;
-        token2: Token<TokenType>;
-
-        aborts_if token1.value + token2.value > max_u64() with Errors::LIMIT_EXCEEDED;
-    }
 
     /// Destroy a zero-value token. Calls will fail if the `value` in the passed-in `token` is non-zero
     /// so it is impossible to "burn" any non-zero amount of `Pontem` without having
@@ -193,9 +154,6 @@ module AptosSwap::Token {
     public fun destroy_zero<TokenType>(token: Token<TokenType>) {
         let Token{ value } = token;
         assert!(value == 0, Errors::invalid_argument(ERR_DESTRUCTION_OF_NONZERO_TOKEN))
-    }
-    spec destroy_zero {
-        aborts_if token.value > 0 with Errors::INVALID_ARGUMENT;
     }
 
     /// Mint new tokens of `TokenType`.
@@ -208,33 +166,12 @@ module AptosSwap::Token {
 
         // update market cap resource to reflect minting
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
-        assert!(MAX_U128 - info.total_minted >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
+        assert!(MAX_U128 - info.total_supply >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
 
-        info.total_minted = info.total_minted + value;
-
-        //        Event::emit_event(
-        //            &mut info.mint_events,
-        //            MintEvent{
-        //                amount: value,
-        //                symbol,
-        //            }
-        //        );
+        info.total_supply = info.total_supply + value;
 
         Token<TokenType>{ value }
     }
-    //    spec mint {
-    //        let deployer_addr = get_deployer_addr<TokenType>();
-    //        modifies global<TokenInfo<TokenType>>(deployer_addr);
-    //
-    //        include AbortsIfTokenNotRegistered<TokenType>;
-    //        let token_info = global<TokenInfo<TokenType>>(deployer_addr);
-    //        aborts_if token_info.total_value + value > max_u128() with Errors::LIMIT_EXCEEDED;
-    //
-    //        let post post_token_info = global<TokenInfo<TokenType>>(deployer_addr);
-    //        ensures exists<TokenInfo<TokenType>>(deployer_addr);
-    //        ensures post_token_info == update_field(token_info, total_value, token_info.total_value + value);
-    //        ensures result.value == value;
-    //    }
 
     /// Burn `to_burn` tokens.
     /// The function requires `BurnCapability`.
@@ -248,16 +185,8 @@ module AptosSwap::Token {
         let Token{ value } = to_burn;
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
 
-        assert!(info.total_minted >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
-        info.total_minted = info.total_minted - (value as u128);
-
-        Event::emit_event(
-            &mut info.burn_events,
-            BurnEvent{
-                amount: value,
-                symbol: info.symbol,
-            }
-        );
+        assert!(info.total_supply >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
+        info.total_supply = info.total_supply - (value as u128);
     }
 
     /// Register new token.
@@ -274,7 +203,7 @@ module AptosSwap::Token {
         );
 
         move_to(acc, TokenInfo<TokenType>{
-            total_minted: 0,
+            total_supply: 0,
             decimals,
             symbol,
             mint_events: Event::new_event_handle<MintEvent>(acc),
@@ -282,69 +211,27 @@ module AptosSwap::Token {
         });
         (MintCapability<TokenType>{}, BurnCapability<TokenType>{})
     }
-    //    spec register_token {
-    //        let acc_addr = Signer::address_of(acc);
-    //        aborts_if exists<TokenInfo<TokenType>>(acc_addr) with Errors::ALREADY_PUBLISHED;
-    //        aborts_if acc_addr != get_deployer_addr<TokenType>() with Errors::CUSTOM;
-    //    }
 
     /// Returns the total amount of token minted of type `TokenType`.
-    public fun total_minted<TokenType>(): u128
+    public fun total_supply<TokenType>(): u128
     acquires TokenInfo {
         assert_is_token<TokenType>();
-        borrow_global<TokenInfo<TokenType>>(@TokenAdmin).total_minted
+        borrow_global<TokenInfo<TokenType>>(@TokenAdmin).total_supply
     }
 
-    /// Returns the market cap of `TokenType`.
-    //    spec fun spec_total_value<TokenType>(): u128 {
-    //        spec_token_info<TokenType>().total_value
-    //    }
-
-    //    /// Get deployer of token.
-    //    fun get_deployer_addr<TokenType>(): address {
-    //        let deployer_addr = Reflect::mod_address_of<TokenType>();
-    //        // implementation detail:
-    //        // Node signs deployment PontemFramework modules with @Root, but deploys them at @Std.
-    //        // That @Std module -> @Root signature relationship should be reflected in get_deployer_addr() calls.
-    //        if (deployer_addr == @Std) {
-    //            @Root
-    //        } else {
-    //            deployer_addr
-    //        }
-    //    }
-
-    //    /// Returns `true` if the type `TokenType` is a registered token.
-    //    /// Returns `false` otherwise.
+    /// Returns `true` if the type `TokenType` is a registered token.
+    /// Returns `false` otherwise.
     public fun is_token<TokenType>(): bool {
         exists<TokenInfo<TokenType>>(@TokenAdmin)
     }
 
-    //    /// Returns the decimals for the `TokenType` token as defined
-    //    /// in its `TokenInfo`.
-    //    public fun decimals<TokenType>(): u8
-    //    acquires TokenInfo {
-    //        assert_is_token<TokenType>();
-    //        let deployer = get_deployer_addr<TokenType>();
-    //        borrow_global<TokenInfo<TokenType>>(deployer).decimals
-    //    }
-    //    spec fun spec_decimals<TokenType>(): u8 {
-    //        spec_token_info<TokenType>().decimals
-    //    }
-
-    //    /// Returns the token code for the registered token as defined in
-    //    /// its `TokenInfo` resource.
+    /// Returns the token code for the registered token as defined in
+    /// its `TokenInfo` resource.
     public fun symbol<TokenType>(): String acquires TokenInfo {
         assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
         *&borrow_global<TokenInfo<TokenType>>(@TokenAdmin).symbol
 
     }
-    //    spec symbol {
-    //        include AbortsIfTokenNotRegistered<TokenType>;
-    //        ensures result == spec_symbol<TokenType>();
-    //    }
-    //    spec fun spec_symbol<TokenType>(): String {
-    //        spec_token_info<TokenType>().symbol
-    //    }
 
     public fun assert_is_admin(acc: &signer) {
         assert!(Signer::address_of(acc) == @AptosSwap, ERR_NOT_ADMIN);
@@ -359,15 +246,4 @@ module AptosSwap::Token {
     public fun assert_is_token<TokenType>() {
         assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
     }
-    //    spec assert_is_token {
-    //        include AbortsIfTokenNotRegistered<TokenType>;
-    //    }
-    //    spec schema AbortsIfTokenNotRegistered<TokenType> {
-    //        aborts_if !is_token<TokenType>() with Errors::NOT_PUBLISHED;
-    //    }
-
-    //    spec fun spec_token_info<TokenType>(): TokenInfo<TokenType> {
-    //        let deployer_addr = get_deployer_addr<TokenType>();
-    //        global<TokenInfo<TokenType>>(deployer_addr)
-    //    }
 }

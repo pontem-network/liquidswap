@@ -77,7 +77,7 @@ module AptosSwap::LiquidityPool {
         Token::assert_is_token<LP>();
 
         // TODO: check LP decimals.
-        assert!(Token::total_minted<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
+        assert!(Token::total_supply<LP>() == 0, ERR_LP_TOKEN_NON_ZERO_TOTAL);
 
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
@@ -102,21 +102,21 @@ module AptosSwap::LiquidityPool {
     ): Token<LP> acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_address), ERR_POOL_DOES_NOT_EXIST);
 
-        let lp_tokens_total: u128 = Token::total_minted<LP>();
+        let lp_tokens_total: u128 = Token::total_supply<LP>();
 
-        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(pool_address);
+        let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_address);
 
-        let x_provided_num = Token::num<X>(&token_x);
-        let y_provided_num = Token::num<Y>(&token_y);
+        let x_provided_val = Token::value<X>(&token_x);
+        let y_provided_val = Token::value<Y>(&token_y);
 
         let provided_liquidity = if (lp_tokens_total == 0) {
-            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_provided_num, y_provided_num));
+            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_provided_val, y_provided_val));
             assert!(initial_liquidity > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liquidity - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liquidity = SafeMath::safe_mul_div_u128(x_provided_num, lp_tokens_total, x_reserve_num);
-            let y_liquidity = SafeMath::safe_mul_div_u128(y_provided_num, lp_tokens_total, y_reserve_num);
+            let x_liquidity = SafeMath::safe_mul_div_u128(x_provided_val, lp_tokens_total, x_reserve_size);
+            let y_liquidity = SafeMath::safe_mul_div_u128(y_provided_val, lp_tokens_total, y_reserve_size);
 
             if (x_liquidity < y_liquidity) {
                 x_liquidity
@@ -132,33 +132,33 @@ module AptosSwap::LiquidityPool {
 
         let lp_tokens = Token::mint<LP>(provided_liquidity, &pool.lp_mint_cap);
 
-        update_oracle<X, Y, LP>(pool, x_reserve_num, y_reserve_num);
+        update_oracle<X, Y, LP>(pool, x_reserve_size, y_reserve_size);
 
         lp_tokens
     }
 
-    public fun burn_liquidity<X: store, Y: store, LP>(owner_addr: address, lp_tokens: Token<LP>): (Token<X>, Token<Y>)
+    public fun burn_liquidity<X: store, Y: store, LP>(pool_addr: address, lp_tokens: Token<LP>): (Token<X>, Token<Y>)
     acquires LiquidityPool {
-        assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let burned_lp_tokens_num = Token::num(&lp_tokens);
-        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);
+        let burned_lp_tokens_val = Token::value(&lp_tokens);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
-        let lp_tokens_total = Token::total_minted<LP>();
-        let x_reserve_num = Token::num(&pool.token_x_reserve);
-        let y_reserve_num = Token::num(&pool.token_y_reserve);
+        let lp_tokens_total = Token::total_supply<LP>();
+        let x_reserve_val = Token::value(&pool.token_x_reserve);
+        let y_reserve_val = Token::value(&pool.token_y_reserve);
 
         // Compute x, y token values for provided lp_tokens value
-        let x_to_return_num = SafeMath::safe_mul_div_u128(burned_lp_tokens_num, x_reserve_num, lp_tokens_total);
-        let y_to_return_num = SafeMath::safe_mul_div_u128(burned_lp_tokens_num, y_reserve_num, lp_tokens_total);
-        assert!(x_to_return_num > 0 && y_to_return_num > 0, ERR_INCORRECT_BURN_VALUES);
+        let x_to_return_val = SafeMath::safe_mul_div_u128(burned_lp_tokens_val, x_reserve_val, lp_tokens_total);
+        let y_to_return_val = SafeMath::safe_mul_div_u128(burned_lp_tokens_val, y_reserve_val, lp_tokens_total);
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_INCORRECT_BURN_VALUES);
 
         // Withdraw those values from reserves
-        let x_token_to_return = Token::withdraw(&mut pool.token_x_reserve, x_to_return_num);
-        let y_token_to_return = Token::withdraw(&mut pool.token_y_reserve, y_to_return_num);
+        let x_token_to_return = Token::withdraw(&mut pool.token_x_reserve, x_to_return_val);
+        let y_token_to_return = Token::withdraw(&mut pool.token_y_reserve, y_to_return_val);
 
         // Update price and burn provided lp tokens
-        update_oracle<X, Y, LP>(pool, x_reserve_num - x_to_return_num, y_reserve_num - y_to_return_num);
+        update_oracle<X, Y, LP>(pool, x_reserve_val - x_to_return_val, y_reserve_val - y_to_return_val);
         Token::burn(lp_tokens, &pool.lp_burn_cap);
 
         (x_token_to_return, y_token_to_return)
@@ -181,12 +181,12 @@ module AptosSwap::LiquidityPool {
     ): (Token<X>, Token<Y>) acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let x_in_num = Token::num(&x_in);
-        let y_in_num = Token::num(&y_in);
+        let x_in_val = Token::value(&x_in);
+        let y_in_val = Token::value(&y_in);
 
-        assert!(x_in_num > 0 || y_in_num > 0, ERR_EMPTY_IN);
+        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_IN);
 
-        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(owner_addr);
+        let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(owner_addr);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);
 
         // Deposit new tokens to liquidity pool.
@@ -198,8 +198,8 @@ module AptosSwap::LiquidityPool {
         let y_swapped = Token::withdraw(&mut pool.token_y_reserve, y_out);
 
         // Get new reserves.
-        let x_reserve_new = Token::num(&pool.token_x_reserve);
-        let y_reserve_new = Token::num(&pool.token_y_reserve);
+        let x_reserve_size_new = Token::value(&pool.token_x_reserve);
+        let y_reserve_size_new = Token::value(&pool.token_y_reserve);
 
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
@@ -207,12 +207,12 @@ module AptosSwap::LiquidityPool {
 
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = x_reserve_new * FEE_SCALE - x_in_num * FEE_MULTIPLIER;
-        let y_res_new_after_fee = y_reserve_new * FEE_SCALE - y_in_num * FEE_MULTIPLIER;
+        let x_res_new_after_fee = x_reserve_size_new * FEE_SCALE - x_in_val * FEE_MULTIPLIER;
+        let y_res_new_after_fee = y_reserve_size_new * FEE_SCALE - y_in_val * FEE_MULTIPLIER;
 
         let lp_value_before_swap = U256::mul(
-            U256::from_u128(x_reserve_num),
-            U256::from_u128(y_reserve_num * FEE_SCALE * FEE_SCALE)  // FEE_SCALE squared here to get to the same dim
+            U256::from_u128(x_reserve_size),
+            U256::from_u128(y_reserve_size * FEE_SCALE * FEE_SCALE)  // FEE_SCALE squared here to get to the same dim
         );
         let lp_value_after_swap_and_fee =
             U256::mul(U256::from_u128(x_res_new_after_fee), U256::from_u128(y_res_new_after_fee));
@@ -220,7 +220,7 @@ module AptosSwap::LiquidityPool {
         let order = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
         assert!(order != SafeMath::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
 
-        update_oracle<X, Y, LP>(pool, x_reserve_num, y_reserve_num);
+        update_oracle<X, Y, LP>(pool, x_reserve_size, y_reserve_size);
 
         // Return swapped amount.
         (x_swapped, y_swapped)
@@ -249,25 +249,25 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Get reserves of a token pair.
-    public fun get_reserves_size<X: store, Y: store, LP>(owner_addr: address): (u128, u128)
+    public fun get_reserves_size<X: store, Y: store, LP>(pool_addr: address): (u128, u128)
     acquires LiquidityPool {
         assert!(TokenSymbols::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner_addr);
-        let x_reserve = Token::num(&liquidity_pool.token_x_reserve);
-        let y_reserve = Token::num(&liquidity_pool.token_y_reserve);
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
+        let x_reserve = Token::value(&liquidity_pool.token_x_reserve);
+        let y_reserve = Token::value(&liquidity_pool.token_y_reserve);
 
         (x_reserve, y_reserve)
     }
 
     /// Get current prices.
-    public fun get_cumulative_prices<X: store, Y: store, LP>(owner_addr: address): (U256, U256, u64)
+    public fun get_cumulative_prices<X: store, Y: store, LP>(pool_addr: address): (U256, U256, u64)
     acquires LiquidityPool {
         assert!(TokenSymbols::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(owner_addr);
+        let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
         let last_price_y_cumulative = *&liquidity_pool.last_price_y_cumulative;
         let last_block_timestamp = liquidity_pool.last_block_timestamp;
@@ -276,8 +276,8 @@ module AptosSwap::LiquidityPool {
     }
 
     /// Check if lp exists at address
-    public fun pool_exists_at<X: store, Y: store, LP>(owner: address): bool {
-        exists<LiquidityPool<X, Y, LP>>(owner)
+    public fun pool_exists_at<X: store, Y: store, LP>(pool_addr: address): bool {
+        exists<LiquidityPool<X, Y, LP>>(pool_addr)
     }
 
     /// Get fees numerator, denumerator.

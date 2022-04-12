@@ -24,34 +24,34 @@ module AptosSwap::Router {
     const ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 108;
 
     /// Check liquidity pool exists at owner address.
-    public fun pool_exists_at<X: store, Y: store, LP>(owner_addr: address) {
+    public fun pool_exists_at<X: store, Y: store, LP>(pool_addr: address) {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::pool_exists_at<X, Y, LP>(owner_addr);
+            LiquidityPool::pool_exists_at<X, Y, LP>(pool_addr);
         } else {
-            LiquidityPool::pool_exists_at<Y, X, LP>(owner_addr);
+            LiquidityPool::pool_exists_at<Y, X, LP>(pool_addr);
         }
     }
 
     /// Register new liquidity pool.
     public fun register_liquidity_pool<X: store, Y: store, LP>(
-        account: &signer,
+        owner: &signer,
         lp_token_mint_cap: Token::MintCapability<LP>,
         lp_token_burn_cap: Token::BurnCapability<LP>
     ) {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::register<X, Y, LP>(account, lp_token_mint_cap, lp_token_burn_cap);
+            LiquidityPool::register<X, Y, LP>(owner, lp_token_mint_cap, lp_token_burn_cap);
         } else {
-            LiquidityPool::register<Y, X, LP>(account, lp_token_mint_cap, lp_token_burn_cap);
+            LiquidityPool::register<Y, X, LP>(owner, lp_token_mint_cap, lp_token_burn_cap);
         }
     }
 
     /// Add liquidity to pool using without rationality checks.
     /// Call `calc_required_liquidity` to get optimal amounts first, and only use returned amount for `token_x` and `token_y`.
-    public fun add_liquidity_inner<X: store, Y: store, LP>(owner: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> {
+    public fun add_liquidity_inner<X: store, Y: store, LP>(pool_addr: address, token_x: Token<X>, token_y: Token<Y>): Token<LP> {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::add_liquidity<X, Y, LP>(owner, token_x, token_y)
+            LiquidityPool::add_liquidity<X, Y, LP>(pool_addr, token_x, token_y)
         } else {
-            LiquidityPool::add_liquidity<Y, X, LP>(owner, token_y, token_x)
+            LiquidityPool::add_liquidity<Y, X, LP>(pool_addr, token_y, token_x)
         }
     }
 
@@ -59,15 +59,15 @@ module AptosSwap::Router {
     public fun add_liquidity<X: store, Y: store, LP>(
         pool_addr: address,
         token_x: Token<X>,
-        minimum_token_x_num: u128,
+        min_token_x_val: u128,
         token_y: Token<Y>,
-        minimum_token_y_num: u128
+        min_token_y_val: u128
     ): (Token<X>, Token<Y>, Token<LP>) {
-        let token_x_num = Token::num(&token_x);
-        let token_y_num = Token::num(&token_y);
+        let token_x_val = Token::value(&token_x);
+        let token_y_val = Token::value(&token_y);
 
         let (optimal_x, optimal_y) =
-            calc_optimal_token_nums<X, Y, LP>(pool_addr, token_x_num, token_y_num, minimum_token_x_num, minimum_token_y_num);
+            calc_optimal_token_values<X, Y, LP>(pool_addr, token_x_val, token_y_val, min_token_x_val, min_token_y_val);
 
         let (x_remainder, token_x_opt) = Token::split(token_x, optimal_x);
         let (y_remainder, token_y_opt) = Token::split(token_y, optimal_y);
@@ -77,11 +77,11 @@ module AptosSwap::Router {
     }
 
     /// Burn liquidity and get token X and Y back.
-    public fun remove_liquidity<X: store, Y: store, LP>(owner: address, lp_tokens: Token<LP>): (Token<X>, Token<Y>) {
+    public fun remove_liquidity<X: store, Y: store, LP>(pool_addr: address, lp_tokens: Token<LP>): (Token<X>, Token<Y>) {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::burn_liquidity<X, Y, LP>(owner, lp_tokens)
+            LiquidityPool::burn_liquidity<X, Y, LP>(pool_addr, lp_tokens)
         } else {
-            let (y, x) = LiquidityPool::burn_liquidity<Y, X, LP>(owner, lp_tokens);
+            let (y, x) = LiquidityPool::burn_liquidity<Y, X, LP>(pool_addr, lp_tokens);
             (x, y)
         }
     }
@@ -91,24 +91,24 @@ module AptosSwap::Router {
     /// * token_in - token X to swap.
     /// * amount_out_min - minimum amount of token Y to get out.
     public fun swap_exact_token_for_token<X: store, Y: store, LP>(
-        owner_addr: address,
+        pool_addr: address,
         token_in: Token<X>,
-        minimum_token_out: u128
+        token_out_min_val: u128
     ): Token<Y> {
-        let (x_reserve_num, y_reserve_num) = get_reserves_size<X, Y, LP>(owner_addr);
+        let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
 
-        let token_in_num = Token::num(&token_in);
-        let token_out_num = get_token_out_num(token_in_num, x_reserve_num, y_reserve_num);
+        let token_in_val = Token::value(&token_in);
+        let token_out_val = get_token_out_with_fees(token_in_val, x_reserve, y_reserve);
         assert!(
-            token_out_num >= minimum_token_out,
+            token_out_val >= token_out_min_val,
             ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
         );
 
         let (zero, token_out);
         if (TokenSymbols::is_sorted<X, Y>()) {
-            (zero, token_out) = LiquidityPool::swap<X, Y, LP>(owner_addr, token_in, 0, Token::zero(), token_out_num);
+            (zero, token_out) = LiquidityPool::swap<X, Y, LP>(pool_addr, token_in, 0, Token::zero(), token_out_val);
         } else {
-            (token_out, zero) = LiquidityPool::swap<Y, X, LP>(owner_addr, Token::zero(), token_out_num, token_in, 0);
+            (token_out, zero) = LiquidityPool::swap<Y, X, LP>(pool_addr, Token::zero(), token_out_val, token_in, 0);
         };
         Token::destroy_zero(zero);
 
@@ -118,47 +118,47 @@ module AptosSwap::Router {
     /// TODO: swap_token_for_exact_token? yet probably just script can solve it.
 
     /// Calculate amounts needed for adding new liquidity for both X and Y.
-    public fun calc_optimal_token_nums<X: store, Y: store, LP>(
-        owner: address,
-        amount_x_desired: u128,
-        amount_y_desired: u128,
-        amount_x_min: u128,
-        amount_y_min: u128
+    public fun calc_optimal_token_values<X: store, Y: store, LP>(
+        pool_addr: address,
+        x_desired: u128,
+        y_desired: u128,
+        x_min: u128,
+        y_min: u128
     ): (u128, u128) {
-        let (reserves_x, reserves_y) = get_reserves_size<X, Y, LP>(owner);
+        let (reserves_x, reserves_y) = get_reserves_size<X, Y, LP>(pool_addr);
 
         if (reserves_x == 0 && reserves_y == 0) {
-            return (amount_x_desired, amount_y_desired)
+            return (x_desired, y_desired)
         } else {
-            let amount_y_returned = exchange(amount_x_desired, reserves_x, reserves_y);
-            if (amount_y_returned <= amount_y_desired) {
-                assert!(amount_y_returned >= amount_y_min, ERR_INSUFFICIENT_Y_AMOUNT);
-                return (amount_x_desired, amount_y_returned)
+            let y_returned = convert_with_current_price(x_desired, reserves_x, reserves_y);
+            if (y_returned <= y_desired) {
+                assert!(y_returned >= y_min, ERR_INSUFFICIENT_Y_AMOUNT);
+                return (x_desired, y_returned)
             } else {
-                let amount_x_returned = exchange(amount_y_desired, reserves_y, reserves_x);
-                assert!(amount_x_returned <= amount_x_desired, ERR_OVERLIMIT_X);
-                assert!(amount_x_returned >= amount_x_min, ERR_INSUFFICIENT_X_AMOUNT);
-                return (amount_x_returned, amount_y_desired)
+                let x_returned = convert_with_current_price(y_desired, reserves_y, reserves_x);
+                assert!(x_returned <= x_desired, ERR_OVERLIMIT_X);
+                assert!(x_returned >= x_min, ERR_INSUFFICIENT_X_AMOUNT);
+                return (x_returned, y_desired)
             }
         }
     }
 
     /// Get reserves of liquidity pool.
-    public fun get_reserves_size<X: store, Y: store, LP>(owner_addr: address): (u128, u128) {
+    public fun get_reserves_size<X: store, Y: store, LP>(pool_addr: address): (u128, u128) {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::get_reserves_size<X, Y, LP>(owner_addr)
+            LiquidityPool::get_reserves_size<X, Y, LP>(pool_addr)
         } else {
-            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(owner_addr);
+            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(pool_addr);
             (x_res, y_res)
         }
     }
 
     /// Get current cumulative prices in liquidity pool.
-    public fun get_cumulative_prices<X: store, Y: store, LP>(owner_addr: address): (U256, U256, u64) {
+    public fun get_cumulative_prices<X: store, Y: store, LP>(pool_addr: address): (U256, U256, u64) {
         if (TokenSymbols::is_sorted<X, Y>()) {
-            LiquidityPool::get_cumulative_prices<X, Y, LP>(owner_addr)
+            LiquidityPool::get_cumulative_prices<X, Y, LP>(pool_addr)
         } else {
-            let (y, x, t) = LiquidityPool::get_cumulative_prices<Y, X, LP>(owner_addr);
+            let (y, x, t) = LiquidityPool::get_cumulative_prices<Y, X, LP>(pool_addr);
             (x, y, t)
         }
     }
@@ -167,21 +167,21 @@ module AptosSwap::Router {
     /// * amount_in - exactly amount of tokens to swap.
     /// * reserve_in - reserves of token we are going to swap.
     /// * reserve_out - reserves of token we are going to get.
-    public fun get_token_out_num(token_in_num: u128, reserve_in_num: u128, reserve_out_num: u128): u128 {
-        let (fee_num, fee_scale) = LiquidityPool::get_fees_config();
+    public fun get_token_out_with_fees(token_in_val: u128, reserve_in_size: u128, reserve_out_size: u128): u128 {
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
         // 0.997 for 0.3% fee
-        let fee_multiplier = fee_scale - fee_num;
+        let fee_multiplier = fee_scale - fee_pct;
         // x_in * 0.997 (scaled to 1000)
-        let token_in_num_after_fees = token_in_num * fee_multiplier;
+        let token_in_val_after_fees = token_in_val * fee_multiplier;
         // x_reserve size after adding amount_in (scaled to 1000)
-        let new_reserves_in_num = reserve_in_num * fee_scale + token_in_num_after_fees; // Get new reserve in.
+        let new_reserves_in_size = reserve_in_size * fee_scale + token_in_val_after_fees; // Get new reserve in.
         // Multiply token_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in_after_fees * current_exchange_rate -> amount_out
         SafeMath::safe_mul_div_u128(
-            token_in_num_after_fees,  // scaled to 1000
-            reserve_out_num,
-            new_reserves_in_num)  // scaled to 1000
+            token_in_val_after_fees,  // scaled to 1000
+            reserve_out_size,
+            new_reserves_in_size)  // scaled to 1000
     }
 
     /// Get amount in by amount out.
@@ -198,7 +198,7 @@ module AptosSwap::Router {
     }
 
     /// Return amount of liquidity need to for `amount_x`.
-    public fun exchange(amount_x: u128, reserves_x: u128, reserve_y: u128): u128 {
+    public fun convert_with_current_price(amount_x: u128, reserves_x: u128, reserve_y: u128): u128 {
         assert!(amount_x > 0, ERR_WRONG_AMOUNT);
         assert!(reserves_x > 0 && reserve_y > 0, ERR_WRONG_RESERVE);
 

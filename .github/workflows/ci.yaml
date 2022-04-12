@@ -1,0 +1,34 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  tests:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get dove
+        uses: pontem-network/get-dove@main
+        with:
+          version: latest
+          # boogie: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: dove package build
+
+      - name: Test
+        run: dove package test
+
+      # - name: Prove
+      #   run: dove package prove

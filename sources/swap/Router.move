@@ -197,6 +197,11 @@ module AptosSwap::Router {
         SafeMath::safe_mul_div_u128(amount_out * fee_d, reserve_in, new_reserves_out)
     }
 
+    public fun current_price<X: store, Y: store, LP>(pool_addr: address): u128 {
+        let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
+        SafeMath::safe_mul_div_u128(1, x_reserve, y_reserve)
+    }
+
     /// Return amount of liquidity need to for `amount_x`.
     public fun convert_with_current_price(amount_x: u128, reserves_x: u128, reserve_y: u128): u128 {
         assert!(amount_x > 0, ERR_WRONG_AMOUNT);

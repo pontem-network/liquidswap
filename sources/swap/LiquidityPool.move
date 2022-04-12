@@ -39,7 +39,7 @@ module AptosSwap::LiquidityPool {
     const ERR_NOT_ENOUGH_LIQUIDITY: u64 = 104;
 
     /// When both X and Y provided for swap are equal zero.
-    const ERR_EMPTY_IN: u64 = 105;
+    const ERR_EMPTY_TOKEN_IN: u64 = 105;
 
     /// When incorrect INs/OUTs arguments passed during swap and math doesn't work.
     const ERR_INCORRECT_SWAP: u64 = 106;
@@ -184,7 +184,7 @@ module AptosSwap::LiquidityPool {
         let x_in_val = Token::value(&x_in);
         let y_in_val = Token::value(&y_in);
 
-        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_IN);
+        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_TOKEN_IN);
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(owner_addr);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(owner_addr);

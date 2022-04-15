@@ -179,6 +179,66 @@ module AptosSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_swap_exact_token_for_token_reverse(core: signer, token_admin: signer, pool_owner: signer) acquires Caps {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        let caps = borrow_global<Caps>(Signer::address_of(&token_admin));
+        let usdt_tokens_to_swap = Token::mint(110, &caps.usdt_mint_cap);
+
+        let btc_tokens =
+            Router::swap_exact_token_for_token<USDT, BTC, LP>(pool_owner_addr, usdt_tokens_to_swap, 1);
+        assert!(Token::value(&btc_tokens) == 1, 1);
+
+        Token::burn(btc_tokens, &caps.btc_burn_cap);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_swap_token_for_exact_token(core: signer, token_admin: signer, pool_owner: signer) acquires Caps {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        let caps = borrow_global<Caps>(Signer::address_of(&token_admin));
+        let btc_tokens_to_swap = Token::mint(1, &caps.btc_mint_cap);
+
+        let (remainder, usdt_tokens) =
+            Router::swap_token_for_exact_token<BTC, USDT, LP>(pool_owner_addr, btc_tokens_to_swap, 98);
+
+        assert!(Token::value(&usdt_tokens) == 98, 1);
+        assert!(Token::value(&remainder) == 0, 2);
+
+        Token::burn(usdt_tokens, &caps.usdt_burn_cap);
+        Token::destroy_zero(remainder);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_swap_token_for_exact_token_reverse(core: signer, token_admin: signer, pool_owner: signer) acquires Caps {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        let caps = borrow_global<Caps>(Signer::address_of(&token_admin));
+        let usdt_tokens_to_swap = Token::mint(1114, &caps.usdt_mint_cap);
+
+        let (remainder, btc_tokens) =
+            Router::swap_token_for_exact_token<USDT, BTC, LP>(pool_owner_addr, usdt_tokens_to_swap, 10);
+
+        assert!(Token::value(&btc_tokens) == 10, 1);
+        assert!(Token::value(&remainder) == 0, 2);
+
+        Token::burn(btc_tokens, &caps.btc_burn_cap);
+        Token::destroy_zero(remainder);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
     #[expected_failure(abort_code = 108)]
     fun test_fail_if_price_fell_behind_threshold(core: signer, token_admin: signer, pool_owner: signer)
     acquires Caps, Balance {
@@ -236,5 +296,19 @@ module AptosSwap::RouterTests {
         assert!(Router::current_price<USDT, BTC, LP>(pool_owner_addr) == 11, 4);
 
         add_tokens_to_balance(&pool_owner, usdt_tokens);
+    }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_pool_exists(core: signer, token_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        let (lp_mint_cap, lp_burn_cap) =
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
+
+        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+
+        assert!(Router::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
+        assert!(Router::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);
     }
 }

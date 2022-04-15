@@ -175,4 +175,25 @@ module AptosSwap::LiquidityPoolTests {
         Token::destroy_zero(zero);
         Token::burn(usdt_tokens, &caps.usdt_burn_cap);
     }
+
+    #[test(core = @CoreResources, token_admin = @TokenAdmin, pool_owner = @0x42)]
+    fun test_pool_exists(core: signer, token_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
+        register_tokens(&token_admin);
+
+        let (lp_mint_cap, lp_burn_cap) =
+            Token::register_token<LP>(&token_admin, 10, string(b"LP"));
+
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+
+        assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
+        assert!(!LiquidityPool::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);
+    }
+
+    #[test]
+    fun test_fees_config() {
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+        assert!(fee_pct == 3, 1);
+        assert!(fee_scale == 1000, 2);
+    }
 }

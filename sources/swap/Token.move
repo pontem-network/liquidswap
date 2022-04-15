@@ -5,7 +5,6 @@
 /// The module defines functions operating on tokens as well as functionality like
 /// minting and burning of tokens.
 module AptosSwap::Token {
-    use Std::Errors;
     use Std::Event::{Self, EventHandle};
     use Std::Signer;
     use Std::ASCII::String;
@@ -80,8 +79,17 @@ module AptosSwap::Token {
 
     /// A property expected of a `TokenInfo` resource didn't hold
     const ERR_TOKEN_INFO: u64 = 1;
+
+    const ERR_TOKEN_ALREADY_EXISTS: u64 = 10;
+    const ERR_UNKNOWN_TOKEN_IN_SYMBOL: u64 = 11;
+    const ERR_NOT_ENOUGH_SUPPLY_TO_BURN: u64 = 12;
+    const ERR_TOO_MUCH_SUPPLY_TO_MINT: u64 = 13;
+
     /// A property expected of the token provided didn't hold
     const ERR_INVALID_TOKEN: u64 = 2;
+
+    const ERR_TOKEN_VALUE_OVERFLOWS: u64 = 21;
+
     /// The destruction of a non-zero token was attempted. Non-zero tokens must be burned.
     const ERR_DESTRUCTION_OF_NONZERO_TOKEN: u64 = 3;
     /// A withdrawal greater than the value of the token was attempted.
@@ -120,7 +128,7 @@ module AptosSwap::Token {
     /// value of the passed-in `token`.
     public fun withdraw<TokenType>(token: &mut Token<TokenType>, amount: u128): Token<TokenType> {
         // Check that `amount` is less than the token's value
-        assert!(token.value >= amount, Errors::limit_exceeded(ERR_AMOUNT_EXCEEDS_TOKEN_VALUE));
+        assert!(token.value >= amount, ERR_AMOUNT_EXCEEDS_TOKEN_VALUE);
         token.value = token.value - amount;
         Token{ value: amount }
     }
@@ -144,7 +152,7 @@ module AptosSwap::Token {
     /// The `check` tokens is consumed in the process
     public fun deposit<TokenType>(token: &mut Token<TokenType>, check: Token<TokenType>) {
         let Token{ value } = check;
-        assert!(MAX_U128 - token.value >= value, Errors::limit_exceeded(ERR_INVALID_TOKEN));
+        assert!(MAX_U128 - token.value >= value, ERR_TOKEN_VALUE_OVERFLOWS);
         token.value = token.value + value;
     }
 
@@ -153,7 +161,7 @@ module AptosSwap::Token {
     /// a `BurnCapability` for the specific `TokenType`.
     public fun destroy_zero<TokenType>(token: Token<TokenType>) {
         let Token{ value } = token;
-        assert!(value == 0, Errors::invalid_argument(ERR_DESTRUCTION_OF_NONZERO_TOKEN))
+        assert!(value == 0, ERR_DESTRUCTION_OF_NONZERO_TOKEN)
     }
 
     /// Mint new tokens of `TokenType`.
@@ -166,11 +174,18 @@ module AptosSwap::Token {
 
         // update market cap resource to reflect minting
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
-        assert!(MAX_U128 - info.total_supply >= value, Errors::limit_exceeded(ERR_TOKEN_INFO));
+        assert!(MAX_U128 - info.total_supply >= value, ERR_TOO_MUCH_SUPPLY_TO_MINT);
 
         info.total_supply = info.total_supply + value;
 
         Token<TokenType>{ value }
+    }
+
+    public fun mint_with_token_admin<TokenType>(token_admin: &signer, value: u128): Token<TokenType>
+    acquires MintCapability, TokenInfo {
+        let token_admin_addr = Signer::address_of(token_admin);
+        let mint_cap = borrow_global<MintCapability<TokenType>>(token_admin_addr);
+        mint<TokenType>(value, mint_cap)
     }
 
     /// Burn `to_burn` tokens.
@@ -185,7 +200,7 @@ module AptosSwap::Token {
         let Token{ value } = to_burn;
         let info = borrow_global_mut<TokenInfo<TokenType>>(@TokenAdmin);
 
-        assert!(info.total_supply >= (value as u128), Errors::limit_exceeded(ERR_TOKEN_INFO));
+        assert!(info.total_supply >= (value as u128), ERR_NOT_ENOUGH_SUPPLY_TO_BURN);
         info.total_supply = info.total_supply - (value as u128);
     }
 
@@ -197,9 +212,10 @@ module AptosSwap::Token {
         decimals: u8,
         symbol: String,
     ): (MintCapability<TokenType>, BurnCapability<TokenType>) {
+        assert!(Signer::address_of(acc) == @TokenAdmin, ERR_NOT_ADMIN);
         assert!(
             !exists<TokenInfo<TokenType>>(Signer::address_of(acc)),
-            Errors::already_published(ERR_TOKEN_INFO)
+            ERR_TOKEN_ALREADY_EXISTS
         );
 
         move_to(acc, TokenInfo<TokenType>{
@@ -210,6 +226,20 @@ module AptosSwap::Token {
             burn_events: Event::new_event_handle<BurnEvent>(acc),
         });
         (MintCapability<TokenType>{}, BurnCapability<TokenType>{})
+    }
+
+    /// Register new token.
+    /// Should be called the deployer of module contains `TokenType`.
+    /// Registering new token.
+    public fun register_token_to_acc<TokenType>(
+        acc: &signer,
+        decimals: u8,
+        symbol: String,
+    ) {
+        let (m, b) =
+            register_token<TokenType>(acc, decimals, symbol);
+        move_to(acc, m);
+        move_to(acc, b);
     }
 
     /// Returns the total amount of token minted of type `TokenType`.
@@ -228,7 +258,7 @@ module AptosSwap::Token {
     /// Returns the token code for the registered token as defined in
     /// its `TokenInfo` resource.
     public fun symbol<TokenType>(): String acquires TokenInfo {
-        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
+        assert!(is_token<TokenType>(), ERR_UNKNOWN_TOKEN_IN_SYMBOL);
         *&borrow_global<TokenInfo<TokenType>>(@TokenAdmin).symbol
 
     }
@@ -244,6 +274,6 @@ module AptosSwap::Token {
 
     /// Asserts that `TokenType` is a registered token.
     public fun assert_is_token<TokenType>() {
-        assert!(is_token<TokenType>(), Errors::not_published(ERR_TOKEN_INFO));
+        assert!(is_token<TokenType>(), ERR_TOKEN_INFO);
     }
 }

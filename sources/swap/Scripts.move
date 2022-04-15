@@ -2,7 +2,7 @@ module AptosSwap::Scripts {
     use Std::PontAccount;
     use Std::Signer;
 
-    use AptosSwap::Router;    
+    use AptosSwap::Router;
 
     /// Add liquidity to pool.
     /// * pool_addr - address of account registered pool.

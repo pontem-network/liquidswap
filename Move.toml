@@ -1,5 +1,5 @@
 [package]
-name = "aptos-swap"
+name = "AptosSwap"
 version = "0.1.0"
 
 [addresses]

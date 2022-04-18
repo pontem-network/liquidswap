@@ -1,4 +1,4 @@
-module AptosSwap::Math {
+module AptosSwap::SafeMath {
     use Std::Errors;
     use Std::U256::{Self, U256};
     use Std::Math;

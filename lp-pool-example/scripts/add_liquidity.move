@@ -2,8 +2,7 @@ script {
     use AptosSwap::Scripts;
     use Sender::Tokens::{BTC, USDT, LP};
 
-    fun add_liquidity(acc: signer, btc_amount: u128, usdt_amount: u128) {
-        let pool_addr = @Sender;
+    fun add_liquidity(acc: signer, pool_addr: address, btc_amount: u128, usdt_amount: u128) {
         Scripts::add_liquidity<BTC, USDT, LP>(
             acc,
             pool_addr,

@@ -1,7 +1,5 @@
 script {
-    use AptosFramework::Genesis;
-
-    fun genesis(core: signer) {
-        Genesis::setup(&core);
+    fun genesis(_core: signer) {
+        AptosFramework::Genesis::setup(&_core);
     }
 }

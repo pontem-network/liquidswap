@@ -1,6 +1,5 @@
 /// Module allows to work with Pontem account balances, events.
 module Std::PontAccount {
-    use Std::Errors;
     use Std::Signer;
     use Std::ASCII::String;
 
@@ -57,28 +56,10 @@ module Std::PontAccount {
 
         // Check that the `token` amount is non-zero
         let token_amount = Token::value(&token);
-        assert!(token_amount > 0, Errors::invalid_argument(ERR_ZERO_DEPOSIT_AMOUNT));
-
-        // Create signer for `to_addr` to create PontAccount and Balance resources.
-        let to_addr_acc = create_signer(to_addr);
-
-        if (!has_token_balance<TokenType>(to_addr)) {
-            create_token_balance<TokenType>(&to_addr_acc);
+        if (token_amount == 0) {
+            Token::destroy_zero(token);
+            return
         };
-
-        // Deposit the `to_deposit` token
-        Token::deposit(&mut borrow_global_mut<Balance<TokenType>>(to_addr).token, token);
-    }
-
-    public fun deposit_token_with_metadata<TokenType>(
-        to_addr: address,
-        token: Token<TokenType>,
-    ) acquires Balance {
-        Token::assert_is_token<TokenType>();
-
-        // Check that the `token` amount is non-zero
-        let token_amount = Token::value(&token);
-        assert!(token_amount > 0, Errors::invalid_argument(ERR_ZERO_DEPOSIT_AMOUNT));
 
         // Create signer for `to_addr` to create PontAccount and Balance resources.
         let to_addr_acc = create_signer(to_addr);
@@ -97,12 +78,12 @@ module Std::PontAccount {
         amount: u128,
     ): Token<TokenType> acquires Balance {
         let from_acc_addr = Signer::address_of(from_acc);
-        assert!(exists<Balance<TokenType>>(from_acc_addr), Errors::not_published(ERR_NO_BALANCE_FOR_TOKEN));
+        assert!(exists<Balance<TokenType>>(from_acc_addr), ERR_NO_BALANCE_FOR_TOKEN);
 
         let from_acc_balance = borrow_global_mut<Balance<TokenType>>(from_acc_addr);
 
         let token = &mut from_acc_balance.token;
-        assert!(Token::value(token) >= amount, Errors::limit_exceeded(ERR_INSUFFICIENT_BALANCE));
+        assert!(Token::value(token) >= amount, ERR_INSUFFICIENT_BALANCE);
 
         Token::withdraw(token, amount)
     }
@@ -131,7 +112,7 @@ module Std::PontAccount {
 
     /// Return the current balance of the account at `addr`.
     public fun balance<TokenType>(addr: address): u128 acquires Balance {
-        assert!(exists<Balance<TokenType>>(addr), Errors::not_published(ERR_NO_BALANCE_FOR_TOKEN));
+        assert!(exists<Balance<TokenType>>(addr), ERR_NO_BALANCE_FOR_TOKEN);
         let balance = borrow_global<Balance<TokenType>>(addr);
         Token::value<TokenType>(&balance.token)
     }
@@ -146,7 +127,7 @@ module Std::PontAccount {
         // aborts if this account already has a balance in `Token`
         assert!(
             !exists<Balance<TokenType>>(addr),
-            Errors::already_published(ERR_TOKEN_BALANCE_ALREADY_EXISTS)
+            ERR_TOKEN_BALANCE_ALREADY_EXISTS
         );
         move_to(acc, Balance<TokenType>{ token: Token::zero<TokenType>() })
     }

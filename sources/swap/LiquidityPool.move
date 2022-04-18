@@ -6,7 +6,7 @@ module AptosSwap::LiquidityPool {
     use CoreFramework::Timestamp;
 
     use AptosSwap::Token::{Self, Token};
-    use AptosSwap::SafeMath;
+    use AptosSwap::Math;
     use AptosSwap::FixedPoint128;
     use AptosSwap::TokenSymbols;
 
@@ -113,13 +113,13 @@ module AptosSwap::LiquidityPool {
         let y_provided_val = Token::value<Y>(&token_y);
 
         let provided_liquidity = if (lp_tokens_total == 0) {
-            let initial_liquidity = SafeMath::sqrt_u256(SafeMath::mul_u128(x_provided_val, y_provided_val));
+            let initial_liquidity = Math::sqrt_u256(Math::mul_u128(x_provided_val, y_provided_val));
             assert!(initial_liquidity > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liquidity - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liquidity = SafeMath::safe_mul_div_u128(x_provided_val, lp_tokens_total, x_reserve_size);
-            let y_liquidity = SafeMath::safe_mul_div_u128(y_provided_val, lp_tokens_total, y_reserve_size);
+            let x_liquidity = Math::safe_mul_div_u128(x_provided_val, lp_tokens_total, x_reserve_size);
+            let y_liquidity = Math::safe_mul_div_u128(y_provided_val, lp_tokens_total, y_reserve_size);
 
             if (x_liquidity < y_liquidity) {
                 x_liquidity
@@ -156,8 +156,8 @@ module AptosSwap::LiquidityPool {
         let y_reserve_val = Token::value(&pool.token_y_reserve);
 
         // Compute x, y token values for provided lp_tokens value
-        let x_to_return_val = SafeMath::safe_mul_div_u128(burned_lp_tokens_val, x_reserve_val, lp_tokens_total);
-        let y_to_return_val = SafeMath::safe_mul_div_u128(burned_lp_tokens_val, y_reserve_val, lp_tokens_total);
+        let x_to_return_val = Math::safe_mul_div_u128(burned_lp_tokens_val, x_reserve_val, lp_tokens_total);
+        let y_to_return_val = Math::safe_mul_div_u128(burned_lp_tokens_val, y_reserve_val, lp_tokens_total);
         assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_INCORRECT_BURN_VALUES);
 
         // Withdraw those values from reserves
@@ -225,7 +225,7 @@ module AptosSwap::LiquidityPool {
             U256::mul(U256::from_u128(x_res_new_after_fee), U256::from_u128(y_res_new_after_fee));
         // invariant: lp_value_after_swap_and_fee >= lp_value_before_swap
         let order = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
-        assert!(order != SafeMath::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
+        assert!(order != Math::CONST_LESS_THAN(), ERR_INCORRECT_SWAP);
 
         update_oracle<X, Y, LP>(pool, x_reserve_size, y_reserve_size);
 

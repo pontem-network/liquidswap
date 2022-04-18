@@ -4,7 +4,7 @@ module AptosSwap::Router {
     use Std::U256::U256;
     
     use AptosSwap::Token::{Token, Self};
-    use AptosSwap::SafeMath;
+    use AptosSwap::Math;
     use AptosSwap::TokenSymbols;
     use AptosSwap::LiquidityPool;
 
@@ -231,7 +231,7 @@ module AptosSwap::Router {
         // Multiply token_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in_after_fees * current_exchange_rate -> amount_out
-        SafeMath::safe_mul_div_u128(
+        Math::safe_mul_div_u128(
             token_in_val_after_fees,  // scaled to 1000
             reserve_out_size,
             new_reserves_in_size)  // scaled to 1000
@@ -249,7 +249,7 @@ module AptosSwap::Router {
         // reserves_out - token_out * 0.997
         let new_reserves_out_size = (reserve_out_size - token_out_val) * fee_multiplier;
         // token_out * fee scale * reserve_in / new reserves out
-        SafeMath::safe_mul_div_u128(token_out_val * fee_scale, reserve_in_size, new_reserves_out_size) + 1
+        Math::safe_mul_div_u128(token_out_val * fee_scale, reserve_in_size, new_reserves_out_size) + 1
     }
 
     /// Return amount of liquidity need to for `amount_in`.
@@ -262,12 +262,12 @@ module AptosSwap::Router {
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = token_in_val * exchange_price
-        SafeMath::safe_mul_div_u128(token_in_val, reserve_out_size, reserve_in_size)
+        Math::safe_mul_div_u128(token_in_val, reserve_out_size, reserve_in_size)
     }
 
     #[test_only]
     public fun current_price<X: store, Y: store, LP>(pool_addr: address): u128 {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
-        SafeMath::safe_mul_div_u128(1, x_reserve, y_reserve)
+        Math::div_u128(x_reserve, y_reserve)
     }
 }

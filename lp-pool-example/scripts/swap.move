@@ -1,6 +1,4 @@
 script {
-    use Std::PontAccount;
-    use Std::Signer;
     use AptosSwap::Scripts;
     use Sender::Tokens::{BTC, USDT, LP};
 

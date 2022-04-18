@@ -30,5 +30,9 @@ jobs:
       - name: Test
         run: dove package test
 
+      - name: Build lp-pool-example/
+        working-directory: ./lp-pool-example
+        run: dove package build --test
+
       # - name: Prove
       #   run: dove package prove

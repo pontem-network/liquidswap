@@ -34,7 +34,7 @@ module AptosSwap::SafeMath {
     }
 
     public fun mul_div_u128(x: u128, y: u128, z: u128): U256 {
-        if ( z == 0) {
+        if (z == 0) {
             abort Errors::invalid_argument(ERR_DIVIDE_BY_ZERO)
         };
 
@@ -54,7 +54,7 @@ module AptosSwap::SafeMath {
 
     public fun CONST_LESS_THAN(): u8 {
         LESS_THAN
-    }    
+    }
 
     public fun CONST_GREATER_THAN(): u8 {
         GREATER_THAN
@@ -85,16 +85,13 @@ module AptosSwap::SafeMath {
         assert!(r == _r_expected, 3002);
     }
 
-
-    /// support 18-bit or larger precision token
-    public fun safe_compare_mul_u128(x1: u128, y1: u128, x2: u128, y2: u128): u8 {
-        let r1 = U256::mul(U256::from_u128(x1), U256::from_u128(y1));
-        let r2 = U256::mul(U256::from_u128(x2), U256::from_u128(y2));
-        U256::compare(&r1, &r2)
-    }
-
     public fun mul_u128(x: u128, y: u128): U256 {
         U256::mul(U256::from_u128(x), U256::from_u128(y))
+    }
+
+    public fun div_u128(x: u128, y: u128): u128 {
+        let r_U256 = U256::div(U256::from_u128(x), U256::from_u128(y));
+        U256::as_u128(r_U256)
     }
 
     /// support 18-bit or larger precision token
@@ -117,21 +114,5 @@ module AptosSwap::SafeMath {
             };
             U256::as_u128(z)
         }
-    }
-
-    #[test]
-    fun test_loss_precision() {
-        let precision_18: u8 = 18;
-        let scaling_factor_18 = Math::pow(10, (precision_18 as u64));
-        let amount_x: u128 = 1999;
-        let reserve_y: u128 = 37;
-        let reserve_x: u128 = 1000;
-
-        let amount_y_1 = Self::safe_mul_div_u128(amount_x, reserve_y, reserve_x);
-        let amount_y_2 = Self::safe_mul_div_u128(amount_x * scaling_factor_18, reserve_y, reserve_x * scaling_factor_18);
-        let amount_y_2_loss_precesion = (amount_x * scaling_factor_18) / (reserve_x * scaling_factor_18) * reserve_y;
-        assert!(amount_y_1 == 73, 3008);
-        assert!(amount_y_2 == 73, 3009);
-        assert!(amount_y_2_loss_precesion < amount_y_2, 3010);
     }
 }

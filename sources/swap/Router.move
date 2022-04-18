@@ -268,6 +268,6 @@ module AptosSwap::Router {
     #[test_only]
     public fun current_price<X: store, Y: store, LP>(pool_addr: address): u128 {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
-        SafeMath::safe_mul_div_u128(1, x_reserve, y_reserve)
+        SafeMath::div_u128(x_reserve, y_reserve)
     }
 }

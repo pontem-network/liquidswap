@@ -144,17 +144,21 @@ module AptosSwap::RouterTests {
 
         register_pool_with_liquidity(&token_admin, &pool_owner, 101, 10100);
 
+        let lp_tokens_val = 2;
         let pool_addr = Signer::address_of(&pool_owner);
         let lp_balance = borrow_global_mut<Balance<LP>>(pool_addr);
-        let lp_tokens_to_burn = Token::withdraw(&mut lp_balance.tokens, 2);
+        let lp_tokens_to_burn = Token::withdraw(&mut lp_balance.tokens, lp_tokens_val);
+
+        let (x_out, y_out) = Router::get_reserves_for_lp_tokens<BTC, USDT, LP>(pool_addr, lp_tokens_val);
         let (token_x, token_y) =
-            Router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_tokens_to_burn);
+            Router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_tokens_to_burn, x_out, y_out);
+
         let (usdt_reserve, btc_reserve) = Router::get_reserves_size<USDT, BTC, LP>(pool_addr);
         assert!(usdt_reserve == 8080, 3);
         assert!(btc_reserve == 81, 4);
 
-        assert!(Token::value(&token_x) == 20, 1);
-        assert!(Token::value(&token_y) == 2020, 2);
+        assert!(Token::value(&token_x) == x_out, 1);
+        assert!(Token::value(&token_y) == y_out, 2);
 
         add_tokens_to_balance(&pool_owner, token_x);
         add_tokens_to_balance(&pool_owner, token_y);

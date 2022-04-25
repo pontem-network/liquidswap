@@ -37,10 +37,12 @@ module AptosSwap::Scripts {
         account: signer,
         pool_addr: address,
         lp_val: u128,
+        min_x_out_val: u128,
+        min_y_out_val: u128,
     ) {
         let lp_tokens = PontAccount::withdraw_tokens<LP>(&account, lp_val);
 
-        let (token_x, token_y) = Router::remove_liquidity<X, Y, LP>(pool_addr, lp_tokens);
+        let (token_x, token_y) = Router::remove_liquidity<X, Y, LP>(pool_addr, lp_tokens, min_x_out_val, min_y_out_val);
 
         let account_addr = Signer::address_of(&account);
         PontAccount::deposit_token(account_addr, token_x);

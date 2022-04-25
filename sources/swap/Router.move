@@ -90,18 +90,24 @@ module AptosSwap::Router {
         (x_remainder, y_remainder, lp_tokens)
     }
 
-    // TODO: we should check amount_min_x and amount_min_y for remove liquidity too (otherwise it could be attacked imho with frontrun).
-
     /// Burn liquidity and get token X and Y back.
     /// * pool_addr - pool owner address.
     /// * lp_tokens - LP tokens to burn.
-    public fun remove_liquidity<X: store, Y: store, LP>(pool_addr: address, lp_tokens: Token<LP>): (Token<X>, Token<Y>) {
-        if (TokenSymbols::is_sorted<X, Y>()) {
+    /// * min_x_out_val - minimum amount of X tokens must be out.
+    /// * min_y_out_val - minimum amount of X tokens must be out.
+    /// Returns both tokens X and Y.
+    public fun remove_liquidity<X: store, Y: store, LP>(pool_addr: address, lp_tokens: Token<LP>, min_x_out_val: u128, min_y_out_val: u128): (Token<X>, Token<Y>) {
+        let (x_out, y_out) = if (TokenSymbols::is_sorted<X, Y>()) {
             LiquidityPool::burn_liquidity<X, Y, LP>(pool_addr, lp_tokens)
         } else {
             let (y, x) = LiquidityPool::burn_liquidity<Y, X, LP>(pool_addr, lp_tokens);
             (x, y)
-        }
+        };
+
+        assert!(Token::value(&x_out) >= min_x_out_val, ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
+        assert!(Token::value(&y_out) >= min_y_out_val, ERR_TOKEN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
+
+        (x_out, y_out)
     }
 
     /// Swap token X for token Y.
@@ -214,6 +220,22 @@ module AptosSwap::Router {
             let (y, x, t) = LiquidityPool::get_cumulative_prices<Y, X, LP>(pool_addr);
             (x, y, t)
         }
+    }
+
+    /// Convert LP to X and Y tokens, useful to calculate amount the user recieve after removing liquidity.
+    /// * pool_addr - pool owner address.
+    /// * lp_to_burn_val - amount of LP tokens to burn.
+    /// Returns both X and Y tokens amounts.
+    public fun get_reserves_for_lp_tokens<X: store, Y: store, LP>(pool_addr: address, lp_to_burn_val: u128): (u128, u128) {
+        let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
+        let lp_tokens_total = Token::total_supply<LP>();
+
+        let x_to_return_val = SafeMath::safe_mul_div_u128(lp_to_burn_val, x_reserve, lp_tokens_total);
+        let y_to_return_val = SafeMath::safe_mul_div_u128(lp_to_burn_val, y_reserve, lp_tokens_total);
+
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_WRONG_AMOUNT);
+
+        (x_to_return_val, y_to_return_val)
     }
 
     /// Get token amount out by passing amount in (include fees).

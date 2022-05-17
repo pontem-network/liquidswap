@@ -6,33 +6,33 @@ on:
       - master
 
 jobs:
-  tests:
-    name: Test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
+  #tests:
+    #name: Test
+    #runs-on: ubuntu-latest
+    #defaults:
+      #run:
+        #shell: bash
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    #steps:
+      #- name: Checkout repository
+      #  uses: actions/checkout@v2
 
-      - name: Get dove
-        uses: pontem-network/get-dove@main
-        with:
-          version: latest
+      #- name: Get dove
+      #  uses: pontem-network/get-dove@main
+      #  with:
+      #    version: latest
           # boogie: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+      #    token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
-        run: dove package build
+      #- name: Build
+      #  run: dove package build
 
-      - name: Test
-        run: dove package test
+      #- name: Test
+      #  run: dove package test
 
-      - name: Build lp-pool-example/
-        working-directory: ./lp-pool-example
-        run: dove package build --test
+      #- name: Build lp-pool-example/
+      #  working-directory: ./lp-pool-example
+      #  run: dove package build --test
 
       # - name: Prove
       #   run: dove package prove

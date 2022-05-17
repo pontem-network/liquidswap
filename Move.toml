@@ -4,22 +4,23 @@ version = "0.1.0"
 
 [addresses]
 AptosSwap = "0x11"
-TokenAdmin = "0x12"
+CoinAdmin = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "012f07809431e936d32a9be8620089ad1834d4e9"
+rev = "88091bc88b0da654a1341a389b9b770a63559f25"
 subdir = "aptos-move/framework/move-stdlib"
 addr_subst = { Std = "0x1" }
 
-[dependencies.CoreFramework]
+[dependencies.MoveNursery]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "012f07809431e936d32a9be8620089ad1834d4e9"
-subdir = "aptos-move/framework/core"
+rev = "88091bc88b0da654a1341a389b9b770a63559f25"
+subdir = "aptos-move/framework/move-stdlib/nursery"
 addr_subst = { Std = "0x1" }
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "012f07809431e936d32a9be8620089ad1834d4e9"
+rev = "88091bc88b0da654a1341a389b9b770a63559f25"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
+

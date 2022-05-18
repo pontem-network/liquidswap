@@ -4,6 +4,7 @@ module AptosSwap::CoinHelper {
     use Std::Compare;
     use Std::ASCII::String;
     use Std::Option;
+    use Std::Errors;
 
     use AptosFramework::Coin;
 
@@ -29,12 +30,12 @@ module AptosSwap::CoinHelper {
 
     /// Check if provided coin `CoinType` has a supply.
     public fun assert_has_supply<CoinType>() {
-        assert!(Option::is_some(&Coin::supply<CoinType>()), ERR_COIN_HASNT_SUPPLY);
+        assert!(Option::is_some(&Coin::supply<CoinType>()), Errors::not_published(ERR_COIN_HASNT_SUPPLY));
     }
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
-        assert!(Coin::is_registered<CoinType>(), ERR_CANNOT_BE_THE_SAME_COIN);
+        assert!(Coin::is_registered<CoinType>(), Errors::not_published(ERR_IS_NOT_COIN));
     }
 
     /// Compare two coins, `X` and `Y`, using names.
@@ -49,7 +50,7 @@ module AptosSwap::CoinHelper {
     /// X != Y && X.symbol < Y.symbol
     public fun is_sorted<X, Y>(): bool {
         let order = compare<X, Y>();
-        assert!(order != EQUAL, ERR_CANNOT_BE_THE_SAME_COIN);
+        assert!(order != EQUAL, Errors::invalid_argument(ERR_CANNOT_BE_THE_SAME_COIN));
         order == LESS_THAN
     }
 

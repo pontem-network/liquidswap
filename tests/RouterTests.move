@@ -277,7 +277,7 @@ module CoinAdmin::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    #[expected_failure(abort_code = 106)]
+    #[expected_failure(abort_code = 26887)]
     fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -298,7 +298,7 @@ module CoinAdmin::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = 26887)]
     fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);

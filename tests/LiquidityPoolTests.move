@@ -73,7 +73,7 @@ module CoinAdmin::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 25607)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -190,7 +190,7 @@ module CoinAdmin::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    #[expected_failure(abort_code = 106)]
+    #[expected_failure(abort_code = 27137)]
     fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);

@@ -69,7 +69,7 @@ module CoinAdmin::CoinHelperTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin)]
-    #[expected_failure(abort_code = 102)]
+    #[expected_failure(abort_code = 26117)]
     fun test_assert_has_supply_failuer(core: signer, coin_admin: signer) {
         Genesis::setup(&core);
 
@@ -89,7 +89,7 @@ module CoinAdmin::CoinHelperTests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 25861)]
     fun test_assert_is_coin_failure() {
         CoinHelper::assert_is_coin<USDT>();
     }

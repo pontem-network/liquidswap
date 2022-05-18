@@ -1,5 +1,7 @@
 /// Router for Liquidity Pool, similar to Uniswap router.
 module AptosSwap::Router {
+    use Std::Errors;
+
     use AptosFramework::Coin::{Coin, Self};
 
     use AptosSwap::SafeMath;
@@ -18,12 +20,10 @@ module AptosSwap::Router {
     const ERR_INSUFFICIENT_X_AMOUNT: u64 = 103;
     /// Overlimit of X coins to swap.
     const ERR_OVERLIMIT_X: u64 = 104;
-    /// Irrationally swap.
-    const ERR_IRRATIONALLY: u64 = 105;
     /// Amount out less than minimum.
-    const ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 106;
+    const ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 105;
     /// Needed amount in great than maximum.
-    const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 107;
+    const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 106;
 
     // Public functions.
 
@@ -116,8 +116,14 @@ module AptosSwap::Router {
             (x, y)
         };
 
-        assert!(Coin::value(&x_out) >= min_x_out_val, ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
-        assert!(Coin::value(&y_out) >= min_y_out_val, ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
+        assert!(
+            Coin::value(&x_out) >= min_x_out_val,
+            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+        );
+        assert!(
+            Coin::value(&y_out) >= min_y_out_val,
+            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+        );
 
         (x_out, y_out)
     }
@@ -137,7 +143,7 @@ module AptosSwap::Router {
         let coin_out_val = get_coin_out_with_fees(coin_in_val, x_reserve_size, y_reserve_size);
         assert!(
             coin_out_val >= coin_out_min_val,
-            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
+            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
         );
 
         let (zero, coin_out);
@@ -165,7 +171,10 @@ module AptosSwap::Router {
         let coin_x_val_needed = get_coin_in_with_fees(coin_out_val, y_reserve_size, x_reserve_size);
 
         let coin_val_max = Coin::value(&coin_max_in);
-        assert!(coin_x_val_needed <= coin_val_max, ERR_COIN_VAL_MAX_LESS_THAN_NEEDED);
+        assert!(
+            coin_x_val_needed <= coin_val_max,
+            Errors::invalid_argument(ERR_COIN_VAL_MAX_LESS_THAN_NEEDED)
+        );
 
         let coin_in = Coin::extract(&mut coin_max_in, coin_x_val_needed);
 
@@ -200,12 +209,12 @@ module AptosSwap::Router {
         } else {
             let y_returned = convert_with_current_price(x_desired, reserves_x, reserves_y);
             if (y_returned <= y_desired) {
-                assert!(y_returned >= y_min, ERR_INSUFFICIENT_Y_AMOUNT);
+                assert!(y_returned >= y_min, Errors::invalid_argument(ERR_INSUFFICIENT_Y_AMOUNT));
                 return (x_desired, y_returned)
             } else {
                 let x_returned = convert_with_current_price(y_desired, reserves_y, reserves_x);
-                assert!(x_returned <= x_desired, ERR_OVERLIMIT_X);
-                assert!(x_returned >= x_min, ERR_INSUFFICIENT_X_AMOUNT);
+                assert!(x_returned <= x_desired, Errors::invalid_argument(ERR_OVERLIMIT_X));
+                assert!(x_returned >= x_min, Errors::invalid_argument(ERR_INSUFFICIENT_X_AMOUNT));
                 return (x_returned, y_desired)
             }
         }
@@ -248,7 +257,7 @@ module AptosSwap::Router {
         let x_to_return_val = SafeMath::mul_div(lp_to_burn_val, x_reserve, lp_coins_total);
         let y_to_return_val = SafeMath::mul_div(lp_to_burn_val, y_reserve, lp_coins_total);
 
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_WRONG_AMOUNT);
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
 
         (x_to_return_val, y_to_return_val)
     }
@@ -295,8 +304,8 @@ module AptosSwap::Router {
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get.
     public fun convert_with_current_price(coin_in_val: u64, reserve_in_size: u64, reserve_out_size: u64): u64 {
-        assert!(coin_in_val > 0, ERR_WRONG_AMOUNT);
-        assert!(reserve_in_size > 0 && reserve_out_size > 0, ERR_WRONG_RESERVE);
+        assert!(coin_in_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
+        assert!(reserve_in_size > 0 && reserve_out_size > 0, Errors::invalid_argument(ERR_WRONG_RESERVE));
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price

@@ -2,6 +2,7 @@
 /// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
 module AptosSwap::LiquidityPool {
     use Std::Signer;
+    use Std::Errors;
 
     use AptosFramework::Timestamp;
     use AptosFramework::Coin::{Coin, Self};
@@ -76,16 +77,16 @@ module AptosSwap::LiquidityPool {
     ) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
-        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
 
         assert_is_coin<LP>();
 
         // TODO: check LP decimals.
         assert_has_supply<LP>();
-        assert!(supply<LP>() == 0, ERR_LP_COIN_NON_ZERO_TOTAL);
+        assert!(supply<LP>() == 0, Errors::invalid_state(ERR_LP_COIN_NON_ZERO_TOTAL));
 
         let owner_addr = Signer::address_of(owner);
-        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
+        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
 
         let pool = LiquidityPool<X, Y, LP>{
             coin_x_reserve: Coin::zero<X>(),
@@ -108,7 +109,7 @@ module AptosSwap::LiquidityPool {
         coin_x: Coin<X>,
         coin_y: Coin<Y>
     ): Coin<LP> acquires LiquidityPool {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let lp_coins_total = supply<LP>();
 
@@ -119,7 +120,7 @@ module AptosSwap::LiquidityPool {
 
         let provided_liq = if (lp_coins_total == 0) {
             let initial_liq = SafeMath::sqrt(SafeMath::mul_to_u128(x_provided_val, y_provided_val));
-            assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
+            assert!(initial_liq > MINIMAL_LIQUIDITY, Errors::invalid_state(ERR_NOT_ENOUGH_INITIAL_LIQUIDITY));
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
@@ -131,7 +132,7 @@ module AptosSwap::LiquidityPool {
                 y_liq
             }
         };
-        assert!(provided_liq > 0, ERR_NOT_ENOUGH_LIQUIDITY);
+        assert!(provided_liq > 0, Errors::invalid_argument(ERR_NOT_ENOUGH_LIQUIDITY));
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
         Coin::merge(&mut pool.coin_x_reserve, coin_x);
@@ -150,7 +151,7 @@ module AptosSwap::LiquidityPool {
     /// Return both `Coin<X>` and `Coin<Y>`.
     public fun burn_liquidity<X: store, Y: store, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let burned_lp_coins_val = Coin::value(&lp_coins);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
@@ -162,7 +163,7 @@ module AptosSwap::LiquidityPool {
         // Compute x, y coin values for provided lp_coins value
         let x_to_return_val = SafeMath::mul_div(burned_lp_coins_val, x_reserve_val, lp_coins_total);
         let y_to_return_val = SafeMath::mul_div(burned_lp_coins_val, y_reserve_val, lp_coins_total);
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_INCORRECT_BURN_VALUES);
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
 
         // Withdraw those values from reserves
         let x_coin_to_return = Coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
@@ -190,12 +191,12 @@ module AptosSwap::LiquidityPool {
         y_in: Coin<Y>,
         y_out: u64
     ): (Coin<X>, Coin<Y>) acquires LiquidityPool {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let x_in_val = Coin::value(&x_in);
         let y_in_val = Coin::value(&y_in);
 
-        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
+        assert!(x_in_val > 0 || y_in_val > 0, Errors::invalid_argument(ERR_EMPTY_COIN_IN));
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
@@ -218,15 +219,18 @@ module AptosSwap::LiquidityPool {
 
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = SafeMath::mul_to_u128(x_reserve_size_new, FEE_SCALE) - SafeMath::mul_to_u128(x_in_val, FEE_MULTIPLIER);
-        let y_res_new_after_fee = SafeMath::mul_to_u128(y_reserve_size_new, FEE_SCALE) - SafeMath::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+        let x_res_new_after_fee = SafeMath::mul_to_u128(x_reserve_size_new, FEE_SCALE)
+                                            - SafeMath::mul_to_u128(x_in_val, FEE_MULTIPLIER);
+
+        let y_res_new_after_fee = SafeMath::mul_to_u128(y_reserve_size_new, FEE_SCALE)
+                                            - SafeMath::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
         let lp_value_before_swap = SafeMath::mul_to_u128(x_reserve_size, y_reserve_size);
         lp_value_before_swap = lp_value_before_swap * 1000000;
         let lp_value_after_swap_and_fee = x_res_new_after_fee * y_res_new_after_fee;
         assert!(
             lp_value_after_swap_and_fee >= (lp_value_before_swap as u128),
-            ERR_INCORRECT_SWAP
+            Errors::invalid_state(ERR_INCORRECT_SWAP),
         );
 
         update_oracle<X, Y, LP>(pool, x_reserve_size, y_reserve_size);
@@ -265,8 +269,8 @@ module AptosSwap::LiquidityPool {
     /// Returns both (X, Y) reserves.
     public fun get_reserves_size<X: store, Y: store, LP>(pool_addr: address): (u64, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let x_reserve = Coin::value(&liquidity_pool.coin_x_reserve);
@@ -280,8 +284,8 @@ module AptosSwap::LiquidityPool {
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X: store, Y: store, LP>(pool_addr: address): (u128, u128, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;

@@ -3,17 +3,27 @@ module AptosSwap::UQ64x64 {
     use Std::Errors;
 
     // Error codes.
+
+    /// When can't cast `UQ64x64` to u64.
     const ERR_U64_OVERFLOW: u64 = 1001;
+
+    /// When divide by zero attempted.
     const ERR_DIVIDE_BY_ZERO: u64 = 1002;
 
     // Constants.
 
     const Q64: u128 = 18446744073709551615u128;
 
+    /// When a and b are equals.
     const EQUAL: u8 = 0;
+
+    /// When a is less than b equals.
     const LESS_THAN: u8 = 1;
+
+    /// When a is greater than b.
     const GREATER_THAN: u8 = 2;
 
+    /// The resource to store `UQ64x64`.
     struct UQ64x64 has copy, store, drop {
         v: u128
     }

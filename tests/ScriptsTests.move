@@ -22,7 +22,7 @@ module CoinAdmin::ScriptsTests {
         usdt_burn_cap: BurnCapability<USDT>,
     }
 
-    fun register_coin(coin_admin: &signer) {
+    fun register_coins(coin_admin: &signer) {
         let (usdt_mint_cap, usdt_burn_cap) =
             Coin::initialize<USDT>(
                 coin_admin,
@@ -73,15 +73,13 @@ module CoinAdmin::ScriptsTests {
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
     public(script) fun test_add_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
-
-        register_coin(&coin_admin);
-
+        register_coins(&coin_admin);
         register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+        let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
         let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
         let usdt_coins = Coin::mint(10100, &caps.usdt_mint_cap);
-        let pool_owner_addr = Signer::address_of(&pool_owner);
 
         Coin::register<BTC>(&pool_owner);
         Coin::register<USDT>(&pool_owner);
@@ -107,15 +105,13 @@ module CoinAdmin::ScriptsTests {
     #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
     public(script) fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
-
-        register_coin(&coin_admin);
-
+        register_coins(&coin_admin);
         register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+        let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
         let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
         let usdt_coins = Coin::mint(10100, &caps.usdt_mint_cap);
-        let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let (btc, usdt, lp) =
             Router::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, 101, usdt_coins, 10100);
@@ -131,5 +127,43 @@ module CoinAdmin::ScriptsTests {
         assert!(Coin::balance<LP>(pool_owner_addr) == 0, 1);
         assert!(Coin::balance<BTC>(pool_owner_addr) == 101, 2);
         assert!(Coin::balance<USDT>(pool_owner_addr) == 10100, 3);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    public(script) fun test_swap_exact_btc_for_usdt(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+        Genesis::setup(&core);
+        register_coins(&coin_admin);
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+
+        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
+        let btc_coins_to_swap = Coin::mint(10, &caps.btc_mint_cap);
+        Coin::register<BTC>(&pool_owner);
+        Coin::register<USDT>(&pool_owner);
+        Coin::deposit(pool_owner_addr, btc_coins_to_swap);
+
+        Scripts::swap<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 900);
+
+        assert!(Coin::balance<BTC>(pool_owner_addr) == 0, 1);
+        assert!(Coin::balance<USDT>(pool_owner_addr) == 907, 2);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    public(script) fun test_swap_btc_for_exact_usdt(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+        Genesis::setup(&core);
+        register_coins(&coin_admin);
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+
+        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
+        let btc_coins_to_swap = Coin::mint(10, &caps.btc_mint_cap);
+        Coin::register<BTC>(&pool_owner);
+        Coin::register<USDT>(&pool_owner);
+        Coin::deposit(pool_owner_addr, btc_coins_to_swap);
+
+        Scripts::swap_into<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 700);
+
+        assert!(Coin::balance<BTC>(pool_owner_addr) == 2, 1);
+        assert!(Coin::balance<USDT>(pool_owner_addr) == 700, 2);
     }
 }

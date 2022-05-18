@@ -1,5 +1,5 @@
 module CoinAdmin::CoinHelperTests {
-    use Std::ASCII;
+    use Std::ASCII::string;
 
     use AptosFramework::Genesis;
     use AptosFramework::Coin;
@@ -20,15 +20,15 @@ module CoinAdmin::CoinHelperTests {
 
         let (usdt_mint_cap, usdt_burn_cap) = Coin::initialize<USDT>(
             &coin_admin,
-            ASCII::string(b"USDT"),
-            ASCII::string(b"USDT"),
+            string(b"USDT"),
+            string(b"USDT"),
             6,
             true,
         );
         let (btc_mint_cap, btc_burn_cap) = Coin::initialize<BTC>(
             &coin_admin,
-            ASCII::string(b"BTC"),
-            ASCII::string(b"BTC"),
+            string(b"BTC"),
+            string(b"BTC"),
             8,
             true,
         );
@@ -75,8 +75,8 @@ module CoinAdmin::CoinHelperTests {
 
         let (mint_cap, burn_cap) = Coin::initialize<USDT>(
             &coin_admin,
-            ASCII::string(b"USDT"),
-            ASCII::string(b"USDT"),
+            string(b"USDT"),
+            string(b"USDT"),
             6,
             false,
         );

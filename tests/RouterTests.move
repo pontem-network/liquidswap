@@ -65,7 +65,7 @@ module CoinAdmin::RouterTests {
             let usdt_coins = Coin::mint(y_val, &caps.usdt_mint_cap);
             let lp_coins =
                 LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-            Coin::register<LP>(pool_owner);
+            Coin::register_internal<LP>(pool_owner);
             Coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
     }
@@ -96,9 +96,9 @@ module CoinAdmin::RouterTests {
         // 1010 - 1000 = 10
         assert!(Coin::value(&lp_coins) == 10, 3);
 
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
-        Coin::register<LP>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
+        Coin::register_internal<LP>(&pool_owner);
 
         Coin::deposit(pool_addr, coin_x);
         Coin::deposit(pool_addr, coin_y);
@@ -126,8 +126,8 @@ module CoinAdmin::RouterTests {
         // 8.91 ~ 8
         assert!(Coin::value(&lp_coins) == 8, 3);
 
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
 
         Coin::deposit(pool_addr, coin_x);
         Coin::deposit(pool_addr, coin_y);
@@ -154,8 +154,8 @@ module CoinAdmin::RouterTests {
         // 8.91 ~ 8
         assert!(Coin::value(&lp_coins) == 8, 3);
 
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
 
         Coin::deposit(pool_addr, coin_x);
         Coin::deposit(pool_addr, coin_y);
@@ -187,8 +187,8 @@ module CoinAdmin::RouterTests {
         assert!(Coin::value(&coin_x) == x_out, 1);
         assert!(Coin::value(&coin_y) == y_out, 2);
 
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
 
         Coin::deposit(pool_addr, coin_x);
         Coin::deposit(pool_addr, coin_y);
@@ -293,7 +293,7 @@ module CoinAdmin::RouterTests {
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coin_to_swap, 102);
 
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 
@@ -313,7 +313,7 @@ module CoinAdmin::RouterTests {
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 0);
 
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 
@@ -339,7 +339,7 @@ module CoinAdmin::RouterTests {
         assert!(usdt_reserve == 3396, 3);
         assert!(Router::current_price<USDT, BTC, LP>(pool_owner_addr) == 11, 4);
 
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 

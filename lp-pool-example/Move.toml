@@ -3,7 +3,6 @@ name = "lp-pool-example"
 version = "0.1.0"
 
 [addresses]
-Core = "0x1"
 Sender = "0x42"
 
 [dependencies]

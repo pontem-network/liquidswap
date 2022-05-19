@@ -65,7 +65,7 @@ module CoinAdmin::ScriptsTests {
             let usdt_coins = Coin::mint(y_val, &caps.usdt_mint_cap);
             let lp_coins =
                 LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-            Coin::register<LP>(pool_owner);
+            Coin::register_internal<LP>(pool_owner);
             Coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
     }
@@ -81,12 +81,12 @@ module CoinAdmin::ScriptsTests {
         let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
         let usdt_coins = Coin::mint(10100, &caps.usdt_mint_cap);
 
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, btc_coins);
         Coin::deposit(pool_owner_addr, usdt_coins);
 
-        Coin::register<LP>(&pool_owner);
+        Coin::register_internal<LP>(&pool_owner);
 
         Scripts::add_liquidity<BTC, USDT, LP>(
             pool_owner,
@@ -115,9 +115,9 @@ module CoinAdmin::ScriptsTests {
 
         let (btc, usdt, lp) =
             Router::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, 101, usdt_coins, 10100);
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
-        Coin::register<LP>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
+        Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, btc);
         Coin::deposit(pool_owner_addr, usdt);
         Coin::deposit(pool_owner_addr, lp);
@@ -138,8 +138,8 @@ module CoinAdmin::ScriptsTests {
 
         let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
         let btc_coins_to_swap = Coin::mint(10, &caps.btc_mint_cap);
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, btc_coins_to_swap);
 
         Scripts::swap<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 900);
@@ -157,8 +157,8 @@ module CoinAdmin::ScriptsTests {
 
         let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
         let btc_coins_to_swap = Coin::mint(10, &caps.btc_mint_cap);
-        Coin::register<BTC>(&pool_owner);
-        Coin::register<USDT>(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, btc_coins_to_swap);
 
         Scripts::swap_into<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 700);

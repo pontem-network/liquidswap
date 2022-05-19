@@ -169,7 +169,7 @@ module CoinAdmin::LiquidityPoolTests {
 
         let lp_coins =
             LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        Coin::register<LP>(&pool_owner);
+        Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = Coin::mint(2, &caps.btc_mint_cap);
@@ -217,7 +217,7 @@ module CoinAdmin::LiquidityPoolTests {
 
         let lp_coins =
             LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        Coin::register<LP>(&pool_owner);
+        Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
         // 1 minus fee for 1

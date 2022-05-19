@@ -1,12 +1,13 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module AptosSwap::CoinHelper {
     use Std::BCS;
-    use Std::Compare;
     use Std::ASCII::String;
     use Std::Option;
     use Std::Errors;
 
     use AptosFramework::Coin;
+
+    use AptosSwap::Compare;
 
     // Errors.
 
@@ -35,7 +36,7 @@ module AptosSwap::CoinHelper {
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
-        assert!(Coin::is_registered<CoinType>(), Errors::not_published(ERR_IS_NOT_COIN));
+        assert!(Coin::is_coin_initialized<CoinType>(), ERR_CANNOT_BE_THE_SAME_COIN);
     }
 
     /// Compare two coins, `X` and `Y`, using names.

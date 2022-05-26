@@ -26,8 +26,8 @@ jobs:
       - name: Build
         run: aptos move compile
 
-      - name: Test
-        run: aptos move test
+      #- name: Test
+      #  run: aptos move test
 
       - name: Build lp-pool-example/
         working-directory: ./lp-pool-example

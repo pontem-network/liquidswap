@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Get dove
+      - name: Get Aptos
         uses: pontem-network/get-aptos@main
         with:
           version: latest

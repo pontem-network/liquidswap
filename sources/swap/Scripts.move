@@ -1,10 +1,10 @@
-/// The current module contains pre-deplopyed scripts for Aptos Swap.
-module AptosSwap::Scripts {
+/// The current module contains pre-deplopyed scripts for Multi Swap.
+module MultiSwap::Scripts {
     use Std::Signer;
 
     use AptosFramework::Coin;
 
-    use AptosSwap::Router;
+    use MultiSwap::Router;
 
     /// Add liquidity to pool `X`/`Y` with liquidity coin `LP`.
     /// * `pool_addr` - address of account registered pool.

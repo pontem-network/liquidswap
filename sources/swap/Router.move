@@ -1,12 +1,12 @@
 /// Router for Liquidity Pool, similar to Uniswap router.
-module AptosSwap::Router {
+module MultiSwap::Router {
     use Std::Errors;
 
     use AptosFramework::Coin::{Coin, Self};
 
-    use AptosSwap::SafeMath;
-    use AptosSwap::CoinHelper::{Self, supply};
-    use AptosSwap::LiquidityPool;
+    use MultiSwap::SafeMath;
+    use MultiSwap::CoinHelper::{Self, supply};
+    use MultiSwap::LiquidityPool;
 
     // Errors codes.
 

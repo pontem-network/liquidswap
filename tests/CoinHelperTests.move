@@ -5,7 +5,7 @@ module CoinAdmin::CoinHelperTests {
     use AptosFramework::Genesis;
     use AptosFramework::Coin;
 
-    use AptosSwap::CoinHelper;
+    use MultiSwap::CoinHelper;
 
     struct USDT {}
     struct BTC {}

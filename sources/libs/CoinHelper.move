@@ -1,5 +1,5 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
-module AptosSwap::CoinHelper {
+module MultiSwap::CoinHelper {
     use Std::BCS;
     use Std::ASCII::String;
     use Std::Option;
@@ -7,7 +7,7 @@ module AptosSwap::CoinHelper {
 
     use AptosFramework::Coin;
 
-    use AptosSwap::Compare;
+    use MultiSwap::Compare;
 
     // Errors.
 

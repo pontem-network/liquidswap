@@ -1,6 +1,6 @@
 #[test_only]
-module AptosSwap::UQ64x64Tests {
-    use AptosSwap::UQ64x64;
+module MultiSwap::UQ64x64Tests {
+    use MultiSwap::UQ64x64;
 
     #[test]
     fun test_is_zero() {

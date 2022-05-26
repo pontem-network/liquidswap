@@ -3,11 +3,11 @@ module CoinAdmin::ScriptsTests {
     use Std::Signer;
     use Std::ASCII::string;
     use AptosFramework::Coin;
-    use AptosSwap::Router;
-    use AptosSwap::LiquidityPool;
+    use MultiSwap::Router;
+    use MultiSwap::LiquidityPool;
     use AptosFramework::Coin::{MintCapability, BurnCapability};
     use AptosFramework::Genesis;
-    use AptosSwap::Scripts;
+    use MultiSwap::Scripts;
 
     struct USDT {}
 

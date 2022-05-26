@@ -1,5 +1,5 @@
-/// Implementation of math functions needed for Aptos Swap.
-module AptosSwap::SafeMath {
+/// Implementation of math functions needed for Multi Swap.
+module MultiSwap::SafeMath {
     use Std::Errors;
 
     // Errors codes.

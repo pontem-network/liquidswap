@@ -1,4 +1,4 @@
-/// Just an example how you can register your test coins and than make liquidity pool on Aptos Swap.
+/// Just an example how you can register your test coins and than make liquidity pool on MultiSwap.
 /// Implement two tests coins `USDT` and `BTC`, also `LP` coin that will be Liquidity Pool coin for our pool.
 /// Allows to mint tests coin, register new pool.
 module Sender::Example {
@@ -7,7 +7,7 @@ module Sender::Example {
 
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
 
-    use AptosSwap::Router;
+    use MultiSwap::Router;
 
     /// Represents test USDT coin.
     struct USDT {}

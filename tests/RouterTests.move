@@ -6,8 +6,8 @@ module CoinAdmin::RouterTests {
     use AptosFramework::Genesis;
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
 
-    use AptosSwap::LiquidityPool;
-    use AptosSwap::Router;
+    use MultiSwap::LiquidityPool;
+    use MultiSwap::Router;
     use AptosFramework::Timestamp;
 
     struct USDT {}

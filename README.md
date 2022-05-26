@@ -1,8 +1,8 @@
-# Aptos Swap 
+# Multi Swap 
 
 **The project is currently at MVP stage, not for production usage yet.**
 
-**Aptos Swap** is clone of [Uniswap](https://uniswap.org/) for [Aptos](https://www.aptos.com/) project. 
+**MultiSwap** is clone of [Uniswap](https://uniswap.org/) for [Aptos](https://www.aptos.com/) project. 
 
 Inspired from original Uniswap code, docs and math.
 

@@ -1,6 +1,6 @@
-/// Aptos Swap liquidity pool.
+/// Multi Swap liquidity pool.
 /// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
-module AptosSwap::LiquidityPool {
+module MultiSwap::LiquidityPool {
     use Std::Signer;
     use Std::Errors;
     use Std::Event;
@@ -8,9 +8,9 @@ module AptosSwap::LiquidityPool {
     use AptosFramework::Timestamp;
     use AptosFramework::Coin::{Coin, Self};
 
-    use AptosSwap::SafeMath;
-    use AptosSwap::UQ64x64;
-    use AptosSwap::CoinHelper::{Self, assert_has_supply, assert_is_coin, supply};
+    use MultiSwap::SafeMath;
+    use MultiSwap::UQ64x64;
+    use MultiSwap::CoinHelper::{Self, assert_has_supply, assert_is_coin, supply};
 
     // Error codes.
 

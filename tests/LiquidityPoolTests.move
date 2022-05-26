@@ -6,7 +6,7 @@ module CoinAdmin::LiquidityPoolTests {
     use AptosFramework::Genesis;
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
 
-    use AptosSwap::LiquidityPool;
+    use MultiSwap::LiquidityPool;
 
     struct USDT {}
 

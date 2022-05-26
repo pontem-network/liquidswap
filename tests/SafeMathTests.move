@@ -1,6 +1,6 @@
 #[test_only]
-module AptosSwap::SafeMathTests {
-    use AptosSwap::SafeMath;
+module MultiSwap::SafeMathTests {
+    use MultiSwap::SafeMath;
 
     #[test]
     fun test_mul_div() {

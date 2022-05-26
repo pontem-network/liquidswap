@@ -1,6 +1,6 @@
 /// Copy from Move Standard Library.
 /// Utilities for comparing Move values based on their representation in BCS.
-module AptosSwap::Compare {
+module MultiSwap::Compare {
     use Std::Vector;
 
     // Move does not have signed integers, so we cannot use the usual 0, -1, 1 convention to

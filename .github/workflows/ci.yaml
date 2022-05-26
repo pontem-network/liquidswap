@@ -1,0 +1,34 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  tests:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get Aptos
+        uses: pontem-network/get-aptos@main
+        with:
+          version: latest
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: aptos move compile
+
+      #- name: Test
+      #  run: aptos move test
+
+      - name: Build lp-pool-example/
+        working-directory: ./lp-pool-example
+        run: aptos move compile

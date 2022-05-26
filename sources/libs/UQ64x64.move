@@ -1,5 +1,5 @@
 /// Implementation of FixedPoint u64.
-module AptosSwap::UQ64x64 {
+module MultiSwap::UQ64x64 {
     use Std::Errors;
 
     // Error codes.

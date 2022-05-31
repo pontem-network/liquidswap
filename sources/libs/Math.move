@@ -1,5 +1,5 @@
 /// Implementation of math functions needed for Multi Swap.
-module MultiSwap::SafeMath {
+module MultiSwap::Math {
     use Std::Errors;
 
     // Errors codes.

@@ -8,7 +8,7 @@ module MultiSwap::LiquidityPool {
     use AptosFramework::Timestamp;
     use AptosFramework::Coin::{Coin, Self};
 
-    use MultiSwap::SafeMath;
+    use MultiSwap::Math;
     use MultiSwap::UQ64x64;
     use MultiSwap::CoinHelper::{Self, assert_has_supply, assert_is_coin, supply};
 
@@ -132,13 +132,13 @@ module MultiSwap::LiquidityPool {
         let y_provided_val = Coin::value<Y>(&coin_y);
 
         let provided_liq = if (lp_coins_total == 0) {
-            let initial_liq = SafeMath::sqrt(SafeMath::mul_to_u128(x_provided_val, y_provided_val));
+            let initial_liq = Math::sqrt(Math::mul_to_u128(x_provided_val, y_provided_val));
             assert!(initial_liq > MINIMAL_LIQUIDITY, Errors::invalid_state(ERR_NOT_ENOUGH_INITIAL_LIQUIDITY));
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liq = SafeMath::mul_div(x_provided_val, lp_coins_total, x_reserve_size);
-            let y_liq = SafeMath::mul_div(y_provided_val, lp_coins_total, y_reserve_size);
+            let x_liq = Math::mul_div(x_provided_val, lp_coins_total, x_reserve_size);
+            let y_liq = Math::mul_div(y_provided_val, lp_coins_total, y_reserve_size);
             if (x_liq < y_liq) {
                 x_liq
             } else {
@@ -183,8 +183,8 @@ module MultiSwap::LiquidityPool {
         let y_reserve_val = Coin::value(&pool.coin_y_reserve);
 
         // Compute x, y coin values for provided lp_coins value
-        let x_to_return_val = SafeMath::mul_div(burned_lp_coins_val, x_reserve_val, lp_coins_total);
-        let y_to_return_val = SafeMath::mul_div(burned_lp_coins_val, y_reserve_val, lp_coins_total);
+        let x_to_return_val = Math::mul_div(burned_lp_coins_val, x_reserve_val, lp_coins_total);
+        let y_to_return_val = Math::mul_div(burned_lp_coins_val, y_reserve_val, lp_coins_total);
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
 
         // Withdraw those values from reserves
@@ -250,13 +250,13 @@ module MultiSwap::LiquidityPool {
 
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = SafeMath::mul_to_u128(x_reserve_size_new, FEE_SCALE)
-                                  - SafeMath::mul_to_u128(x_in_val, FEE_MULTIPLIER);
+        let x_res_new_after_fee = Math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
+                                  - Math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
 
-        let y_res_new_after_fee = SafeMath::mul_to_u128(y_reserve_size_new, FEE_SCALE)
-                                  - SafeMath::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+        let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
+                                  - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
-        let lp_value_before_swap = SafeMath::mul_to_u128(x_reserve_size, y_reserve_size);
+        let lp_value_before_swap = Math::mul_to_u128(x_reserve_size, y_reserve_size);
         lp_value_before_swap = lp_value_before_swap * 1000000;
         let lp_value_after_swap_and_fee = x_res_new_after_fee * y_res_new_after_fee;
         assert!(

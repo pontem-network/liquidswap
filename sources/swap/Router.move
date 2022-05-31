@@ -4,7 +4,7 @@ module MultiSwap::Router {
 
     use AptosFramework::Coin::{Coin, Self};
 
-    use MultiSwap::SafeMath;
+    use MultiSwap::Math;
     use MultiSwap::CoinHelper::{Self, supply};
     use MultiSwap::LiquidityPool;
 
@@ -254,8 +254,8 @@ module MultiSwap::Router {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
         let lp_coins_total = supply<LP>();
 
-        let x_to_return_val = SafeMath::mul_div(lp_to_burn_val, x_reserve, lp_coins_total);
-        let y_to_return_val = SafeMath::mul_div(lp_to_burn_val, y_reserve, lp_coins_total);
+        let x_to_return_val = Math::mul_div(lp_to_burn_val, x_reserve, lp_coins_total);
+        let y_to_return_val = Math::mul_div(lp_to_burn_val, y_reserve, lp_coins_total);
 
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
 
@@ -277,7 +277,7 @@ module MultiSwap::Router {
         // Multiply coin_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in_after_fees * current_exchange_rate -> amount_out
-        let res = SafeMath::mul_div(coin_in_val_after_fees,   // scaled to 1000
+        let res = Math::mul_div(coin_in_val_after_fees,   // scaled to 1000
         reserve_out_size,
         new_reserves_in_size);  // scaled to 1000
         res
@@ -295,7 +295,7 @@ module MultiSwap::Router {
         // reserves_out - coin_out * 0.997
         let new_reserves_out_size = (reserve_out_size - coin_out_val) * fee_multiplier;
         // coin_out * fee scale * reserve_in / new reserves out
-        let res = SafeMath::mul_div(coin_out_val * fee_scale, reserve_in_size, new_reserves_out_size) + 1;
+        let res = Math::mul_div(coin_out_val * fee_scale, reserve_in_size, new_reserves_out_size) + 1;
         res
     }
 
@@ -309,7 +309,7 @@ module MultiSwap::Router {
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price
-        let res = SafeMath::mul_div(coin_in_val, reserve_out_size, reserve_in_size);
+        let res = Math::mul_div(coin_in_val, reserve_out_size, reserve_in_size);
         (res as u64)
     }
 

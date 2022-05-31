@@ -17,6 +17,7 @@ module CoinAdmin::CoinHelperTests {
 
     #[test(core = @CoreResources, coin_admin = @CoinAdmin)]
     fun test_end_to_end(core: signer, coin_admin: signer) {
+        assert!(false, 1);
         Genesis::setup(&core);
 
         let (usdt_mint_cap, usdt_burn_cap) = Coin::initialize<USDT>(

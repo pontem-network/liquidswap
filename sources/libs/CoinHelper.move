@@ -3,7 +3,6 @@ module MultiSwap::CoinHelper {
     use Std::BCS;
     use Std::ASCII::String;
     use Std::Option;
-    use Std::Errors;
 
     use AptosFramework::Coin;
 

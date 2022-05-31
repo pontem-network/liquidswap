@@ -17,4 +17,3 @@ git = "https://github.com/aptos-labs/aptos-core.git"
 rev = "bb3a847c6ae8967661826775cd026f6fdb2abf0c"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
-

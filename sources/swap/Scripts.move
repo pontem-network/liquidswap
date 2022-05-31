@@ -33,6 +33,11 @@ module MultiSwap::Scripts {
             );
 
         let account_addr = Signer::address_of(&account);
+
+        if (!Coin::is_account_registered<LP>(account_addr)) {
+            Coin::register_internal<LP>(&account);
+        };
+
         Coin::deposit(account_addr, coin_x_remainder);
         Coin::deposit(account_addr, coin_y_remainder);
         Coin::deposit(account_addr, lp_coins);

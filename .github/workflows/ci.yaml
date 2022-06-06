@@ -32,3 +32,12 @@ jobs:
       - name: Build lp-pool-example/
         working-directory: ./lp-pool-example
         run: aptos move compile
+
+      - name: Remove old docs
+        run: rm -rf ./docs
+
+      - name: Copy docs
+        run: mv ./build/MultiSwap/docs ./docs
+
+      - name: Commit docs
+        run: git add ./docs & git commit -m "updated docs"

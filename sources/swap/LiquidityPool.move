@@ -80,7 +80,6 @@ module MultiSwap::LiquidityPool {
 
         assert_is_coin<LP>();
 
-        // TODO: check LP decimals.
         assert_has_supply<LP>();
         assert!(supply<LP>() == 0, Errors::invalid_state(ERR_LP_COIN_NON_ZERO_TOTAL));
 

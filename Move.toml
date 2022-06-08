@@ -8,13 +8,13 @@ CoinAdmin = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "bb3a847c6ae8967661826775cd026f6fdb2abf0c"
+rev = "367608ab5cf726039ff44bfdac1f2177210b1440"
 subdir = "aptos-move/framework/move-stdlib"
 addr_subst = { Std = "0x1" }
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "bb3a847c6ae8967661826775cd026f6fdb2abf0c"
+rev = "367608ab5cf726039ff44bfdac1f2177210b1440"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
 

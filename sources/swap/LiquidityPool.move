@@ -4,13 +4,16 @@ module MultiSwap::LiquidityPool {
     use Std::Signer;
     use Std::Errors;
     use Std::Event;
+   //use Std::ASCII;
 
     use AptosFramework::Timestamp;
     use AptosFramework::Coin::{Coin, Self};
+    //use AptosFramework::Account::{Self, SignerCapability};
 
     use MultiSwap::Math;
     use MultiSwap::UQ64x64;
-    use MultiSwap::CoinHelper::{Self, assert_has_supply, assert_is_coin, supply};
+    use MultiSwap::CoinHelper::{Self, assert_is_coin, supply};
+    use Std::ASCII;
 
     // Error codes.
 
@@ -70,21 +73,33 @@ module MultiSwap::LiquidityPool {
     /// * `lp_mint_cap` - minting capability for LP coin.
     /// * `lp_burn_cap` - burning capability for LP coin.
     public fun register<X, Y, LP>(
-        owner: &signer,
-        lp_mint_cap: Coin::MintCapability<LP>,
-        lp_burn_cap: Coin::BurnCapability<LP>
+        owner: &signer
     ) acquires EventsStore {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
 
-        assert_is_coin<LP>();
+        // TODO: check LP is not a coin, maybe we should register new one here?
+        //assert_is_coin<LP>();
 
-        assert_has_supply<LP>();
-        assert!(supply<LP>() == 0, Errors::invalid_state(ERR_LP_COIN_NON_ZERO_TOTAL));
+        // TODO: check lp_signer_capability brings to owner.
+        //let owner_by_capability = Account::create_signer_with_capability(&lp_signer_cap);
+
+        // TODO: error.
+        //assert!(owner_addr == Signer::address_of(&owner_by_capability), 1);
 
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
+
+        // TODO: this one will fail if LP is already coin and it's good.
+        // TODO: make symbols and name.
+        let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
+            owner,
+            ASCII::string(b"tst"),
+            ASCII::string(b"tst"),
+            6,
+            true
+        );
 
         let pool = LiquidityPool<X, Y, LP>{
             coin_x_reserve: Coin::zero<X>(),

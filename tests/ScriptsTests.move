@@ -49,15 +49,7 @@ module CoinAdmin::ScriptsTests {
         let coin_admin_addr = Signer::address_of(coin_admin);
         let caps = borrow_global<Caps>(coin_admin_addr);
 
-        let (lp_mint_cap, lp_burn_cap) =
-            Coin::initialize<LP>(
-                coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true
-            );
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, lp_mint_cap, lp_burn_cap);
+        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {

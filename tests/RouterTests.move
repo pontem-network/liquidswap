@@ -1,5 +1,5 @@
 #[test_only]
-module CoinAdmin::RouterTests {
+module MultiSwap::RouterTests {
     use Std::ASCII::string;
     use Std::Signer;
 
@@ -10,11 +10,8 @@ module CoinAdmin::RouterTests {
     use MultiSwap::Router;
     use AptosFramework::Timestamp;
 
-    struct USDT {}
-
-    struct BTC {}
-
-    struct LP {}
+    use TestCoinAdmin::TestCoins::{USDT, BTC};
+    use TestPoolOwner::LP::LP;
 
     struct Caps has key {
         btc_mint_cap: MintCapability<BTC>,
@@ -63,7 +60,7 @@ module CoinAdmin::RouterTests {
         };
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_add_initial_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -98,7 +95,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_add_liquidity_to_pool(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
 
@@ -127,7 +124,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_add_liquidity_to_pool_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -155,7 +152,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -187,7 +184,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_exact_coin_for_coin(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
 
@@ -206,7 +203,7 @@ module CoinAdmin::RouterTests {
         Coin::burn(usdt_coins, &caps.usdt_burn_cap);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_exact_coin_for_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
 
@@ -225,7 +222,7 @@ module CoinAdmin::RouterTests {
         Coin::burn(btc_coins, &caps.btc_burn_cap);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_coin_for_exact_coin(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
 
@@ -247,7 +244,7 @@ module CoinAdmin::RouterTests {
         Coin::destroy_zero(remainder);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_coin_for_exact_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
 
@@ -269,7 +266,7 @@ module CoinAdmin::RouterTests {
         Coin::destroy_zero(remainder);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 26887)]
     fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
@@ -290,8 +287,8 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
-    #[expected_failure(abort_code = 26887)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    #[expected_failure(abort_code = 26631)]
     fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -310,7 +307,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_returned_usdt_proportially_decrease_for_big_swaps(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -336,7 +333,7 @@ module CoinAdmin::RouterTests {
         Coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -348,7 +345,7 @@ module CoinAdmin::RouterTests {
         assert!(Router::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_cumulative_prices_after_swaps(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);

@@ -1,5 +1,5 @@
 #[test_only]
-module CoinAdmin::ScriptsTests {
+module MultiSwap::ScriptsTests {
     use Std::Signer;
     use Std::ASCII::string;
     use AptosFramework::Coin;
@@ -9,11 +9,8 @@ module CoinAdmin::ScriptsTests {
     use AptosFramework::Genesis;
     use MultiSwap::Scripts;
 
-    struct USDT {}
-
-    struct BTC {}
-
-    struct LP {}
+    use TestCoinAdmin::TestCoins::{USDT, BTC};
+    use TestPoolOwner::LP::LP;
 
     struct Caps has key {
         btc_mint_cap: MintCapability<BTC>,
@@ -62,7 +59,7 @@ module CoinAdmin::ScriptsTests {
         };
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     public(script) fun test_add_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -94,7 +91,7 @@ module CoinAdmin::ScriptsTests {
         assert!(Coin::balance<LP>(pool_owner_addr) == 10, 3);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     public(script) fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -121,7 +118,7 @@ module CoinAdmin::ScriptsTests {
         assert!(Coin::balance<USDT>(pool_owner_addr) == 10100, 3);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     public(script) fun test_swap_exact_btc_for_usdt(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);
@@ -140,7 +137,7 @@ module CoinAdmin::ScriptsTests {
         assert!(Coin::balance<USDT>(pool_owner_addr) == 907, 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     public(script) fun test_swap_btc_for_exact_usdt(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
         Genesis::setup(&core);
         register_coins(&coin_admin);

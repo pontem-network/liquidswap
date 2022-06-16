@@ -1,5 +1,5 @@
 #[test_only]
-module CoinAdmin::CoinHelperTests {
+module MultiSwap::CoinHelperTests {
     use Std::ASCII::string;
 
     use AptosFramework::Genesis;
@@ -7,15 +7,14 @@ module CoinAdmin::CoinHelperTests {
 
     use MultiSwap::CoinHelper;
 
-    struct USDT {}
-    struct BTC {}
+    use TestCoinAdmin::TestCoins::{BTC, USDT};
 
     struct Capabilities<phantom CoinType> has key {
         mint_cap: Coin::MintCapability<CoinType>,
         burn_cap: Coin::BurnCapability<CoinType>,
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
     fun test_end_to_end(core: signer, coin_admin: signer) {
         Genesis::setup(&core);
 
@@ -69,7 +68,7 @@ module CoinAdmin::CoinHelperTests {
         });
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
     #[expected_failure(abort_code = 26117)]
     fun test_assert_has_supply_failuer(core: signer, coin_admin: signer) {
         Genesis::setup(&core);
@@ -93,5 +92,37 @@ module CoinAdmin::CoinHelperTests {
     #[expected_failure(abort_code = 25861)]
     fun test_assert_is_coin_failure() {
         CoinHelper::assert_is_coin<USDT>();
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
+    fun generate_lp_name(core: signer, coin_admin: signer) {
+        Genesis::setup(&core);
+
+        let (mint_cap_usdt, burn_cap_usdt) = Coin::initialize<USDT>(
+            &coin_admin,
+            string(b"USDT"),
+            string(b"USDT"),
+            6,
+            false,
+        );
+        let (mint_cap_btc, burn_cap_btc) = Coin::initialize<BTC>(
+            &coin_admin,
+            string(b"BTC"),
+            string(b"BTC"),
+            6,
+            false,
+        );
+
+        let generated_name = CoinHelper::generate_lp_name<BTC, USDT>();
+        assert!(generated_name == string(b"BTC-USDT"), 0);
+
+        move_to(&coin_admin, Capabilities<USDT> {
+            mint_cap: mint_cap_usdt,
+            burn_cap: burn_cap_usdt,
+        });
+        move_to(&coin_admin, Capabilities<BTC> {
+            mint_cap: mint_cap_btc,
+            burn_cap: burn_cap_btc,
+        });
     }
 }

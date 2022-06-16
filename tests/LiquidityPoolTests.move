@@ -1,5 +1,5 @@
 #[test_only]
-module CoinAdmin::LiquidityPoolTests {
+module MultiSwap::LiquidityPoolTests {
     use Std::ASCII::string;
     use Std::Signer;
 
@@ -8,11 +8,8 @@ module CoinAdmin::LiquidityPoolTests {
 
     use MultiSwap::LiquidityPool;
 
-    struct USDT {}
-
-    struct BTC {}
-
-    struct LP {}
+    use TestCoinAdmin::TestCoins::{USDT, BTC};
+    use TestPoolOwner::LP::LP;
 
     struct Caps has key {
         btc_mint_cap: MintCapability<BTC>,
@@ -43,7 +40,7 @@ module CoinAdmin::LiquidityPoolTests {
         move_to(coin_admin, caps);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -63,7 +60,7 @@ module CoinAdmin::LiquidityPoolTests {
         assert!(y_price == 0, 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 25607)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
@@ -78,7 +75,7 @@ module CoinAdmin::LiquidityPoolTests {
             LiquidityPool::get_cumulative_prices<USDT, BTC, LP>(pool_owner_addr);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -116,7 +113,7 @@ module CoinAdmin::LiquidityPoolTests {
         Coin::burn(usdt_return, &caps.usdt_burn_cap);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -154,8 +151,8 @@ module CoinAdmin::LiquidityPoolTests {
         Coin::burn(usdt_coins, &caps.usdt_burn_cap);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
-    #[expected_failure(abort_code = 27137)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    #[expected_failure(abort_code = 26881)]
     fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer)
     acquires Caps {
         Genesis::setup(&core);
@@ -188,7 +185,7 @@ module CoinAdmin::LiquidityPoolTests {
         Coin::burn(usdt_coins, &caps.usdt_burn_cap);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @CoinAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 

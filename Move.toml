@@ -4,7 +4,10 @@ version = "0.1.0"
 
 [addresses]
 MultiSwap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
-CoinAdmin = "0x12"
+
+# Addresses for tests.
+TestCoinAdmin = "0x11"
+TestPoolOwner = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

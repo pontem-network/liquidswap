@@ -6,7 +6,6 @@ module MultiSwap::CoinHelper {
     use Std::Errors;
     use Std::Vector;
 
-
     use AptosFramework::Coin;
 
     use MultiSwap::Compare;
@@ -19,9 +18,6 @@ module MultiSwap::CoinHelper {
     /// When provided CoinType is not a coin.
     const ERR_IS_NOT_COIN: u64 = 101;
 
-    /// When coin doesn't have supply enabled.
-    const ERR_COIN_HASNT_SUPPLY: u64 = 102;
-
     // Constants.
 
     /// When both coin names are equal.
@@ -30,11 +26,6 @@ module MultiSwap::CoinHelper {
     const LESS_THAN: u8 = 1;
     /// When coin `X` name is greater than coin `X` name.
     const GREATER_THAN: u8 = 2;
-
-    /// Check if provided coin `CoinType` has a supply.
-    public fun assert_has_supply<CoinType>() {
-        assert!(Option::is_some(&Coin::supply<CoinType>()), Errors::not_published(ERR_COIN_HASNT_SUPPLY));
-    }
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {

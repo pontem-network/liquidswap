@@ -3,48 +3,28 @@ module MultiSwap::CoinHelperTests {
     use Std::ASCII::string;
 
     use AptosFramework::Genesis;
-    use AptosFramework::Coin;
 
     use MultiSwap::CoinHelper;
 
-    use TestCoinAdmin::TestCoins::{BTC, USDT};
-
-    struct Capabilities<phantom CoinType> has key {
-        mint_cap: Coin::MintCapability<CoinType>,
-        burn_cap: Coin::BurnCapability<CoinType>,
-    }
+    use TestCoinAdmin::TestCoins::{Self, BTC, USDT};
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
     fun test_end_to_end(core: signer, coin_admin: signer) {
         Genesis::setup(&core);
 
-        let (usdt_mint_cap, usdt_burn_cap) = Coin::initialize<USDT>(
-            &coin_admin,
-            string(b"USDT"),
-            string(b"USDT"),
-            6,
-            true,
-        );
-        let (btc_mint_cap, btc_burn_cap) = Coin::initialize<BTC>(
-            &coin_admin,
-            string(b"BTC"),
-            string(b"BTC"),
-            8,
-            true,
-        );
+        TestCoins::register_coins(&coin_admin);
+
         CoinHelper::assert_is_coin<USDT>();
         CoinHelper::assert_is_coin<BTC>();
 
-        let coins_minted = Coin::mint(1000000000, &usdt_mint_cap);
-        CoinHelper::assert_has_supply<USDT>();
-        CoinHelper::assert_has_supply<BTC>();
+        let coins_minted = TestCoins::mint<USDT>(&coin_admin, 1000000000);
 
         let usdt_supply = CoinHelper::supply<USDT>();
         let btc_supply = CoinHelper::supply<BTC>();
         assert!(usdt_supply == 1000000000, 0);
         assert!(btc_supply == 0, 1);
 
-        Coin::burn(coins_minted, &usdt_burn_cap);
+        TestCoins::burn(&coin_admin, coins_minted);
         usdt_supply = CoinHelper::supply<USDT>();
         assert!(usdt_supply == 0, 2);
 
@@ -57,35 +37,6 @@ module MultiSwap::CoinHelperTests {
         assert!(cmp == 0, 6);
         cmp = CoinHelper::compare<USDT, BTC>();
         assert!(cmp == 2, 7);
-
-        move_to(&coin_admin, Capabilities<USDT> {
-            mint_cap: usdt_mint_cap,
-            burn_cap: usdt_burn_cap,
-        });
-        move_to(&coin_admin, Capabilities<BTC> {
-            mint_cap: btc_mint_cap,
-            burn_cap: btc_burn_cap,
-        });
-    }
-
-    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
-    #[expected_failure(abort_code = 26117)]
-    fun test_assert_has_supply_failuer(core: signer, coin_admin: signer) {
-        Genesis::setup(&core);
-
-        let (mint_cap, burn_cap) = Coin::initialize<USDT>(
-            &coin_admin,
-            string(b"USDT"),
-            string(b"USDT"),
-            6,
-            false,
-        );
-
-        CoinHelper::assert_has_supply<USDT>();
-        move_to(&coin_admin, Capabilities<USDT> {
-            mint_cap,
-            burn_cap,
-        });
     }
 
     #[test]
@@ -98,31 +49,9 @@ module MultiSwap::CoinHelperTests {
     fun generate_lp_name(core: signer, coin_admin: signer) {
         Genesis::setup(&core);
 
-        let (mint_cap_usdt, burn_cap_usdt) = Coin::initialize<USDT>(
-            &coin_admin,
-            string(b"USDT"),
-            string(b"USDT"),
-            6,
-            false,
-        );
-        let (mint_cap_btc, burn_cap_btc) = Coin::initialize<BTC>(
-            &coin_admin,
-            string(b"BTC"),
-            string(b"BTC"),
-            6,
-            false,
-        );
+        TestCoins::register_coins(&coin_admin);
 
         let generated_name = CoinHelper::generate_lp_name<BTC, USDT>();
         assert!(generated_name == string(b"BTC-USDT"), 0);
-
-        move_to(&coin_admin, Capabilities<USDT> {
-            mint_cap: mint_cap_usdt,
-            burn_cap: burn_cap_usdt,
-        });
-        move_to(&coin_admin, Capabilities<BTC> {
-            mint_cap: mint_cap_btc,
-            burn_cap: burn_cap_btc,
-        });
     }
 }

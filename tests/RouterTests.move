@@ -1,58 +1,27 @@
 #[test_only]
 module MultiSwap::RouterTests {
-    use Std::ASCII::string;
     use Std::Signer;
 
     use AptosFramework::Genesis;
-    use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
+    use AptosFramework::Coin;
 
     use MultiSwap::LiquidityPool;
     use MultiSwap::Router;
     use AptosFramework::Timestamp;
 
-    use TestCoinAdmin::TestCoins::{USDT, BTC};
+    use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::LP::LP;
-
-    struct Caps has key {
-        btc_mint_cap: MintCapability<BTC>,
-        btc_burn_cap: BurnCapability<BTC>,
-        usdt_mint_cap: MintCapability<USDT>,
-        usdt_burn_cap: BurnCapability<USDT>,
-    }
-
-    fun register_coins(coin_admin: &signer) {
-        let (usdt_mint_cap, usdt_burn_cap) =
-            Coin::initialize<USDT>(
-                coin_admin,
-                string(b"USDT"),
-                string(b"USDT"),
-                6,
-                true,
-            );
-        let (btc_mint_cap, btc_burn_cap) =
-            Coin::initialize<BTC>(
-                coin_admin,
-                string(b"BTC"),
-                string(b"BTC"),
-                8,
-                true,
-            );
-        let caps = Caps{ usdt_mint_cap, usdt_burn_cap, btc_mint_cap, btc_burn_cap };
-        move_to(coin_admin, caps);
-    }
 
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
-                                     x_val: u64, y_val: u64) acquires Caps {
-        let coin_admin_addr = Signer::address_of(coin_admin);
-        let caps = borrow_global<Caps>(coin_admin_addr);
+                                     x_val: u64, y_val: u64)  {
 
         Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
-            let btc_coins = Coin::mint(x_val, &caps.btc_mint_cap);
-            let usdt_coins = Coin::mint(y_val, &caps.usdt_mint_cap);
+            let btc_coins = TestCoins::mint<BTC>(coin_admin, x_val);
+            let usdt_coins = TestCoins::mint<USDT>(coin_admin, y_val);
             let lp_coins =
                 LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
             Coin::register_internal<LP>(pool_owner);
@@ -61,15 +30,14 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_add_initial_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_add_initial_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
 
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(10100, &caps.usdt_mint_cap);
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = TestCoins::mint(&coin_admin, 10100);
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
@@ -96,16 +64,15 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_add_liquidity_to_pool(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_add_liquidity_to_pool(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(9000, &caps.usdt_mint_cap);
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 9000);
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
@@ -125,15 +92,14 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_add_liquidity_to_pool_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_add_liquidity_to_pool_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins = Coin::mint(101, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(9000, &caps.usdt_mint_cap);
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 9000);
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) =
@@ -153,9 +119,9 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
@@ -185,54 +151,51 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_exact_coin_for_coin(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_swap_exact_coin_for_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins_to_swap = Coin::mint(1, &caps.btc_mint_cap);
+        let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 1);
 
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 90);
         assert!(Coin::value(&usdt_coins) == 98, 1);
 
-        Coin::burn(usdt_coins, &caps.usdt_burn_cap);
+        TestCoins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_exact_coin_for_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_swap_exact_coin_for_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let usdt_coins_to_swap = Coin::mint(110, &caps.usdt_mint_cap);
+        let usdt_coins_to_swap = TestCoins::mint<USDT>(&coin_admin, 110);
 
         let btc_coins =
             Router::swap_exact_coin_for_coin<USDT, BTC, LP>(pool_owner_addr, usdt_coins_to_swap, 1);
         assert!(Coin::value(&btc_coins) == 1, 1);
 
-        Coin::burn(btc_coins, &caps.btc_burn_cap);
+        TestCoins::burn(&coin_admin, btc_coins);
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_coin_for_exact_coin(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_swap_coin_for_exact_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins_to_swap = Coin::mint(1, &caps.btc_mint_cap);
+        let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 1);
 
         let (remainder, usdt_coins) =
             Router::swap_coin_for_exact_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 98);
@@ -240,21 +203,20 @@ module MultiSwap::RouterTests {
         assert!(Coin::value(&usdt_coins) == 98, 1);
         assert!(Coin::value(&remainder) == 0, 2);
 
-        Coin::burn(usdt_coins, &caps.usdt_burn_cap);
+        TestCoins::burn(&coin_admin, usdt_coins);
         Coin::destroy_zero(remainder);
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_coin_for_exact_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_swap_coin_for_exact_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let usdt_coins_to_swap = Coin::mint(1114, &caps.usdt_mint_cap);
+        let usdt_coins_to_swap = TestCoins::mint<USDT>(&coin_admin, 1114);
 
         let (remainder, btc_coins) =
             Router::swap_coin_for_exact_coin<USDT, BTC, LP>(pool_owner_addr, usdt_coins_to_swap, 10);
@@ -262,23 +224,21 @@ module MultiSwap::RouterTests {
         assert!(Coin::value(&btc_coins) == 10, 1);
         assert!(Coin::value(&remainder) == 0, 2);
 
-        Coin::burn(btc_coins, &caps.btc_burn_cap);
+        TestCoins::burn(&coin_admin, btc_coins);
         Coin::destroy_zero(remainder);
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 26887)]
-    fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coin_to_swap = Coin::mint(1, &caps.btc_mint_cap);
+        let btc_coin_to_swap = TestCoins::mint<BTC>(&coin_admin, 1);
 
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coin_to_swap, 102);
@@ -289,16 +249,15 @@ module MultiSwap::RouterTests {
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 26631)]
-    fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
-        register_coins(&coin_admin);
+
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins_to_swap = Coin::mint(0, &caps.btc_mint_cap);
+        let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 0);
 
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 0);
@@ -308,17 +267,15 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_returned_usdt_proportially_decrease_for_big_swaps(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    fun test_returned_usdt_proportially_decrease_for_big_swaps(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_coins_to_swap = Coin::mint(200, &caps.btc_mint_cap);
+        let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 200);
 
         let usdt_coins =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 1);
@@ -337,7 +294,7 @@ module MultiSwap::RouterTests {
     fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
         Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner);
 
@@ -346,9 +303,9 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_cumulative_prices_after_swaps(core: signer, coin_admin: signer, pool_owner: signer) acquires Caps {
+    fun test_cumulative_prices_after_swaps(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
         Coin::register_internal<USDT>(&pool_owner);
 
@@ -362,8 +319,7 @@ module MultiSwap::RouterTests {
         // 2 seconds
         Timestamp::update_global_time_for_test(2000000);
 
-        let caps = borrow_global<Caps>(Signer::address_of(&coin_admin));
-        let btc_to_swap = Coin::mint<BTC>(1, &caps.btc_mint_cap);
+        let btc_to_swap = TestCoins::mint<BTC>(&coin_admin, 1);
         let usdts =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_addr, btc_to_swap, 95);
         Coin::deposit(pool_addr, usdts);
@@ -377,7 +333,7 @@ module MultiSwap::RouterTests {
         // 4 seconds
         Timestamp::update_global_time_for_test(4000000);
 
-        let btc_to_swap = Coin::mint<BTC>(2, &caps.btc_mint_cap);
+        let btc_to_swap = TestCoins::mint<BTC>(&coin_admin, 2);
         let usdts =
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_addr, btc_to_swap, 190);
         Coin::deposit(pool_addr, usdts);

@@ -8,7 +8,7 @@ module MultiSwap::LiquidityPoolTests {
     use MultiSwap::LiquidityPool;
 
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
-    use TestPoolOwner::LP::LP;
+    use TestPoolOwner::LP::{Self, LP};
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
@@ -37,12 +37,22 @@ module MultiSwap::LiquidityPoolTests {
 
         TestCoins::register_coins(&coin_admin);
         let pool_owner_addr = Signer::address_of(&pool_owner);
-
         LiquidityPool::register<BTC, USDT, LP>(&pool_owner);
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
         let (_x_price, _y_price, _) =
             LiquidityPool::get_cumulative_prices<USDT, BTC, LP>(pool_owner_addr);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    #[expected_failure(abort_code = 7)]
+    fun test_fail_if_coin_lp_registered_as_coin(core: signer, coin_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
+
+        TestCoins::register_coins(&coin_admin);
+        LP::register_lp_for_fails(&coin_admin);
+
+        LiquidityPool::register<BTC, USDT, LP>(&pool_owner);
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]

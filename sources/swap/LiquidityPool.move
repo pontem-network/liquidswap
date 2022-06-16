@@ -4,45 +4,39 @@ module MultiSwap::LiquidityPool {
     use Std::Signer;
     use Std::Errors;
     use Std::Event;
-   //use Std::ASCII;
 
     use AptosFramework::Timestamp;
     use AptosFramework::Coin::{Coin, Self};
-    //use AptosFramework::Account::{Self, SignerCapability};
 
     use MultiSwap::Math;
     use MultiSwap::UQ64x64;
     use MultiSwap::CoinHelper::{Self, assert_is_coin, supply};
-    use Std::ASCII;
 
     // Error codes.
 
     /// When coins used to create pair have wrong ordering.
     const ERR_WRONG_PAIR_ORDERING: u64 = 100;
 
-    /// When provided LP coin already has minted supply.
-    const ERR_LP_COIN_NON_ZERO_TOTAL: u64 = 101;
-
     /// When pair already exists on account.
-    const ERR_POOL_EXISTS_FOR_PAIR: u64 = 102;
+    const ERR_POOL_EXISTS_FOR_PAIR: u64 = 101;
 
     /// When not enough liquidity minted.
-    const ERR_NOT_ENOUGH_INITIAL_LIQUIDITY: u64 = 103;
+    const ERR_NOT_ENOUGH_INITIAL_LIQUIDITY: u64 = 102;
 
     /// When not enough liquidity minted.
-    const ERR_NOT_ENOUGH_LIQUIDITY: u64 = 104;
+    const ERR_NOT_ENOUGH_LIQUIDITY: u64 = 103;
 
     /// When both X and Y provided for swap are equal zero.
-    const ERR_EMPTY_COIN_IN: u64 = 105;
+    const ERR_EMPTY_COIN_IN: u64 = 104;
 
     /// When incorrect INs/OUTs arguments passed during swap and math doesn't work.
-    const ERR_INCORRECT_SWAP: u64 = 106;
+    const ERR_INCORRECT_SWAP: u64 = 105;
 
     /// Incorrect lp coin burn values
-    const ERR_INCORRECT_BURN_VALUES: u64 = 107;
+    const ERR_INCORRECT_BURN_VALUES: u64 = 106;
 
     /// When pool doesn't exists for pair.
-    const ERR_POOL_DOES_NOT_EXIST: u64 = 108;
+    const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
     // Constants.
 
@@ -79,24 +73,14 @@ module MultiSwap::LiquidityPool {
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
 
-        // TODO: check LP is not a coin, maybe we should register new one here?
-        //assert_is_coin<LP>();
-
-        // TODO: check lp_signer_capability brings to owner.
-        //let owner_by_capability = Account::create_signer_with_capability(&lp_signer_cap);
-
-        // TODO: error.
-        //assert!(owner_addr == Signer::address_of(&owner_by_capability), 1);
-
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
 
-        // TODO: this one will fail if LP is already coin and it's good.
-        // TODO: make symbols and name.
+        let name = CoinHelper::generate_lp_name<X, Y>();
         let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
             owner,
-            ASCII::string(b"tst"),
-            ASCII::string(b"tst"),
+            name,
+            name,
             6,
             true
         );

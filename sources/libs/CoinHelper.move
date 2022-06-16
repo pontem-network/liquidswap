@@ -1,9 +1,11 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module MultiSwap::CoinHelper {
     use Std::BCS;
-    use Std::ASCII::String;
+    use Std::ASCII::{Self, String};
     use Std::Option;
     use Std::Errors;
+    use Std::Vector;
+
 
     use AptosFramework::Coin;
 
@@ -59,5 +61,17 @@ module MultiSwap::CoinHelper {
     /// Would throw error if supply for `CoinType` doesn't exist.
     public fun supply<CoinType>(): u64 {
         Option::extract(&mut Coin::supply<CoinType>())
+    }
+
+    /// Generate LP coin name for pair `X`/`Y`.
+    /// Returns generated name (`symbol<X>()` + "-" + `symbol<Y>()`).
+    public fun generate_lp_name<X, Y>(): String {
+        let x_bytes = BCS::to_bytes<String>(&Coin::symbol<X>());
+        let y_bytes = BCS::to_bytes<String>(&Coin::symbol<Y>());
+
+        Vector::push_back(&mut x_bytes, 0x2d);
+        Vector::append(&mut x_bytes, y_bytes);
+
+        ASCII::string(x_bytes)
     }
 }

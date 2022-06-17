@@ -5,7 +5,6 @@ module MultiSwap::CoinHelperTests {
     use AptosFramework::Genesis;
 
     use MultiSwap::CoinHelper;
-
     use TestCoinAdmin::TestCoins::{Self, BTC, USDT};
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]

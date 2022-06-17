@@ -3,12 +3,12 @@ module MultiSwap::LiquidityPoolTests {
     use Std::ASCII::string;
     use Std::Signer;
 
-    use MultiSwap::LiquidityPool;
+    use AptosFramework::Coin;
+    use AptosFramework::Genesis;
 
+    use MultiSwap::LiquidityPool;
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::TestLP::{Self, LP};
-    use AptosFramework::Genesis;
-    use AptosFramework::Coin;
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {

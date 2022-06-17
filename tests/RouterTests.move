@@ -2,20 +2,18 @@
 module MultiSwap::RouterTests {
     use Std::Signer;
 
-    use AptosFramework::Genesis;
     use AptosFramework::Coin;
+    use AptosFramework::Genesis;
+    use AptosFramework::Timestamp;
 
     use MultiSwap::LiquidityPool;
     use MultiSwap::Router;
-    use AptosFramework::Timestamp;
-
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::TestLP::LP;
 
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
-                                     x_val: u64, y_val: u64)  {
-
+                                     x_val: u64, y_val: u64) {
         Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 30);
 
         let pool_owner_addr = Signer::address_of(pool_owner);

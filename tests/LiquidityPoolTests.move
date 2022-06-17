@@ -56,8 +56,7 @@ module MultiSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer)
-    {
+    fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
         TestCoins::register_coins(&coin_admin);
@@ -91,8 +90,7 @@ module MultiSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer)
-    {
+    fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
         TestCoins::register_coins(&coin_admin);
@@ -128,8 +126,7 @@ module MultiSwap::LiquidityPoolTests {
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 26881)]
-    fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer)
-    {
+    fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
         TestCoins::register_coins(&coin_admin);

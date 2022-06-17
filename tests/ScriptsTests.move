@@ -27,6 +27,57 @@ module MultiSwap::ScriptsTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    public(script) fun test_register_pool_with_script(
+        core: signer,
+        coin_admin: signer,
+        pool_owner: signer
+    ) {
+        Genesis::setup(&core);
+        TestCoins::register_coins(&coin_admin);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+
+        Scripts::register_pool<BTC, USDT, LP>(
+            pool_owner,
+        );
+
+        assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    public(script) fun test_register_and_add_liquidity_in_one_script(
+        core: signer,
+        coin_admin: signer,
+        pool_owner: signer
+    ) {
+        Genesis::setup(&core);
+        TestCoins::register_coins(&coin_admin);
+
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 10100);
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        Coin::register_internal<BTC>(&pool_owner);
+        Coin::register_internal<USDT>(&pool_owner);
+        Coin::deposit(pool_owner_addr, btc_coins);
+        Coin::deposit(pool_owner_addr, usdt_coins);
+
+        Scripts::register_and_add_liquidity<BTC, USDT, LP>(
+            pool_owner,
+            101,
+            101,
+            10100,
+            10100
+        );
+
+        assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
+
+        assert!(Coin::balance<BTC>(pool_owner_addr) == 0, 2);
+        assert!(Coin::balance<USDT>(pool_owner_addr) == 0, 3);
+        assert!(Coin::balance<LP>(pool_owner_addr) == 10, 4);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     public(script) fun test_add_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
         TestCoins::register_coins(&coin_admin);

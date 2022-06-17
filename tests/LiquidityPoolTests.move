@@ -3,13 +3,12 @@ module MultiSwap::LiquidityPoolTests {
     use Std::ASCII::string;
     use Std::Signer;
 
-    use AptosFramework::Genesis;
-    use AptosFramework::Coin;
-
     use MultiSwap::LiquidityPool;
 
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::TestLP::{Self, LP};
+    use AptosFramework::Genesis;
+    use AptosFramework::Coin;
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
@@ -20,6 +19,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -44,6 +44,7 @@ module MultiSwap::LiquidityPoolTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -63,6 +64,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -76,6 +78,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -114,6 +117,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -154,6 +158,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -188,6 +193,7 @@ module MultiSwap::LiquidityPoolTests {
 
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
+            30,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT")
         );
@@ -196,10 +202,65 @@ module MultiSwap::LiquidityPoolTests {
         assert!(!LiquidityPool::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);
     }
 
-    #[test]
-    fun test_fees_config() {
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
-        assert!(fee_pct == 3, 1);
-        assert!(fee_scale == 1000, 2);
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @0x42)]
+    fun test_fees_config(core: signer, coin_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
+
+        TestCoins::register_coins(&coin_admin);
+
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            45,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
+
+        let pool_addr = Signer::address_of(&pool_owner);
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config<BTC, USDT, LP>(pool_addr);
+        assert!(fee_pct == 45, 1);
+        assert!(fee_scale == 10000, 2);
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @0x42)]
+    fun test_swap_in_liquidity_pool_with_custom_fee(core: signer, coin_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
+
+        TestCoins::register_coins(&coin_admin);
+
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            1000,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
+
+        let pool_owner_addr = Signer::address_of(&pool_owner);
+        // 10 btc
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 1000000000);
+        // 10000 usdt
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 1000000000);
+
+        let lp_coins =
+            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        Coin::register_internal<LP>(&pool_owner);
+        Coin::deposit(pool_owner_addr, lp_coins);
+
+        // 2 btc
+        let btc_coins_to_exchange = TestCoins::mint<BTC>(&coin_admin, 200000000);
+        // 200 usdt
+        let (zero, usdt_coins) =
+            LiquidityPool::swap<BTC, USDT, LP>(
+                pool_owner_addr,
+                btc_coins_to_exchange, 0,
+                Coin::zero<USDT>(), 140000000
+            );
+        assert!(Coin::value(&usdt_coins) == 140000000, 1);
+
+        let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 1193340000, 2);
+        assert!(y_res == 860000000, 2);
+
+        Coin::destroy_zero(zero);
+        TestCoins::burn(&coin_admin, usdt_coins);
     }
 }

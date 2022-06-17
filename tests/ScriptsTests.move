@@ -1,19 +1,23 @@
 #[test_only]
 module MultiSwap::ScriptsTests {
     use Std::Signer;
-    use AptosFramework::Coin;
-    use MultiSwap::Router;
-    use MultiSwap::LiquidityPool;
-    use AptosFramework::Genesis;
-    use MultiSwap::Scripts;
 
+    use AptosFramework::Coin;
+    use AptosFramework::Genesis;
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::TestLP::LP;
 
-    fun register_pool_with_liquidity(coin_admin: &signer,
-                                     pool_owner: &signer,
-                                     x_val: u64, y_val: u64) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
+    use MultiSwap::LiquidityPool;
+    use MultiSwap::Router;
+    use MultiSwap::Scripts;
+
+    fun register_pool_with_existing_liquidity(
+        coin_admin: &signer,
+        pool_owner: &signer,
+        x_val: u64,
+        y_val: u64
+    ) {
+        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 30);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -39,6 +43,7 @@ module MultiSwap::ScriptsTests {
 
         Scripts::register_pool<BTC, USDT, LP>(
             pool_owner,
+            30,
         );
 
         assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
@@ -64,6 +69,7 @@ module MultiSwap::ScriptsTests {
 
         Scripts::register_pool_with_liquidity<BTC, USDT, LP>(
             pool_owner,
+            30,
             101,
             101,
             10100,
@@ -81,7 +87,7 @@ module MultiSwap::ScriptsTests {
     public(script) fun test_add_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
         TestCoins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+        register_pool_with_existing_liquidity(&coin_admin, &pool_owner, 0, 0);
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
@@ -112,7 +118,7 @@ module MultiSwap::ScriptsTests {
     public(script) fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
         TestCoins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+        register_pool_with_existing_liquidity(&coin_admin, &pool_owner, 0, 0);
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let btc_coins = TestCoins::mint<BTC>(&coin_admin, 101);
@@ -138,7 +144,7 @@ module MultiSwap::ScriptsTests {
     public(script) fun test_swap_exact_btc_for_usdt(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
         TestCoins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+        register_pool_with_existing_liquidity(&coin_admin, &pool_owner, 101, 10100);
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 10);
@@ -156,7 +162,7 @@ module MultiSwap::ScriptsTests {
     public(script) fun test_swap_btc_for_exact_usdt(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
         TestCoins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+        register_pool_with_existing_liquidity(&coin_admin, &pool_owner, 101, 10100);
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
         let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 10);

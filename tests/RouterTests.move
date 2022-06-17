@@ -1,5 +1,9 @@
 #[test_only]
 module MultiSwap::RouterTests {
+<<<<<<< HEAD
+=======
+    use Std::ASCII::string;
+>>>>>>> 7fdccfc (coinadmin to multiswap)
     use Std::Signer;
 
     use AptosFramework::Genesis;
@@ -16,7 +20,7 @@ module MultiSwap::RouterTests {
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64)  {
 
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 30);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -296,7 +300,7 @@ module MultiSwap::RouterTests {
 
         TestCoins::register_coins(&coin_admin);
 
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 30);
 
         assert!(Router::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
         assert!(Router::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);

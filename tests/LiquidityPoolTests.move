@@ -202,7 +202,7 @@ module MultiSwap::LiquidityPoolTests {
         assert!(!LiquidityPool::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_fees_config(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -221,7 +221,7 @@ module MultiSwap::LiquidityPoolTests {
         assert!(fee_scale == 10000, 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_swap_in_liquidity_pool_with_custom_fee(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 

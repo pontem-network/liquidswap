@@ -12,7 +12,7 @@ module MultiSwap::DAOStorageTests {
     use TestCoinAdmin::TestCoins::{BTC, USDT};
     use TestPoolOwner::TestLP::LP;
 
-    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @0x42, dao_admin_acc = @DAOAdmin)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner, dao_admin_acc = @DAOAdmin)]
     fun test_split_third_of_fees_into_dao_storage_account(
         core: signer,
         coin_admin: signer,

@@ -51,7 +51,8 @@ module MultiSwap::CoinHelperTests {
 
         TestCoins::register_coins(&coin_admin);
 
-        let generated_name = CoinHelper::generate_lp_name<BTC, USDT>();
-        assert!(generated_name == string(b"BTC-USDT"), 0);
+        let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<BTC, USDT>();
+        assert!(lp_name == string(b"LiquidSwap LP"), 0);
+        assert!(lp_symbol == string(b"LP-BTC-USDT"), 1);
     }
 }

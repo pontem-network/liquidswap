@@ -1,6 +1,7 @@
 /// Multi Swap liquidity pool.
 /// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
 module MultiSwap::LiquidityPool {
+    use Std::ASCII::String;
     use Std::Signer;
     use Std::Errors;
     use Std::Event;
@@ -63,7 +64,7 @@ module MultiSwap::LiquidityPool {
     }
 
     /// Register liquidity pool `X`/`Y`.
-    public fun register<X, Y, LP>(owner: &signer) acquires EventsStore {
+    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) acquires EventsStore {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
@@ -71,11 +72,10 @@ module MultiSwap::LiquidityPool {
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
 
-        let lp_name = CoinHelper::generate_lp_name<X, Y>();
         let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
             owner,
             lp_name,
-            lp_name,
+            lp_symbol,
             6,
             true
         );

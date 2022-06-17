@@ -44,9 +44,11 @@ module MultiSwap::Router {
         account: &signer,
     ) {
         if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::register<X, Y, LP>(account);
+            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<X, Y>();
+            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol);
         } else {
-            LiquidityPool::register<Y, X, LP>(account);
+            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<Y, X>();
+            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol);
         }
     }
 

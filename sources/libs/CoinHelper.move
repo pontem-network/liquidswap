@@ -55,14 +55,13 @@ module MultiSwap::CoinHelper {
     }
 
     /// Generate LP coin name for pair `X`/`Y`.
-    /// Returns generated name (`symbol<X>()` + "-" + `symbol<Y>()`).
-    public fun generate_lp_name<X, Y>(): String {
-        let x_bytes = *as_bytes(&Coin::symbol<X>());
-        let y_bytes = *as_bytes(&Coin::symbol<Y>());
+    /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
+    public fun generate_lp_name<X, Y>(): (String, String) {
+        let symbol = b"LP-";
+        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<X>()));
+        Vector::push_back(&mut symbol, 0x2d);
+        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<Y>()));
 
-        Vector::push_back(&mut x_bytes, 0x2d);
-        Vector::append(&mut x_bytes, y_bytes);
-
-        ASCII::string(x_bytes)
+        (ASCII::string(b"LiquidSwap LP"), ASCII::string(symbol))
     }
 }

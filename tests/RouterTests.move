@@ -1,9 +1,5 @@
 #[test_only]
 module MultiSwap::RouterTests {
-<<<<<<< HEAD
-=======
-    use Std::ASCII::string;
->>>>>>> 7fdccfc (coinadmin to multiswap)
     use Std::Signer;
 
     use AptosFramework::Genesis;

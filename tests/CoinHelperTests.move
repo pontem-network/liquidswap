@@ -44,7 +44,6 @@ module MultiSwap::CoinHelperTests {
     fun test_assert_is_coin_failure() {
         CoinHelper::assert_is_coin<USDT>();
     }
-<<<<<<< HEAD
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
     fun generate_lp_name(core: signer, coin_admin: signer) {
@@ -57,6 +56,3 @@ module MultiSwap::CoinHelperTests {
         assert!(lp_symbol == string(b"LP-BTC-USDT"), 1);
     }
 }
-=======
-}
->>>>>>> 7fdccfc (coinadmin to multiswap)

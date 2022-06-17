@@ -6,6 +6,36 @@ module MultiSwap::Scripts {
 
     use MultiSwap::Router;
 
+    /// Register a new liquidity pool for `X`/`Y` pair.
+    public(script) fun register_pool<X, Y, LP>(account: signer) {
+        Router::register_liquidity_pool<X, Y, LP>(&account);
+    }
+
+    /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
+    /// * `coin_x_val` - amount of coin `X` to add as liquidity.
+    /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
+    /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
+    /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
+    public(script) fun register_pool_with_liquidity<X, Y, LP>(
+        account: signer,
+        coin_x_val: u64,
+        coin_x_val_min: u64,
+        coin_y_val: u64,
+        coin_y_val_min: u64
+    ) {
+        let acc_addr = Signer::address_of(&account);
+        Router::register_liquidity_pool<X, Y, LP>(&account);
+
+        add_liquidity<X, Y, LP>(
+            account,
+            acc_addr,
+            coin_x_val,
+            coin_x_val_min,
+            coin_y_val,
+            coin_y_val_min,
+        );
+    }
+
     /// Add liquidity to pool `X`/`Y` with liquidity coin `LP`.
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.

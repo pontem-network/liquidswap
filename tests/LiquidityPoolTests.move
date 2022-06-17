@@ -1,65 +1,28 @@
 #[test_only]
-module CoinAdmin::LiquidityPoolTests {
+module MultiSwap::LiquidityPoolTests {
     use Std::ASCII::string;
     use Std::Signer;
 
     use AptosFramework::Genesis;
-    use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
+    use AptosFramework::Coin;
 
     use MultiSwap::LiquidityPool;
 
-    struct USDT {}
+    use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
+    use TestPoolOwner::TestLP::{Self, LP};
 
-    struct BTC {}
-
-    struct LP {}
-
-    struct Caps has key {
-        btc_mint_cap: MintCapability<BTC>,
-        btc_burn_cap: BurnCapability<BTC>,
-        usdt_mint_cap: MintCapability<USDT>,
-        usdt_burn_cap: BurnCapability<USDT>,
-    }
-
-    fun register_coins(coin_admin: &signer) {
-        let (usdt_mint_cap, usdt_burn_cap) =
-            Coin::initialize<USDT>(
-                coin_admin,
-                string(b"USDT"),
-                string(b"USDT"),
-                6,
-                true
-            );
-
-        let (btc_mint_cap, btc_burn_cap) =
-            Coin::initialize<BTC>(
-                coin_admin, string(b"BTC"),
-                string(b"BTC"),
-                8,
-                true
-            );
-
-        let caps = Caps{ usdt_mint_cap, usdt_burn_cap, btc_mint_cap, btc_burn_cap };
-        move_to(coin_admin, caps);
-    }
-
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
-        let (mint_cap, burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true
-            );
-
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
 
         let (x_res_val, y_res_val) =
             LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
@@ -72,52 +35,53 @@ module CoinAdmin::LiquidityPoolTests {
         assert!(y_price == 0, 2);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     #[expected_failure(abort_code = 25607)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
         let pool_owner_addr = Signer::address_of(&pool_owner);
-
-        let (mint_cap, burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true
-            );
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
         let (_x_price, _y_price, _) =
             LiquidityPool::get_cumulative_prices<USDT, BTC, LP>(pool_owner_addr);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    #[expected_failure(abort_code = 7)]
+    fun test_fail_if_coin_lp_registered_as_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
+        TestLP::register_lp_for_fails(&coin_admin);
 
-        let coin_admin_addr = Signer::address_of(&coin_admin);
-        let caps = borrow_global<Caps>(coin_admin_addr);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
+    }
 
-        let (mint_cap, burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true,
-            );
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer) {
+        Genesis::setup(&core);
 
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, mint_cap, burn_cap);
+        TestCoins::register_coins(&coin_admin);
 
-        let btc_coins = Coin::mint(100100, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(100100, &caps.usdt_mint_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
+
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100100);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let lp_coins =
@@ -138,41 +102,33 @@ module CoinAdmin::LiquidityPoolTests {
         assert!(x_res == 0, 2);
         assert!(y_res == 0, 3);
 
-        Coin::burn(btc_return, &caps.btc_burn_cap);
-        Coin::burn(usdt_return, &caps.usdt_burn_cap);
+        TestCoins::burn(&coin_admin, btc_return);
+        TestCoins::burn(&coin_admin, usdt_return);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
-        let coin_admin_addr = Signer::address_of(&coin_admin);
-        let caps = borrow_global<Caps>(coin_admin_addr);
-
-        let (lp_mint_cap, lp_burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true,
-            );
-
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let btc_coins = Coin::mint(100100, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(100100, &caps.usdt_mint_cap);
+
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100100);
 
         let lp_coins =
             LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
-        let btc_coins_to_exchange = Coin::mint(2, &caps.btc_mint_cap);
+        let btc_coins_to_exchange = TestCoins::mint<BTC>(&coin_admin, 2);
         let (zero, usdt_coins) =
             LiquidityPool::swap<BTC, USDT, LP>(
                 pool_owner_addr,
@@ -186,34 +142,26 @@ module CoinAdmin::LiquidityPoolTests {
         assert!(y_res == 100099, 2);
 
         Coin::destroy_zero(zero);
-        Coin::burn(usdt_coins, &caps.usdt_burn_cap);
+        TestCoins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
-    #[expected_failure(abort_code = 27137)]
-    fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer)
-    acquires Caps {
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
+    #[expected_failure(abort_code = 26881)]
+    fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
-        let coin_admin_addr = Signer::address_of(&coin_admin);
-        let caps = borrow_global<Caps>(coin_admin_addr);
-
-        let (lp_mint_cap, lp_burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true,
-            );
-
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
-        let btc_coins = Coin::mint(100100, &caps.btc_mint_cap);
-        let usdt_coins = Coin::mint(100100, &caps.usdt_mint_cap);
+
+        let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100100);
 
         let lp_coins =
             LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
@@ -221,7 +169,7 @@ module CoinAdmin::LiquidityPoolTests {
         Coin::deposit(pool_owner_addr, lp_coins);
 
         // 1 minus fee for 1
-        let btc_coins_to_exchange = Coin::mint(1, &caps.btc_mint_cap);
+        let btc_coins_to_exchange = TestCoins::mint<BTC>(&coin_admin, 1);
         let (zero, usdt_coins) =
             LiquidityPool::swap<BTC, USDT, LP>(
                 pool_owner_addr,
@@ -229,25 +177,20 @@ module CoinAdmin::LiquidityPoolTests {
                 Coin::zero<USDT>(), 1
             );
         Coin::destroy_zero(zero);
-        Coin::burn(usdt_coins, &caps.usdt_burn_cap);
+        TestCoins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @CoreResources, coin_admin = @CoinAdmin, pool_owner = @0x42)]
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
-        register_coins(&coin_admin);
+        TestCoins::register_coins(&coin_admin);
 
-        let (lp_mint_cap, lp_burn_cap) =
-            Coin::initialize<LP>(
-                &coin_admin,
-                string(b"LP"),
-                string(b"LP"),
-                8,
-                true,
-            );
-
-        LiquidityPool::register<BTC, USDT, LP>(&pool_owner, lp_mint_cap, lp_burn_cap);
+        LiquidityPool::register<BTC, USDT, LP>(
+            &pool_owner,
+            string(b"LiquidSwap LP"),
+            string(b"LP-BTC-USDT")
+        );
 
         assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
         assert!(!LiquidityPool::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);

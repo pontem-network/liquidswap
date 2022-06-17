@@ -1,9 +1,10 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module MultiSwap::CoinHelper {
     use Std::BCS;
-    use Std::ASCII::String;
+    use Std::ASCII::{Self, String, as_bytes};
     use Std::Option;
     use Std::Errors;
+    use Std::Vector;
 
     use AptosFramework::Coin;
 
@@ -17,9 +18,6 @@ module MultiSwap::CoinHelper {
     /// When provided CoinType is not a coin.
     const ERR_IS_NOT_COIN: u64 = 101;
 
-    /// When coin doesn't have supply enabled.
-    const ERR_COIN_HASNT_SUPPLY: u64 = 102;
-
     // Constants.
 
     /// When both coin names are equal.
@@ -28,11 +26,6 @@ module MultiSwap::CoinHelper {
     const LESS_THAN: u8 = 1;
     /// When coin `X` name is greater than coin `X` name.
     const GREATER_THAN: u8 = 2;
-
-    /// Check if provided coin `CoinType` has a supply.
-    public fun assert_has_supply<CoinType>() {
-        assert!(Option::is_some(&Coin::supply<CoinType>()), Errors::not_published(ERR_COIN_HASNT_SUPPLY));
-    }
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
@@ -59,5 +52,16 @@ module MultiSwap::CoinHelper {
     /// Would throw error if supply for `CoinType` doesn't exist.
     public fun supply<CoinType>(): u64 {
         Option::extract(&mut Coin::supply<CoinType>())
+    }
+
+    /// Generate LP coin name for pair `X`/`Y`.
+    /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
+    public fun generate_lp_name<X, Y>(): (String, String) {
+        let symbol = b"LP-";
+        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<X>()));
+        Vector::push_back(&mut symbol, 0x2d);
+        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<Y>()));
+
+        (ASCII::string(b"LiquidSwap LP"), ASCII::string(symbol))
     }
 }

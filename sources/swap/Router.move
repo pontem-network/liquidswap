@@ -42,13 +42,13 @@ module MultiSwap::Router {
     /// * `lp_coin_burn_cap` - LP coin burn capability.
     public fun register_liquidity_pool<X, Y, LP>(
         account: &signer,
-        lp_coin_mint_cap: Coin::MintCapability<LP>,
-        lp_coin_burn_cap: Coin::BurnCapability<LP>
     ) {
         if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::register<X, Y, LP>(account, lp_coin_mint_cap, lp_coin_burn_cap);
+            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<X, Y>();
+            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol);
         } else {
-            LiquidityPool::register<Y, X, LP>(account, lp_coin_mint_cap, lp_coin_burn_cap);
+            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<Y, X>();
+            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol);
         }
     }
 

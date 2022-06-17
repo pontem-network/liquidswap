@@ -52,7 +52,6 @@ module MultiSwap::LiquidityPool {
 
     /// Liquidity pool with reserves.
     /// LP coin should go outside of this module.
-    /// Probably we only need mint capability?
     struct LiquidityPool<phantom X, phantom Y, phantom LP> has key {
         coin_x_reserve: Coin<X>,
         coin_y_reserve: Coin<Y>,
@@ -63,12 +62,8 @@ module MultiSwap::LiquidityPool {
         lp_burn_cap: Coin::BurnCapability<LP>,
     }
 
-    /// Register liquidity pool (by pairs), requires LP `burn` and `mint` capabilities.
-    /// * `lp_mint_cap` - minting capability for LP coin.
-    /// * `lp_burn_cap` - burning capability for LP coin.
-    public fun register<X, Y, LP>(
-        owner: &signer
-    ) acquires EventsStore {
+    /// Register liquidity pool `X`/`Y`.
+    public fun register<X, Y, LP>(owner: &signer) acquires EventsStore {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
@@ -76,11 +71,11 @@ module MultiSwap::LiquidityPool {
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
 
-        let name = CoinHelper::generate_lp_name<X, Y>();
+        let lp_name = CoinHelper::generate_lp_name<X, Y>();
         let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
             owner,
-            name,
-            name,
+            lp_name,
+            lp_name,
             6,
             true
         );

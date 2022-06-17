@@ -16,7 +16,7 @@ module MultiSwap::Scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    public(script) fun register_and_add_liquidity<X, Y, LP>(
+    public(script) fun register_pool_with_liquidity<X, Y, LP>(
         account: signer,
         coin_x_val: u64,
         coin_x_val_min: u64,

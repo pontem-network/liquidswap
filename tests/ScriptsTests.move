@@ -8,7 +8,7 @@ module MultiSwap::ScriptsTests {
     use MultiSwap::Scripts;
 
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
-    use TestPoolOwner::LP::LP;
+    use TestPoolOwner::TestLP::LP;
 
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
@@ -62,7 +62,7 @@ module MultiSwap::ScriptsTests {
         Coin::deposit(pool_owner_addr, btc_coins);
         Coin::deposit(pool_owner_addr, usdt_coins);
 
-        Scripts::register_and_add_liquidity<BTC, USDT, LP>(
+        Scripts::register_pool_with_liquidity<BTC, USDT, LP>(
             pool_owner,
             101,
             101,

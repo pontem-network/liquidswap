@@ -8,7 +8,7 @@ module MultiSwap::LiquidityPoolTests {
     use MultiSwap::LiquidityPool;
 
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
-    use TestPoolOwner::LP::{Self, LP};
+    use TestPoolOwner::TestLP::{Self, LP};
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
@@ -50,7 +50,7 @@ module MultiSwap::LiquidityPoolTests {
         Genesis::setup(&core);
 
         TestCoins::register_coins(&coin_admin);
-        LP::register_lp_for_fails(&coin_admin);
+        TestLP::register_lp_for_fails(&coin_admin);
 
         LiquidityPool::register<BTC, USDT, LP>(&pool_owner);
     }

@@ -10,7 +10,7 @@ module MultiSwap::RouterTests {
     use AptosFramework::Timestamp;
 
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
-    use TestPoolOwner::LP::LP;
+    use TestPoolOwner::TestLP::LP;
 
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,

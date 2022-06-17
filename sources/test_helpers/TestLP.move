@@ -1,5 +1,5 @@
 #[test_only]
-module TestPoolOwner::LP {
+module TestPoolOwner::TestLP {
     use Std::ASCII::string;
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
 

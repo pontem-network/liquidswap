@@ -64,7 +64,7 @@ module MultiSwap::LiquidityPool {
     }
 
     /// Register liquidity pool `X`/`Y`.
-    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) acquires EventsStore {
+    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
@@ -98,12 +98,11 @@ module MultiSwap::LiquidityPool {
             swap_handle: Event::new_event_handle<SwapEvent<X, Y, LP>>(owner),
             oracle_updated_handle: Event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
         };
-        move_to(owner, events_store);
-
-        let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(owner_addr);
         Event::emit_event(
             &mut events_store.pool_created_handle,
             PoolCreatedEvent<X, Y, LP>{});
+
+        move_to(owner, events_store);
     }
 
     /// Mint new liquidity.

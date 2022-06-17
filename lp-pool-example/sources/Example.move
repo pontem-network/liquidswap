@@ -46,6 +46,6 @@ module Sender::Example {
 
     /// Registers new pool for `BTC`/`USDT` pair with `LP` coin from current module.
     public(script) fun register_pool(pool_owner: signer) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 30);
     }
 }

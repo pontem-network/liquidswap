@@ -10,6 +10,7 @@ StakingPool = "0x42"
 # Addresses for tests.
 TestCoinAdmin = "0x11"
 TestPoolOwner = "0x12"
+TestStaker = "0x14"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
@@ -23,3 +24,8 @@ rev = "39bdd6acf1bcf523970b6be057f884a848712c7c"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
 
+[dependencies.MoveNursery]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "39bdd6acf1bcf523970b6be057f884a848712c7c"
+subdir = "aptos-move/framework/move-stdlib/nursery"
+addr_subst = { Std = "0x1" }

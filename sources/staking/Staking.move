@@ -24,9 +24,6 @@ module MultiSwap::Staking {
     // TODO: change minimum stake later.
     const MINIMUM_STAKE_VALUE: u64 = 1000000;
 
-    // TODO: change weekly inflation later.
-    const WEEKLY_INFLATION: u64 = 2000000000000;
-
     // Durations.
 
     // Describing possible durations as u8 numbers (e.g. similar to enums).
@@ -41,6 +38,8 @@ module MultiSwap::Staking {
 
     // Different durations (week, month, etc) in seconds.
 
+    // TODO: convert errors to Std:Error.
+
     /// One week in seconds.
     const SECONDS_IN_WEEK: u64 = 604800u64;
     /// One month in seconds.
@@ -50,12 +49,13 @@ module MultiSwap::Staking {
     /// Four years in seconds.
     const SECONDS_IN_FOUR_YEAR: u64 = 126144000u64;
 
-    // Staking pool resource.
+    /// The resource describing staking pool.
     struct StakingPool has key {
         mint_cap: MintCapability<LAMM>,
 
         period: u64,
 
+        weekly_emission: u64,
         total_staked: u64,
 
         rewards: Coin<LAMM>,
@@ -63,14 +63,17 @@ module MultiSwap::Staking {
         id_counter: u128,
     }
 
-    // Staking position.
-    struct LiqPos has key, store {
+    /// The resource describing staking position.
+    struct Position has store {
         id: u128,
         created_at: u64,
         till: u64,
         stake: Coin<LAMM>,
     }
 
+    /// Create a new staking pool, the staking pool will be stored on staking admin account.
+    /// Only StakingAdmin can call it.
+    /// * `mint_cap` - mint capability for LAMM coin.
     public fun create_pool(account: &signer, mint_cap: MintCapability<LAMM>) {
         assert!(!exists<StakingPool>(@StakingPool), ERR_POOL_EXISTS);
         assert!(Signer::address_of(account) == @StakingPool, ERR_WRONG_STAKING_POOL_ADDR);
@@ -78,6 +81,7 @@ module MultiSwap::Staking {
         move_to(account, StakingPool {
             mint_cap,
             period: Timestamp::now_seconds() / SECONDS_IN_WEEK * SECONDS_IN_WEEK,
+            weekly_emission: 20000000000000, // TODO: update initial weekly emission.
             total_staked: 0,
             rewards: Coin::zero<LAMM>(),
             id_counter: 0,
@@ -88,7 +92,7 @@ module MultiSwap::Staking {
     /// * `stake` - LAMM coins to stake.
     /// * `duration` - number from zero till 3 (e.g. enum) represents lock period (see durations constants).
     /// Returns locked stake position.
-    public fun stake(stake: Coin<LAMM>, duration: u8): LiqPos acquires StakingPool {
+    public fun stake(stake: Coin<LAMM>, duration: u8): Position acquires StakingPool {
         assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
 
         let stake_value = Coin::value(&stake);
@@ -105,7 +109,7 @@ module MultiSwap::Staking {
         let created_at = Timestamp::now_seconds();
         let till = created_at + duration_in_seconds;
 
-        LiqPos {
+        Position{
             id,
             created_at,
             till,
@@ -113,16 +117,16 @@ module MultiSwap::Staking {
         }
     }
 
-    // TODO: rework it.
-    public fun unstake(to_unstake: LiqPos): Coin<LAMM> acquires StakingPool {
-        // TODO: error
-        assert!(to_unstake.till >= Timestamp::now_seconds(), ERR_EARLY_UNLOCK);
+    // TODO: claim rewards func.
+    public fun unstake(to_unstake: Position): Coin<LAMM> acquires StakingPool {
+        assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
+        assert!(to_unstake.till <= Timestamp::now_seconds(), ERR_EARLY_UNLOCK);
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
 
-        // TODO: we should rewards staker.
+        // TODO: we should rewards staker if there is rewards for him.
 
-        let LiqPos { stake, id: _, created_at: _, till: _ } = to_unstake;
+        let Position { stake, id: _, created_at: _, till: _ } = to_unstake;
 
         staking_pool.total_staked = staking_pool.total_staked - Coin::value(&stake);
         stake
@@ -143,7 +147,7 @@ module MultiSwap::Staking {
             let supply = CoinHelper::supply<LAMM>();
             let circulation_supply = supply - staking_pool.total_staked;
 
-            let emission = calc_weekly_emission(supply, circulation_supply);
+            let emission = calc_weekly_emission(staking_pool.weekly_emission, supply, circulation_supply);
             // TODO: we probably should split weekly emission and weekly growth (see solidly).
 
             let rewards = Coin::mint<LAMM>(emission, &staking_pool.mint_cap);
@@ -153,6 +157,7 @@ module MultiSwap::Staking {
 
             // TODO: only rewards which going to stakers should be updated here?
             staking_pool.total_staked = staking_pool.total_staked + emission;
+            staking_pool.weekly_emission = emission;
         }
     }
 
@@ -160,26 +165,25 @@ module MultiSwap::Staking {
 
     /// Get staked value stored in stake position.
     /// * `liq_pos` - reference to staking position.
-    public fun get_staked_value(liq_pos: &LiqPos): u64  {
-        // TODO: we should take into account that staked position increasing over time (each week).
+    public fun get_staked_value(liq_pos: &Position): u64  {
         Coin::value(&liq_pos.stake)
     }
 
     /// Get staking position id.
     /// * `liq_pos` - reference to staking position.
-    public fun get_id(liq_pos: &LiqPos): u128 {
+    public fun get_position_id(liq_pos: &Position): u128 {
         liq_pos.id
     }
 
     /// Get locked till timestamp of staking position.
     /// * `liq_pos` - reference to staking position.
-    public fun get_staked_until(liq_pos: &LiqPos): u64 {
+    public fun get_staked_until(liq_pos: &Position): u64 {
         liq_pos.till
     }
 
     /// Get timestamp when staking position created.
     /// * `liq_pos` - reference to staking position.
-    public fun get_created_at(liq_pos: &LiqPos): u64 {
+    public fun get_created_at(liq_pos: &Position): u64 {
         liq_pos.created_at
     }
 
@@ -199,16 +203,19 @@ module MultiSwap::Staking {
     /// * `supply` - total supply of LAMM coins.
     /// * `circulation_supply` - is amount of LAMM coins in circulation (that ones which not staked).
     /// Returns amount of LAMM coins to mint during weekly emission.
-    fun calc_weekly_emission(supply: u64,  circulating_supply: u64): u64 {
+    fun calc_weekly_emission(weekly_emission: u64, supply: u64,  circulating_supply: u64): u64 {
         // We want emission to be based on staked and circulating supply like initally discussed.
         // E.g. take a ratio of supply and staked coin, use ratio on WEEKLY_INFLATION to determine what's
         // weekly emission.
-        // Yet if too much coins staked, we still want to have at least some emission (0.2% of supply).
+        // Yet if emission became too low, we still want to have at least some emission (0.2% of circulating supply).
+
+        // In nutshell, emission going down with each new stake and each week, at some stage it will become so low,
+        // but we still need to continue reward stakers, so in such case emission will be 0.2% of circulating supply.
 
         // So first we calculate target emission based on staked and circulating supply,
         // and target with WEEKLY_INFLATION per week.
         let weekly_emission =
-            Math::mul_to_u128(WEEKLY_INFLATION, 98) * (circulating_supply as u128) / 100u128 / (supply as u128);
+            Math::mul_to_u128(weekly_emission, 98) * (circulating_supply as u128) / 100u128 / (supply as u128);
 
         // Yet we also calculating 0.2% emission in case too much coins staked.
         let circulating_emission = ((circulating_supply * 2 / 1000) as u128);
@@ -238,5 +245,15 @@ module MultiSwap::Staking {
         } else {
             abort ERR_WRONG_DURATION
         }
+    }
+
+    #[test_only]
+    public fun get_duration_in_seconds_for_test(duration: u8): u64 {
+        get_duration_in_seconds(duration)
+    }
+
+    #[test_only]
+    public fun calc_weekly_emission_for_test(weekly: u64, supply: u64, circulating_supply: u64): u64 {
+        calc_weekly_emission(weekly, supply, circulating_supply)
     }
 }

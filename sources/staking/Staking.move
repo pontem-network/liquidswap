@@ -19,6 +19,8 @@ module MultiSwap::Staking {
 
     // Constants.
 
+    // TODO: events.
+
     // TODO: change minimum stake later.
     const MINIMUM_STAKE_VALUE: u64 = 1000000;
 
@@ -40,19 +42,20 @@ module MultiSwap::Staking {
     // Different durations (week, month, etc) in seconds.
 
     /// One week in seconds.
-    const WEEK_IN_SECONDS: u64 = 604800u64;
+    const SECONDS_IN_WEEK: u64 = 604800u64;
     /// One month in seconds.
-    const MONTH_IN_SECONDS: u64 = 2630000u64;
+    const SECONDS_IN_MONTH: u64 = 2630000u64;
     /// One year in seconds.
-    const YEAR_IN_SECONDS: u64 = 31536000u64;
+    const SECONDS_IN_YEAR: u64 = 31536000u64;
     /// Four years in seconds.
-    const FOUR_YEAR_IN_SECONDS: u64 = 126144000u64;
+    const SECONDS_IN_FOUR_YEAR: u64 = 126144000u64;
 
     // Staking pool resource.
     struct StakingPool has key {
         mint_cap: MintCapability<LAMM>,
 
-        minted_at: u64,
+        period: u64,
+
         total_staked: u64,
 
         rewards: Coin<LAMM>,
@@ -74,7 +77,7 @@ module MultiSwap::Staking {
 
         move_to(account, StakingPool {
             mint_cap,
-            minted_at: Timestamp::now_seconds(),
+            period: Timestamp::now_seconds() / SECONDS_IN_WEEK * SECONDS_IN_WEEK,
             total_staked: 0,
             rewards: Coin::zero<LAMM>(),
             id_counter: 0,
@@ -132,16 +135,17 @@ module MultiSwap::Staking {
         assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
+        let now = Timestamp::now_seconds();
 
-        if (Timestamp::now_seconds() - staking_pool.minted_at >= WEEK_IN_SECONDS) {
-            // TODO: rewrite with periods.
+        if (now >= staking_pool.period + SECONDS_IN_WEEK) {
+            staking_pool.period = now / SECONDS_IN_WEEK * SECONDS_IN_WEEK;
 
-            // Main issue here - what to do if more than one week passed and nobody called function.
-            // Yet it shouldn't happen at all, yet let me look how Solidly handle it.
             let supply = CoinHelper::supply<LAMM>();
             let circulation_supply = supply - staking_pool.total_staked;
 
             let emission = calc_weekly_emission(supply, circulation_supply);
+            // TODO: we probably should split weekly emission and weekly growth (see solidly).
+
             let rewards = Coin::mint<LAMM>(emission, &staking_pool.mint_cap);
 
             // TODO: really rewards should be splitted between stakers and LP providers, but for now we just deposit it.
@@ -149,8 +153,6 @@ module MultiSwap::Staking {
 
             // TODO: only rewards which going to stakers should be updated here?
             staking_pool.total_staked = staking_pool.total_staked + emission;
-
-            staking_pool.minted_at = staking_pool.minted_at + WEEK_IN_SECONDS;
         }
     }
 
@@ -181,17 +183,43 @@ module MultiSwap::Staking {
         liq_pos.created_at
     }
 
+    /// Get total staked amount in staking pool.
+    public fun get_total_staked(): u64 acquires StakingPool {
+        borrow_global<StakingPool>(@StakingPool).total_staked
+    }
+
+    /// Get current period.
+    public fun get_period(): u64 acquires StakingPool {
+        borrow_global<StakingPool>(@StakingPool).period
+    }
+
     // Private functions.
 
     /// Calculates weekly emission of LAMM coins.
     /// * `supply` - total supply of LAMM coins.
     /// * `circulation_supply` - is amount of LAMM coins in circulation (that ones which not staked).
     /// Returns amount of LAMM coins to mint during weekly emission.
-    fun calc_weekly_emission(supply: u64, circulation_supply: u64): u64 {
-        // The math is safe as we are using u128 for large camputations
-        // and than return back to u64 (as all coins are u64).
-        let emission =
-            Math::mul_to_u128(WEEKLY_INFLATION, 98) * (circulation_supply as u128) / 100u128 / (supply as u128);
+    fun calc_weekly_emission(supply: u64,  circulating_supply: u64): u64 {
+        // We want emission to be based on staked and circulating supply like initally discussed.
+        // E.g. take a ratio of supply and staked coin, use ratio on WEEKLY_INFLATION to determine what's
+        // weekly emission.
+        // Yet if too much coins staked, we still want to have at least some emission (0.2% of supply).
+
+        // So first we calculate target emission based on staked and circulating supply,
+        // and target with WEEKLY_INFLATION per week.
+        let weekly_emission =
+            Math::mul_to_u128(WEEKLY_INFLATION, 98) * (circulating_supply as u128) / 100u128 / (supply as u128);
+
+        // Yet we also calculating 0.2% emission in case too much coins staked.
+        let circulating_emission = ((circulating_supply * 2 / 1000) as u128);
+
+        // And finally we are choosing which emission to use in the current period.
+        let emission = if (weekly_emission >= circulating_emission) {
+            weekly_emission
+        } else {
+            circulating_emission
+        };
+
         (emission as u64)
     }
 
@@ -200,13 +228,13 @@ module MultiSwap::Staking {
     /// Returns duration in seconds.
     fun get_duration_in_seconds(duration: u8): u64 {
         if (duration == D_WEEK) {
-            WEEK_IN_SECONDS
+            SECONDS_IN_WEEK
         } else if (duration == D_MONTH) {
-            MONTH_IN_SECONDS
+            SECONDS_IN_MONTH
         } else if (duration == D_YEAR) {
-            YEAR_IN_SECONDS
+            SECONDS_IN_YEAR
         } else if (duration == D_FOUR_YEARS) {
-            FOUR_YEAR_IN_SECONDS
+            SECONDS_IN_FOUR_YEAR
         } else {
             abort ERR_WRONG_DURATION
         }

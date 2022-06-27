@@ -53,8 +53,14 @@ module MultiSwap::Staking {
         // ID counter for positions.
         id_counter: u128,
 
-        // Emissions per periods.
+        // Historical emission per periods.
         emissions: Table<u64, u64>,
+
+        // Historical staking checkpoints.
+        checkpoints: Table<u64, Checkpoint>,
+
+        // Historicaal staked supply.
+        staked_supply: Table<u64, u64>,
     }
 
     /// The resource describing staking position.
@@ -64,6 +70,14 @@ module MultiSwap::Staking {
         created_at_period: u64,  // At which period position created.
         staked_for_periods: u64, // For how much periods (weeks) position staked.
         last_period_paid: u64, // At which last period position claimed rewards.
+
+        slope: u64,
+        bias: u64,
+    }
+
+    struct Checkpoint has store, copy {
+        bias: u64,
+        slope: u64,
     }
 
     /// Create a new staking pool, the staking pool will be stored on staking admin account.
@@ -75,6 +89,14 @@ module MultiSwap::Staking {
 
         let seconds_in_week = get_seconds_in_week();
 
+        let check_point = Checkpoint {
+            slope: 0,
+            bias: 0,
+        };
+
+        let checkpoints = Table::new<u64, Checkpoint>();
+        Table::add(&mut checkpoints, 0, check_point);
+
         move_to(account, StakingPool {
             mint_cap,
             period: 0,
@@ -84,6 +106,8 @@ module MultiSwap::Staking {
             rewards: Coin::zero<LAMM>(),
             id_counter: 0,
             emissions: Table::new(),
+            checkpoints,
+            staked_supply: Table::new(),
         })
     }
 
@@ -105,12 +129,24 @@ module MultiSwap::Staking {
         staking_pool.id_counter = staking_pool.id_counter + 1;
         staking_pool.total_staked = staking_pool.total_staked + stake_value;
 
+        // Calculate total staking values.
+        let checkpoint = Table::borrow_mut(&mut staking_pool.checkpoints, staking_pool.period);
+
+        // TODO: 208 = MAX PERIODS, replace.
+        let slope = stake_value / 208;
+        let bias = slope * duration_in_weeks;
+
+        checkpoint.slope = checkpoint.slope + slope;
+        checkpoint.bias = checkpoint.bias + bias;
+
         Position{
             id,
             stake,
             created_at_period: staking_pool.period,
             staked_for_periods: duration_in_weeks,
             last_period_paid: staking_pool.period,
+            slope,
+            bias,
         }
     }
 
@@ -128,8 +164,12 @@ module MultiSwap::Staking {
             id: _,
             created_at_period: _,
             staked_for_periods: _,
-            last_period_paid: _
+            last_period_paid: _,
+            slope: _,
+            bias: _,
         } = pos;
+
+        // TODO: work on slope and bias.
 
         staking_pool.total_staked = staking_pool.total_staked - Coin::value(&stake);
         stake
@@ -144,6 +184,7 @@ module MultiSwap::Staking {
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
         let now = Timestamp::now_seconds();
         let seconds_in_week = get_seconds_in_week();
+        let previous_period = staking_pool.period;
 
         if (now >= staking_pool.last_emission_ts + seconds_in_week) {
             staking_pool.period = staking_pool.period + 1;
@@ -172,6 +213,23 @@ module MultiSwap::Staking {
             // this function one time per week, yet, it shouldn't happen at all.
             Table::add(&mut staking_pool.emissions, staking_pool.period, growth);
 
+            let check_point = if (previous_period != 0) {
+                *Table::borrow(&staking_pool.checkpoints, previous_period)
+            } else {
+                Checkpoint {
+                    bias: 0,
+                    slope: 0,
+                }
+            };
+
+            check_point.bias = check_point.bias - check_point.slope;
+
+            let new_supply = check_point.bias - check_point.slope;
+            Table::add(&mut staking_pool.checkpoints, staking_pool.period, check_point);
+            Table::add(&mut staking_pool.staked_supply, staking_pool.period, new_supply);
+
+            // TODO: we have to checkpoint staked supply.)
+
             // TODO: we should deposit part of rewards to voting contract, see solidly.
             // TODO: only rewards which going to stakers should be updated here?
             //staking_pool.total_staked = staking_pool.total_staked + emission;
@@ -179,7 +237,7 @@ module MultiSwap::Staking {
         }
     }
 
-    public fun claim_next_period(pos: &mut Position) acquires StakingPool {
+    public fun claim_next_period(pos: &mut Position): Coin<LAMM> acquires StakingPool {
         assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
@@ -187,13 +245,16 @@ module MultiSwap::Staking {
 
         assert!(next_period - pos.created_at_period < pos.staked_for_periods, 0);
 
-        let _ = Table::borrow(&staking_pool.emissions, next_period);
+        let emission = Table::borrow(&staking_pool.emissions, next_period);
+        let supply = Table::borrow(&staking_pool.staked_supply, next_period);
 
-        // TODO: we should calc distribution here based on emission info above.
+        // Should be historic also.
+        let balance_of = pos.bias * pos.slope;
+        let to_distribute = balance_of * *emission / *supply;
 
-        // we should go over periods, starting with time when position staked.
-        // periods should be filled correctly.
         pos.last_period_paid = next_period;
+
+        Coin::extract(&mut staking_pool.rewards, to_distribute)
     }
 
 

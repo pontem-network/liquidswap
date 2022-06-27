@@ -4,18 +4,12 @@ module MultiSwap::StakingTests {
     use Std::Debug;
 
     use AptosFramework::Genesis;
-    use AptosFramework::Timestamp;
     use AptosFramework::Coin;
     use AptosFramework::Table::{Self, Table};
 
     use MultiSwap::Liquid;
     use MultiSwap::Staking::{Self, Position};
     use MultiSwap::Liquid::LAMM;
-
-    const SECONDS_IN_WEEK: u64 = 604800u64;
-    const SECONDS_IN_MONTH: u64 = 2630000u64;
-    const SECONDS_IN_YEAR: u64 = 31536000u64;
-    const SECONDS_IN_FOUR_YEAR: u64 = 126144000u64;
 
     struct Positions has key {
         positions: Table<u128, Position>,
@@ -27,11 +21,10 @@ module MultiSwap::StakingTests {
         Liquid::initialize(&multi_swap);
 
         let mint_cap = Liquid::get_mint_cap(&multi_swap);
-        let period = Timestamp::now_seconds() / 604800u64 * 604800u64;
 
         Staking::create_pool(&staking_admin, mint_cap);
         assert!(Staking::get_total_staked() == 0, 0);
-        assert!(Staking::get_period() == period, 1);
+        assert!(Staking::get_period() == 0, 1);
     }
 
     #[test(core = @CoreResources, multi_swap = @MultiSwap)]
@@ -76,10 +69,12 @@ module MultiSwap::StakingTests {
         assert!(id == 0, 0);
         let staked_value = Staking::get_staked_value(&position);
         assert!(staked_value == to_mint, 1);
-        let created_at = Staking::get_created_at(&position);
-        assert!(created_at == Timestamp::now_seconds(), 2);
-        let till = Staking::get_staked_until(&position);
-        assert!(till == Timestamp::now_seconds() + SECONDS_IN_WEEK, 3);
+        let created_at_period = Staking::get_created_at_period(&position);
+        assert!(created_at_period == 0, 2);
+        let last_period_paid = Staking::get_last_period_paid(&position);
+        assert!(last_period_paid == 0, 3);
+        let staked_for_periods = Staking::get_staked_for_periods(&position);
+        assert!(staked_for_periods == 1, 4);
         let total_staked = Staking::get_total_staked();
         assert!(total_staked == to_mint, 4);
 
@@ -164,27 +159,6 @@ module MultiSwap::StakingTests {
         weekly = 1;
         emission = Staking::calc_weekly_emission_for_test(weekly, supply, circulating_supply);
         assert!(emission == circulating_supply * 2 / 1000, 2);
-    }
-
-    #[test]
-    public fun test_get_duration_in_seconds() {
-        let a = Staking::get_duration_in_seconds_for_test(0);
-        assert!(a == SECONDS_IN_WEEK, 0);
-
-        a = Staking::get_duration_in_seconds_for_test(1);
-        assert!(a == SECONDS_IN_MONTH, 1);
-
-        a = Staking::get_duration_in_seconds_for_test(2);
-        assert!(a == SECONDS_IN_YEAR, 2);
-
-        a = Staking::get_duration_in_seconds_for_test(3);
-        assert!(a == SECONDS_IN_FOUR_YEAR, 3);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = 100)]
-    public fun test_get_duration_in_seconds_wrong_duration() {
-        let _ = Staking::get_duration_in_seconds_for_test(4);
     }
 
     // TODO: test update.

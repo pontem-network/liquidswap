@@ -1,6 +1,6 @@
 module MultiSwap::TimeHelper {
     // Errors.
-    const ERR_WRONG_DURATION: u64 = 0;
+    const ERR_WRONG_DURATION: u64 = 100;
 
     // Constants.
 

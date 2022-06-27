@@ -8,6 +8,8 @@ module MultiSwap::Staking {
     use MultiSwap::Liquid::LAMM;
     use MultiSwap::CoinHelper;
     use MultiSwap::Math;
+    use MultiSwap::TimeHelper::{get_seconds_in_week, get_duration_in_weeks};
+    use AptosFramework::Table::{Self, Table};
 
     // Errors.
     const ERR_WRONG_DURATION: u64 = 100;
@@ -24,51 +26,44 @@ module MultiSwap::Staking {
     // TODO: change minimum stake later.
     const MINIMUM_STAKE_VALUE: u64 = 1000000;
 
-    // Durations.
-
-    // Describing possible durations as u8 numbers (e.g. similar to enums).
-    /// One week.
-    const D_WEEK: u8 = 0;
-    /// One month.
-    const D_MONTH: u8 = 1;
-    /// One year.
-    const D_YEAR: u8 = 2;
-    /// Four years.
-    const D_FOUR_YEARS: u8 = 3;
-
     // Different durations (week, month, etc) in seconds.
 
     // TODO: convert errors to Std:Error.
 
-    /// One week in seconds.
-    const SECONDS_IN_WEEK: u64 = 604800u64;
-    /// One month in seconds.
-    const SECONDS_IN_MONTH: u64 = 2630000u64;
-    /// One year in seconds.
-    const SECONDS_IN_YEAR: u64 = 31536000u64;
-    /// Four years in seconds.
-    const SECONDS_IN_FOUR_YEAR: u64 = 126144000u64;
-
     /// The resource describing staking pool.
     struct StakingPool has key {
+        /// MintCapability to mint new LAMM coins.
         mint_cap: MintCapability<LAMM>,
 
+        // Sequence number of current period.
         period: u64,
 
+        // Last timestamp when new emission minted.
+        last_emission_ts: u64,
+
+        // Current weekly e,ission.
         weekly_emission: u64,
+
+        // Total staked.
         total_staked: u64,
 
+        // Total rewards we have.
         rewards: Coin<LAMM>,
 
+        // ID counter for positions.
         id_counter: u128,
+
+        // Emissions per periods.
+        emissions: Table<u64, u64>,
     }
 
     /// The resource describing staking position.
     struct Position has store {
         id: u128,
-        created_at: u64,
-        till: u64,
         stake: Coin<LAMM>,
+        created_at_period: u64,  // At which period position created.
+        staked_for_periods: u64, // For how much periods (weeks) position staked.
+        last_period_paid: u64, // At which last period position claimed rewards.
     }
 
     /// Create a new staking pool, the staking pool will be stored on staking admin account.
@@ -78,13 +73,17 @@ module MultiSwap::Staking {
         assert!(!exists<StakingPool>(@StakingPool), ERR_POOL_EXISTS);
         assert!(Signer::address_of(account) == @StakingPool, ERR_WRONG_STAKING_POOL_ADDR);
 
+        let seconds_in_week = get_seconds_in_week();
+
         move_to(account, StakingPool {
             mint_cap,
-            period: Timestamp::now_seconds() / SECONDS_IN_WEEK * SECONDS_IN_WEEK,
+            period: 0,
+            last_emission_ts: Timestamp::now_seconds() / seconds_in_week * seconds_in_week,
             weekly_emission: 20000000000000, // TODO: update initial weekly emission.
             total_staked: 0,
             rewards: Coin::zero<LAMM>(),
             id_counter: 0,
+            emissions: Table::new(),
         })
     }
 
@@ -100,66 +99,103 @@ module MultiSwap::Staking {
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
 
-        let duration_in_seconds = get_duration_in_seconds(duration);
+        let duration_in_weeks = get_duration_in_weeks(duration);
         let id = staking_pool.id_counter;
 
         staking_pool.id_counter = staking_pool.id_counter + 1;
         staking_pool.total_staked = staking_pool.total_staked + stake_value;
 
-        let created_at = Timestamp::now_seconds();
-        let till = created_at + duration_in_seconds;
-
         Position{
             id,
-            created_at,
-            till,
             stake,
+            created_at_period: staking_pool.period,
+            staked_for_periods: duration_in_weeks,
+            last_period_paid: staking_pool.period,
         }
     }
 
-    // TODO: claim rewards func.
-    public fun unstake(to_unstake: Position): Coin<LAMM> acquires StakingPool {
-        assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
-        assert!(to_unstake.till <= Timestamp::now_seconds(), ERR_EARLY_UNLOCK);
+    /// Unstake staking position.
+    /// * `pos` - staking positon.
+    /// Returns staked+rewards LAMM coins.
+    public fun unstake(pos: Position): Coin<LAMM> acquires StakingPool {
+        // We check everything claimed.
+        assert!(pos.last_period_paid == (pos.created_at_period + pos.staked_for_periods), ERR_EARLY_UNLOCK);
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
 
-        // TODO: we should rewards staker if there is rewards for him.
-
-        let Position { stake, id: _, created_at: _, till: _ } = to_unstake;
+        let Position {
+            stake,
+            id: _,
+            created_at_period: _,
+            staked_for_periods: _,
+            last_period_paid: _
+        } = pos;
 
         staking_pool.total_staked = staking_pool.total_staked - Coin::value(&stake);
         stake
     }
 
     // We should mint new coins if week passed.
-    // Should be executed weekly.
+    // Should be executed each week.
     // Anyone can call it any time.
     public fun update<CoinType>() acquires StakingPool {
         assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
 
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
         let now = Timestamp::now_seconds();
+        let seconds_in_week = get_seconds_in_week();
 
-        if (now >= staking_pool.period + SECONDS_IN_WEEK) {
-            staking_pool.period = now / SECONDS_IN_WEEK * SECONDS_IN_WEEK;
+        if (now >= staking_pool.last_emission_ts + seconds_in_week) {
+            staking_pool.period = staking_pool.period + 1;
+            staking_pool.last_emission_ts = Timestamp::now_seconds() / seconds_in_week * seconds_in_week;
 
             let supply = CoinHelper::supply<LAMM>();
             let circulation_supply = supply - staking_pool.total_staked;
 
             let emission = calc_weekly_emission(staking_pool.weekly_emission, supply, circulation_supply);
-            // TODO: we probably should split weekly emission and weekly growth (see solidly).
 
-            let rewards = Coin::mint<LAMM>(emission, &staking_pool.mint_cap);
+            // Probably we don't need growth at alll.
+            let growth = calc_growth(staking_pool.total_staked, emission, supply); // ?
+            let current_rewards = Coin::value(&staking_pool.rewards); // ?
+            let required = emission + growth; // ?.
 
-            // TODO: really rewards should be splitted between stakers and LP providers, but for now we just deposit it.
+            // TODO: optimize it to havge less merge/extract?
+            let rewards = if (current_rewards < required) {
+                let to_mint = required - current_rewards;
+                Coin::mint<LAMM>(to_mint, &staking_pool.mint_cap)
+            } else {
+                Coin::zero<LAMM>()
+            };
             Coin::merge(&mut staking_pool.rewards, rewards);
 
+            // As we made periods just a number, so we can ignore, if someone not called
+            // this function one time per week, yet, it shouldn't happen at all.
+            Table::add(&mut staking_pool.emissions, staking_pool.period, growth);
+
+            // TODO: we should deposit part of rewards to voting contract, see solidly.
             // TODO: only rewards which going to stakers should be updated here?
-            staking_pool.total_staked = staking_pool.total_staked + emission;
+            //staking_pool.total_staked = staking_pool.total_staked + emission;
             staking_pool.weekly_emission = emission;
         }
     }
+
+    public fun claim_next_period(pos: &mut Position) acquires StakingPool {
+        assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
+
+        let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
+        let next_period = pos.last_period_paid + 1;
+
+        assert!(next_period - pos.created_at_period < pos.staked_for_periods, 0);
+
+        let _ = Table::borrow(&staking_pool.emissions, next_period);
+
+        // TODO: we should calc distribution here based on emission info above.
+
+        // we should go over periods, starting with time when position staked.
+        // periods should be filled correctly.
+        pos.last_period_paid = next_period;
+    }
+
 
     // Getter functions
 
@@ -175,16 +211,22 @@ module MultiSwap::Staking {
         liq_pos.id
     }
 
+    /// Get staking position last period when rewarded.
+    /// * `liq_pos` - reference to staking position.
+    public fun get_last_period_paid(liq_pos: &Position): u64 {
+        liq_pos.last_period_paid
+    }
+
     /// Get locked till timestamp of staking position.
     /// * `liq_pos` - reference to staking position.
-    public fun get_staked_until(liq_pos: &Position): u64 {
-        liq_pos.till
+    public fun get_staked_for_periods(liq_pos: &Position): u64 {
+        liq_pos.staked_for_periods
     }
 
     /// Get timestamp when staking position created.
     /// * `liq_pos` - reference to staking position.
-    public fun get_created_at(liq_pos: &Position): u64 {
-        liq_pos.created_at
+    public fun get_created_at_period(liq_pos: &Position): u64 {
+        liq_pos.created_at_period
     }
 
     /// Get total staked amount in staking pool.
@@ -198,6 +240,15 @@ module MultiSwap::Staking {
     }
 
     // Private functions.
+
+    /// Calculate growth of LAMM coins during emission event.
+    /// * `total_staked` - value of staked LAMM coins.
+    /// * `minted` - value of minted LAMM coins.
+    /// * `total_supply` - total supply of LAMM coins.
+    fun calc_growth(total_staked: u64, minted: u64, total_supply: u64): u64 {
+        let growth = Math::mul_to_u128(total_staked, minted) / (total_supply as u128);
+        (growth as u64)
+    }
 
     /// Calculates weekly emission of LAMM coins.
     /// * `supply` - total supply of LAMM coins.
@@ -228,28 +279,6 @@ module MultiSwap::Staking {
         };
 
         (emission as u64)
-    }
-
-    /// Convert `duration` (enum) to seconds.
-    /// * `duration` - number from zero till 3 (e.g. enum) represents lock period (see durations constants).
-    /// Returns duration in seconds.
-    fun get_duration_in_seconds(duration: u8): u64 {
-        if (duration == D_WEEK) {
-            SECONDS_IN_WEEK
-        } else if (duration == D_MONTH) {
-            SECONDS_IN_MONTH
-        } else if (duration == D_YEAR) {
-            SECONDS_IN_YEAR
-        } else if (duration == D_FOUR_YEARS) {
-            SECONDS_IN_FOUR_YEAR
-        } else {
-            abort ERR_WRONG_DURATION
-        }
-    }
-
-    #[test_only]
-    public fun get_duration_in_seconds_for_test(duration: u8): u64 {
-        get_duration_in_seconds(duration)
     }
 
     #[test_only]

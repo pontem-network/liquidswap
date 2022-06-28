@@ -133,9 +133,11 @@ module MultiSwap::Staking {
         let checkpoint = Table::borrow_mut(&mut staking_pool.checkpoints, staking_pool.period);
 
         // TODO: 208 = MAX PERIODS, replace.
-        let slope = stake_value / 208;
-        let bias = slope * duration_in_weeks;
+        // Calculate our part of the full staking amount during period.
+        let slope = stake_value / 208; // Slope is all staked values divided by max amount.
+        let bias = slope * duration_in_weeks; // Bias is staked value divided by max duration mul by locking time.
 
+        // Update checkpoint at this stage.
         checkpoint.slope = checkpoint.slope + slope;
         checkpoint.bias = checkpoint.bias + bias;
 
@@ -178,81 +180,56 @@ module MultiSwap::Staking {
     // We should mint new coins if week passed.
     // Should be executed each week.
     // Anyone can call it any time.
-    public fun update<CoinType>() acquires StakingPool {
-        assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
-
+    public fun update() acquires StakingPool {
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
         let now = Timestamp::now_seconds();
         let seconds_in_week = get_seconds_in_week();
-        let previous_period = staking_pool.period;
 
         if (now >= staking_pool.last_emission_ts + seconds_in_week) {
-            staking_pool.period = staking_pool.period + 1;
-            staking_pool.last_emission_ts = Timestamp::now_seconds() / seconds_in_week * seconds_in_week;
+            let next_period = staking_pool.period + 1;
 
             let supply = CoinHelper::supply<LAMM>();
             let circulation_supply = supply - staking_pool.total_staked;
-
             let emission = calc_weekly_emission(staking_pool.weekly_emission, supply, circulation_supply);
 
-            // Probably we don't need growth at alll.
-            let growth = calc_growth(staking_pool.total_staked, emission, supply); // ?
-            let current_rewards = Coin::value(&staking_pool.rewards); // ?
-            let required = emission + growth; // ?.
+            let minted_emission = Coin::mint(emission, &staking_pool.mint_cap);
 
-            // TODO: optimize it to havge less merge/extract?
-            let rewards = if (current_rewards < required) {
-                let to_mint = required - current_rewards;
-                Coin::mint<LAMM>(to_mint, &staking_pool.mint_cap)
+            Coin::merge(&mut staking_pool.rewards, minted_emission);
+
+            let check_point = *Table::borrow(&staking_pool.checkpoints, staking_pool.period);
+
+            let new_staked_supply = if (check_point.bias < check_point.slope) {
+                0
             } else {
-                Coin::zero<LAMM>()
-            };
-            Coin::merge(&mut staking_pool.rewards, rewards);
-
-            // As we made periods just a number, so we can ignore, if someone not called
-            // this function one time per week, yet, it shouldn't happen at all.
-            Table::add(&mut staking_pool.emissions, staking_pool.period, growth);
-
-            let check_point = if (previous_period != 0) {
-                *Table::borrow(&staking_pool.checkpoints, previous_period)
-            } else {
-                Checkpoint {
-                    bias: 0,
-                    slope: 0,
-                }
+                check_point.bias - check_point.slope
             };
 
-            check_point.bias = check_point.bias - check_point.slope;
+            check_point.bias = new_staked_supply; // ?
 
-            let new_supply = check_point.bias - check_point.slope;
-            Table::add(&mut staking_pool.checkpoints, staking_pool.period, check_point);
-            Table::add(&mut staking_pool.staked_supply, staking_pool.period, new_supply);
+            Table::add(&mut staking_pool.emissions, staking_pool.period, emission);
 
-            // TODO: we have to checkpoint staked supply.)
+            Table::add(&mut staking_pool.checkpoints, next_period, check_point);
+            Table::add(&mut staking_pool.staked_supply, staking_pool.period, new_staked_supply);
 
-            // TODO: we should deposit part of rewards to voting contract, see solidly.
-            // TODO: only rewards which going to stakers should be updated here?
-            //staking_pool.total_staked = staking_pool.total_staked + emission;
             staking_pool.weekly_emission = emission;
+            staking_pool.period = next_period;
+            staking_pool.last_emission_ts = Timestamp::now_seconds() / seconds_in_week * seconds_in_week;
         }
     }
 
     public fun claim_next_period(pos: &mut Position): Coin<LAMM> acquires StakingPool {
-        assert!(exists<StakingPool>(@StakingPool), ERR_POOL_DOESNT_EXIST);
-
         let staking_pool = borrow_global_mut<StakingPool>(@StakingPool);
-        let next_period = pos.last_period_paid + 1;
+        let next_period = pos.last_period_paid;
 
         assert!(next_period - pos.created_at_period < pos.staked_for_periods, 0);
 
         let emission = Table::borrow(&staking_pool.emissions, next_period);
         let supply = Table::borrow(&staking_pool.staked_supply, next_period);
 
-        // Should be historic also.
-        let balance_of = pos.bias * pos.slope;
-        let to_distribute = balance_of * *emission / *supply;
+        let balance_of = pos.bias - pos.slope;
+        let to_distribute = Math::mul_div(balance_of, *emission, *supply);
 
-        pos.last_period_paid = next_period;
+        pos.last_period_paid = next_period + 1;
 
         Coin::extract(&mut staking_pool.rewards, to_distribute)
     }
@@ -298,6 +275,11 @@ module MultiSwap::Staking {
     /// Get current period.
     public fun get_period(): u64 acquires StakingPool {
         borrow_global<StakingPool>(@StakingPool).period
+    }
+
+    public fun get_emission(period: u64): u64 acquires StakingPool {
+        let staking_pool = borrow_global<StakingPool>(@StakingPool);
+        *Table::borrow(&staking_pool.emissions, period)
     }
 
     // Private functions.

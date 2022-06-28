@@ -1,7 +1,6 @@
 #[test_only]
 module MultiSwap::StakingTests {
     use Std::Signer;
-    use Std::Debug;
 
     use AptosFramework::Genesis;
     use AptosFramework::Coin;
@@ -10,10 +9,13 @@ module MultiSwap::StakingTests {
     use MultiSwap::Liquid;
     use MultiSwap::Staking::{Self, Position};
     use MultiSwap::Liquid::LAMM;
+    use AptosFramework::Timestamp;
 
     struct Positions has key {
         positions: Table<u128, Position>,
     }
+
+    const WEEK_MICRO_SECONDS: u64 = 604801000000;
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap)]
     public fun test_create_pool(core: signer, staking_admin: signer, multi_swap: signer) {
@@ -74,7 +76,7 @@ module MultiSwap::StakingTests {
         let last_period_paid = Staking::get_last_period_paid(&position);
         assert!(last_period_paid == 0, 3);
         let staked_for_periods = Staking::get_staked_for_periods(&position);
-        assert!(staked_for_periods == 1, 4);
+        assert!(staked_for_periods == 2, 4);
         let total_staked = Staking::get_total_staked();
         assert!(total_staked == to_mint, 4);
 
@@ -153,12 +155,67 @@ module MultiSwap::StakingTests {
         let circulating_supply = supply - staked;
 
         let emission = Staking::calc_weekly_emission_for_test(weekly, supply, circulating_supply);
-        Debug::print(&emission);
         assert!(emission == 1148070074523, 0);
 
         weekly = 1;
         emission = Staking::calc_weekly_emission_for_test(weekly, supply, circulating_supply);
         assert!(emission == circulating_supply * 2 / 1000, 2);
+    }
+
+    #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
+    public fun test_update(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) {
+        let staker_addr = Signer::address_of(&staker);
+
+        Genesis::setup(&core);
+        Liquid::initialize(&multi_swap);
+
+        let mint_cap = Liquid::get_mint_cap(&multi_swap);
+        Staking::create_pool(&staking_admin, mint_cap);
+
+        let to_mint = 10000000000;
+        Coin::register_internal<LAMM>(&staker);
+        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint);
+
+        let to_stake = to_mint / 4;
+
+        let stake = Coin::withdraw<LAMM>(&staker, to_stake);
+        let position = Staking::stake(stake, 0);
+
+        // Nothing should happen as period still in progress
+        Staking::update();
+        let period = Staking::get_period();
+        assert!(period == 0, 0);
+
+        Timestamp::update_global_time_for_test(WEEK_MICRO_SECONDS);
+
+        Staking::update();
+        period = Staking::get_period();
+        assert!(period == 1, 0);
+        let emission = Staking::get_emission(period-1);
+
+        let rewards = Staking::claim_next_period(&mut position);
+        assert!(Coin::value(&rewards) == emission, 2);
+
+        Coin::deposit(staker_addr, rewards);
+
+        // TODO: fix bugs last period, no rewards.
+//        Timestamp::update_global_time_for_test(WEEK_MICRO_SECONDS * 2);
+//        Staking::update();
+//        period = Staking::get_period();
+//        assert!(period == 2, 0);
+//
+//        emission = Staking::get_emission(period-1);
+//        let rewards = Staking::claim_next_period(&mut position);
+//        assert!(Coin::value(&rewards) == emission, 3);
+//
+//        Coin::deposit(staker_addr, rewards);
+//
+        let positions = Table::new<u128, Position>();
+        Table::add(&mut positions, 0, position);
+
+        move_to(&staker, Positions {
+            positions
+        });
     }
 
     // TODO: test update.

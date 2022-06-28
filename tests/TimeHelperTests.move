@@ -5,7 +5,7 @@ module MultiSwap::TimeHelperTests {
     #[test]
     public fun test_get_duration_in_seconds() {
         let a = TimeHelper::get_duration_in_weeks(0);
-        assert!(a == 1, 0);
+        assert!(a == 2, 0);
 
         a = TimeHelper::get_duration_in_weeks(1);
         assert!(a == 4, 1);

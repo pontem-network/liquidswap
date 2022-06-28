@@ -5,8 +5,8 @@ module MultiSwap::TimeHelper {
     // Constants.
 
     // Describing possible durations as u8 numbers (e.g. similar to enums).
-    /// One week.
-    const D_WEEK: u8 = 0;
+    /// Minimum two weeks.
+    const D_TWO_WEEKS: u8 = 0;
     /// One month.
     const D_MONTH: u8 = 1;
     /// One year.
@@ -19,8 +19,8 @@ module MultiSwap::TimeHelper {
 
     /// Get duration (week, month, year, four years) in weeks (1 period = 1 week).
     public fun get_duration_in_weeks(duration: u8): u64 {
-        if (duration == D_WEEK) {
-            1
+        if (duration == D_TWO_WEEKS) {
+            2
         } else if (duration == D_MONTH) {
             4
         } else if (duration == D_YEAR) {

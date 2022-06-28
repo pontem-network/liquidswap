@@ -23,8 +23,8 @@ module MultiSwap::DAOStorageTests {
 
         TestCoins::register_coins(&coin_admin);
 
-        // 3% fee
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 300);
+        // 0.3% fee
+        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100000);
@@ -35,17 +35,17 @@ module MultiSwap::DAOStorageTests {
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
-        let btc_coins_to_exchange = TestCoins::mint<BTC>(&coin_admin, 100);
+        let btc_coins_to_exchange = TestCoins::mint<BTC>(&coin_admin, 1000);
         let (zero, usdt_coins) =
             LiquidityPool::swap<BTC, USDT, LP>(
                 pool_owner_addr,
                 btc_coins_to_exchange, 0,
-                Coin::zero<USDT>(), 96
+                Coin::zero<USDT>(), 960
             );
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_res == 100099, 2);
-        assert!(y_res == 99904, 3);
+        assert!(x_res == 100999, 2);
+        assert!(y_res == 99040, 3);
 
         let (dao_x, dao_y) = DAOStorage::get_storage_size<BTC, USDT, LP>(pool_owner_addr);
         assert!(dao_x == 1, 4);

@@ -72,12 +72,14 @@ module MultiSwap::LiquidityPool {
     }
 
     /// Register liquidity pool `X`/`Y`.
-    /// * `fee` - chunk of swapped coins that goes to the liquidity providers, scaled by 10000,
-    /// examples:
-    ///     30 => 0.0030 or 0.3%
-    ///     65 => 0.0065 or 0.65%
-    ///     100 => 0.0100 or 1%
-    public fun register<X, Y, LP>(owner: &signer, fee: u64, lp_name: String, lp_symbol: String) {
+    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) {
+        // * `fee` - chunk of swapped coins that goes to the liquidity providers, scaled by 10000,
+        // examples:
+        //     30 => 0.0030 or 0.3%
+        //     65 => 0.0065 or 0.65%
+        //     100 => 0.0100 or 1%
+        let fee = FEE_MULTIPLIER;
+
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));

@@ -12,13 +12,13 @@ TestPoolOwner = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "39bdd6acf1bcf523970b6be057f884a848712c7c"
+rev = "49f08c7419b442461e47164848305fe74e846607"
 subdir = "aptos-move/framework/move-stdlib"
 addr_subst = { Std = "0x1" }
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "39bdd6acf1bcf523970b6be057f884a848712c7c"
+rev = "49f08c7419b442461e47164848305fe74e846607"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
 

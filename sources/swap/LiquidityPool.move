@@ -388,14 +388,8 @@ module MultiSwap::LiquidityPool {
 
     /// Get fees numerator, denumerator.
     /// Returns (numerator, denumerator).
-    public fun get_fees_config<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
-        assert!(
-            pool_exists_at<X, Y, LP>(pool_addr),
-            ERR_POOL_DOES_NOT_EXIST
-        );
-        let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
-        let fee_multiplier = pool.fee_multiplier;
-        (fee_multiplier, FEE_SCALE)
+    public fun get_fees_config(): (u64, u64) {
+        (FEE_MULTIPLIER, FEE_SCALE)
     }
 
     // Events

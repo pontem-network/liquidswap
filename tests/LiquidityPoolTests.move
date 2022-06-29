@@ -207,8 +207,7 @@ module MultiSwap::LiquidityPoolTests {
             string(b"LP-BTC-USDT")
         );
 
-        let pool_addr = Signer::address_of(&pool_owner);
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config<BTC, USDT, LP>(pool_addr);
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
 
         assert!(fee_pct == 30, 1);
         assert!(fee_scale == 10000, 2);

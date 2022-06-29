@@ -40,16 +40,13 @@ module MultiSwap::Router {
     /// Register new liquidity pool for `X`/`Y` pair on signer address.
     /// * `lp_coin_mint_cap` - LP coin mint capability.
     /// * `lp_coin_burn_cap` - LP coin burn capability.
-    public fun register_liquidity_pool<X, Y, LP>(
-        account: &signer,
-        fee: u64,
-    ) {
+    public fun register_liquidity_pool<X, Y, LP>(account: &signer) {
         if (CoinHelper::is_sorted<X, Y>()) {
             let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<X, Y>();
-            LiquidityPool::register<X, Y, LP>(account, fee, lp_name, lp_symbol);
+            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol);
         } else {
             let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<Y, X>();
-            LiquidityPool::register<Y, X, LP>(account, fee, lp_name, lp_symbol);
+            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol);
         }
     }
 
@@ -142,9 +139,9 @@ module MultiSwap::Router {
 
         let coin_in_val = Coin::value(&coin_in);
         let coin_out_val = if (CoinHelper::is_sorted<X, Y>()) {
-            get_coin_out_with_fees<X, Y, LP>(pool_addr, coin_in_val, x_reserve_size, y_reserve_size)
+            get_coin_out_with_fees<X, Y, LP>(coin_in_val, x_reserve_size, y_reserve_size)
         } else {
-            get_coin_out_with_fees<Y, X, LP>(pool_addr, coin_in_val, x_reserve_size, y_reserve_size)
+            get_coin_out_with_fees<Y, X, LP>(coin_in_val, x_reserve_size, y_reserve_size)
         };
         assert!(
             coin_out_val >= coin_out_min_val,
@@ -174,9 +171,9 @@ module MultiSwap::Router {
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
         let coin_x_val_needed = if (CoinHelper::is_sorted<X, Y>()) {
-            get_coin_in_with_fees<X, Y, LP>(pool_addr, coin_out_val, y_reserve_size, x_reserve_size)
+            get_coin_in_with_fees<X, Y, LP>(coin_out_val, y_reserve_size, x_reserve_size)
         } else {
-            get_coin_in_with_fees<Y, X, LP>(pool_addr, coin_out_val, y_reserve_size, x_reserve_size)
+            get_coin_in_with_fees<Y, X, LP>(coin_out_val, y_reserve_size, x_reserve_size)
         };
 
         let coin_val_max = Coin::value(&coin_max_in);
@@ -275,8 +272,8 @@ module MultiSwap::Router {
     /// * `coin_in_val` - exactly amount of coins to swap.
     /// * `reserve_in_size` - reserves of coin we are going to swap.
     /// * `reserve_out_size` - reserves of coin we are going to get.
-    public fun get_coin_out_with_fees<X, Y, LP>(pool_addr: address, coin_in_val: u64, reserve_in_size: u64, reserve_out_size: u64): u64 {
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config<X, Y, LP>(pool_addr);
+    public fun get_coin_out_with_fees<X, Y, LP>(coin_in_val: u64, reserve_in_size: u64, reserve_out_size: u64): u64 {
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;
         // x_in * 0.997 (scaled to 1000)
@@ -297,12 +294,11 @@ module MultiSwap::Router {
     /// * `reserve_in_size` - reserves of coin we are going to swap.
     /// * `reserve_out_size` - reserves of coin we are going to get.
     public fun get_coin_in_with_fees<X, Y, LP>(
-        pool_addr: address,
         coin_out_val: u64,
         reserve_out_size: u64,
         reserve_in_size: u64
     ): u64 {
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config<X, Y, LP>(pool_addr);
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
 
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;

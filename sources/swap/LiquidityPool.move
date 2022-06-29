@@ -55,6 +55,9 @@ module MultiSwap::LiquidityPool {
     const STABLE_CURVE: u8 = 1;
     const UNSTABLE_CURVE: u8 = 2;
 
+    // 10^8
+    const CURVE_DENOMINATOR: u128 = 100000000;
+
     // Public functions.
 
     /// Liquidity pool with reserves.
@@ -319,8 +322,9 @@ module MultiSwap::LiquidityPool {
     fun compute_lp_value(x_coin: u128, y_coin: u128, curve_type: u8): u128 {
         if (curve_type == STABLE_CURVE) {
             // x^3 * y + y^3 * x
-            let a = x_coin * y_coin;
-            let b = x_coin * x_coin + y_coin * y_coin;
+            // scale with a denominator to avoid integer overflow here
+            let a = (x_coin * y_coin) / CURVE_DENOMINATOR;
+            let b = (x_coin * x_coin) / CURVE_DENOMINATOR + (y_coin * y_coin) / CURVE_DENOMINATOR;
             a * b
         } else if (curve_type == UNSTABLE_CURVE) {
             // x * y

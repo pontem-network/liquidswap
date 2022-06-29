@@ -289,7 +289,6 @@ module MultiSwap::LiquidityPool {
             (y_reserve_size as u128),
             pool.correlation_curve_type
         );
-        Std::Debug::print(&lp_value_before_swap);
         lp_value_before_swap = lp_value_before_swap * (FEE_SCALE as u128) * (FEE_SCALE as u128);
         let lp_value_after_swap_and_fee = compute_lp_value(
             x_res_new_after_fee,

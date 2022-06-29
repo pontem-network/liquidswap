@@ -40,13 +40,13 @@ module MultiSwap::Router {
     /// Register new liquidity pool for `X`/`Y` pair on signer address.
     /// * `lp_coin_mint_cap` - LP coin mint capability.
     /// * `lp_coin_burn_cap` - LP coin burn capability.
-    public fun register_liquidity_pool<X, Y, LP>(account: &signer) {
+    public fun register_liquidity_pool<X, Y, LP>(account: &signer, correlation_curve_type: u8) {
         if (CoinHelper::is_sorted<X, Y>()) {
             let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<X, Y>();
-            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol);
+            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol, correlation_curve_type);
         } else {
             let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<Y, X>();
-            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol);
+            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol, correlation_curve_type);
         }
     }
 

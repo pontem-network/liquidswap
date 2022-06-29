@@ -14,7 +14,7 @@ module MultiSwap::RouterTests {
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 2);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -294,7 +294,7 @@ module MultiSwap::RouterTests {
 
         TestCoins::register_coins(&coin_admin);
 
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 2);
 
         assert!(Router::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
         assert!(Router::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 2);

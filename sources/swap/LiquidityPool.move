@@ -8,12 +8,12 @@ module MultiSwap::LiquidityPool {
 
     use AptosFramework::Coin;
     use AptosFramework::Coin::Coin;
+    use AptosFramework::Timestamp;
 
     use MultiSwap::CoinHelper;
     use MultiSwap::CoinHelper::assert_is_coin;
     use MultiSwap::DAOStorage;
     use MultiSwap::Math;
-    use AptosFramework::Timestamp;
     use MultiSwap::UQ64x64;
 
     // Error codes.
@@ -41,6 +41,7 @@ module MultiSwap::LiquidityPool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
+    const ERR_INVALID_CURVE: u64 = 110;
     // Constants.
 
     /// Minimal liquidity.
@@ -50,6 +51,9 @@ module MultiSwap::LiquidityPool {
     const FEE_MULTIPLIER: u64 = 30;
     /// Denominator to handle decimal points for fees
     const FEE_SCALE: u64 = 10000;
+
+    const STABLE_CURVE: u8 = 1;
+    const UNSTABLE_CURVE: u8 = 2;
 
     // Public functions.
 
@@ -63,10 +67,19 @@ module MultiSwap::LiquidityPool {
         last_price_y_cumulative: u128,
         lp_mint_cap: Coin::MintCapability<LP>,
         lp_burn_cap: Coin::BurnCapability<LP>,
+        correlation_curve_type: u8,
     }
 
     /// Register liquidity pool `X`/`Y`.
-    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) {
+    /// Parameters:
+    ///     - `correlation_curve_type` - which math for lp_value is preferred,
+    ///                                  1 = stable, 2 = uniswap
+    public fun register<X, Y, LP>(
+        owner: &signer,
+        lp_name: String,
+        lp_symbol: String,
+        correlation_curve_type: u8
+    ) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
@@ -90,6 +103,7 @@ module MultiSwap::LiquidityPool {
             last_price_y_cumulative: 0,
             lp_mint_cap,
             lp_burn_cap,
+            correlation_curve_type,
         };
         move_to(owner, pool);
 
@@ -270,9 +284,17 @@ module MultiSwap::LiquidityPool {
         let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
                                   - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
-        let lp_value_before_swap = Math::mul_to_u128(x_reserve_size, y_reserve_size);
+        let lp_value_before_swap = compute_lp_value(
+            (x_reserve_size as u128),
+            (y_reserve_size as u128),
+            pool.correlation_curve_type
+        );
         lp_value_before_swap = lp_value_before_swap * (FEE_SCALE as u128) * (FEE_SCALE as u128);
-        let lp_value_after_swap_and_fee = x_res_new_after_fee * y_res_new_after_fee;
+        let lp_value_after_swap_and_fee = compute_lp_value(
+            x_res_new_after_fee,
+            y_res_new_after_fee,
+            pool.correlation_curve_type
+        );
         assert!(
             lp_value_after_swap_and_fee >= (lp_value_before_swap as u128),
             Errors::invalid_state(ERR_INCORRECT_SWAP),
@@ -292,6 +314,20 @@ module MultiSwap::LiquidityPool {
 
         // Return swapped amount.
         (x_swapped, y_swapped)
+    }
+
+    fun compute_lp_value(x_coin: u128, y_coin: u128, curve_type: u8): u128 {
+        if (curve_type == STABLE_CURVE) {
+            // x^3 * y + y^3 * x
+            let a = x_coin * y_coin;
+            let b = x_coin * x_coin + y_coin * y_coin;
+            a * b
+        } else if (curve_type == UNSTABLE_CURVE) {
+            // x * y
+            x_coin * y_coin
+        } else {
+            abort ERR_INVALID_CURVE
+        }
     }
 
     /// Update current cumulative prices.

@@ -17,7 +17,7 @@ module MultiSwap::ScriptsTests {
         x_val: u64,
         y_val: u64
     ) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner);
+        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 2);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -41,7 +41,7 @@ module MultiSwap::ScriptsTests {
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
 
-        Scripts::register_pool<BTC, USDT, LP>(pool_owner);
+        Scripts::register_pool<BTC, USDT, LP>(pool_owner, 2);
 
         assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
     }
@@ -66,10 +66,11 @@ module MultiSwap::ScriptsTests {
 
         Scripts::register_pool_with_liquidity<BTC, USDT, LP>(
             pool_owner,
+            2,
             101,
             101,
             10100,
-            10100
+            10100,
         );
 
         assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);

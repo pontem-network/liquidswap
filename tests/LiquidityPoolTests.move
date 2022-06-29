@@ -20,7 +20,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let (x_res_val, y_res_val) =
@@ -44,7 +45,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
@@ -63,7 +65,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
     }
 
@@ -76,7 +79,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100100);
@@ -114,7 +118,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
@@ -154,7 +159,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
@@ -188,7 +194,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         assert!(LiquidityPool::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 1);
@@ -204,7 +211,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
@@ -222,7 +230,8 @@ module MultiSwap::LiquidityPoolTests {
         LiquidityPool::register<BTC, USDT, LP>(
             &pool_owner,
             string(b"LiquidSwap LP"),
-            string(b"LP-BTC-USDT")
+            string(b"LP-BTC-USDT"),
+            2
         );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);

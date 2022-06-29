@@ -222,7 +222,7 @@ module MultiSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    fun test_swap_in_liquidity_pool_with_custom_fee(core: signer, coin_admin: signer, pool_owner: signer) {
+    fun test_swap_coins_with_stable_curve_type(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
         TestCoins::register_coins(&coin_admin);
@@ -231,7 +231,7 @@ module MultiSwap::LiquidityPoolTests {
             &pool_owner,
             string(b"LiquidSwap LP"),
             string(b"LP-BTC-USDT"),
-            2
+            1
         );
 
         let pool_owner_addr = Signer::address_of(&pool_owner);

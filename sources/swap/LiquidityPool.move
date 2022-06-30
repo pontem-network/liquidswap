@@ -55,8 +55,11 @@ module MultiSwap::LiquidityPool {
     const STABLE_CURVE: u8 = 1;
     const UNSTABLE_CURVE: u8 = 2;
 
-    // 10^8
-    const CURVE_DENOMINATOR: u128 = 100000000;
+    const MAX_DECIMALS: u64 = 12;
+    // 10^12
+    const CURVE_DENOMINATOR: u128 = 1000000000000;
+    // 10^6
+    const CURVE_DENOMINATOR_2: u128 = 1000000;
 
     // Public functions.
 
@@ -98,7 +101,7 @@ module MultiSwap::LiquidityPool {
             true
         );
 
-        let pool = LiquidityPool<X, Y, LP>{
+        let pool = LiquidityPool<X, Y, LP> {
             coin_x_reserve: Coin::zero<X>(),
             coin_y_reserve: Coin::zero<Y>(),
             last_block_timestamp: 0,
@@ -112,7 +115,7 @@ module MultiSwap::LiquidityPool {
 
         DAOStorage::register<X, Y, LP>(owner);
 
-        let events_store = EventsStore<X, Y, LP>{
+        let events_store = EventsStore<X, Y, LP> {
             pool_created_handle: Event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
             liquidity_added_handle: Event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
             liquidity_removed_handle: Event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
@@ -121,7 +124,7 @@ module MultiSwap::LiquidityPool {
         };
         Event::emit_event(
             &mut events_store.pool_created_handle,
-            PoolCreatedEvent<X, Y, LP>{});
+            PoolCreatedEvent<X, Y, LP> {});
 
         move_to(owner, events_store);
     }
@@ -171,7 +174,7 @@ module MultiSwap::LiquidityPool {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         Event::emit_event(
             &mut events_store.liquidity_added_handle,
-            LiquidityAddedEvent<X, Y, LP>{
+            LiquidityAddedEvent<X, Y, LP> {
                 added_x_val: x_provided_val,
                 added_y_val: y_provided_val,
                 lp_tokens_received: provided_liq
@@ -211,7 +214,7 @@ module MultiSwap::LiquidityPool {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         Event::emit_event(
             &mut events_store.liquidity_removed_handle,
-            LiquidityRemovedEvent<X, Y, LP>{
+            LiquidityRemovedEvent<X, Y, LP> {
                 returned_x_val: x_to_return_val,
                 returned_y_val: y_to_return_val,
                 lp_tokens_burned: burned_lp_coins_val
@@ -287,15 +290,23 @@ module MultiSwap::LiquidityPool {
         let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
                                   - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
+        let x_decimals = Coin::decimals<X>();
+        let y_decimals = Coin::decimals<Y>();
+
         let lp_value_before_swap = compute_lp_value(
             (x_reserve_size as u128),
+            x_decimals,
             (y_reserve_size as u128),
+            y_decimals,
             pool.correlation_curve_type
         );
+        Std::Debug::print(&lp_value_before_swap);
         lp_value_before_swap = lp_value_before_swap * (FEE_SCALE as u128) * (FEE_SCALE as u128);
         let lp_value_after_swap_and_fee = compute_lp_value(
             x_res_new_after_fee,
+            x_decimals,
             y_res_new_after_fee,
+            y_decimals,
             pool.correlation_curve_type
         );
         assert!(
@@ -308,7 +319,7 @@ module MultiSwap::LiquidityPool {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         Event::emit_event(
             &mut events_store.swap_handle,
-            SwapEvent<X, Y, LP>{
+            SwapEvent<X, Y, LP> {
                 x_in: x_in_val,
                 y_in: y_in_val,
                 x_out,
@@ -319,19 +330,34 @@ module MultiSwap::LiquidityPool {
         (x_swapped, y_swapped)
     }
 
-    fun compute_lp_value(x_coin: u128, y_coin: u128, curve_type: u8): u128 {
+    fun compute_lp_value(x_coin: u128, x_decimals: u64, y_coin: u128, y_decimals: u64, curve_type: u8): u128 {
         if (curve_type == STABLE_CURVE) {
-            // x^3 * y + y^3 * x
-            // scale with a denominator to avoid integer overflow here
-            let a = (x_coin * y_coin) / CURVE_DENOMINATOR;
-            let b = (x_coin * x_coin) / CURVE_DENOMINATOR + (y_coin * y_coin) / CURVE_DENOMINATOR;
-            a * b
+            // formula: x^3 * y + y^3 * x
+            // get coins to one dimension to avoid losing data dividing by denominator later
+            let x_scale = pow(10, MAX_DECIMALS - x_decimals);
+            let _x = x_coin * x_scale;
+            let y_scale = pow(10, MAX_DECIMALS - y_decimals);
+            let _y = y_coin * y_scale;
+            // downscale to avoid integer overflow
+            let a = (_x * _y) / CURVE_DENOMINATOR;
+            let b = (_x * _x) / CURVE_DENOMINATOR + (_y * _y) / CURVE_DENOMINATOR;
+            ((a / CURVE_DENOMINATOR_2) * (b / CURVE_DENOMINATOR_2))
         } else if (curve_type == UNSTABLE_CURVE) {
-            // x * y
+            // formula: x * y
             x_coin * y_coin
         } else {
             abort ERR_INVALID_CURVE
         }
+    }
+
+    fun pow(num: u128, degree: u64): u128 {
+        let res = 1;
+        let i = 0;
+        while (i < degree) {
+            res = res * num;
+            i = i + 1;
+        };
+        res
     }
 
     /// Update current cumulative prices.
@@ -366,7 +392,7 @@ module MultiSwap::LiquidityPool {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         Event::emit_event(
             &mut events_store.oracle_updated_handle,
-            OracleUpdatedEvent<X, Y, LP>{
+            OracleUpdatedEvent<X, Y, LP> {
                 last_price_x_cumulative: pool.last_price_x_cumulative,
                 last_price_y_cumulative: pool.last_price_y_cumulative,
             });

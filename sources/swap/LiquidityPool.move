@@ -120,7 +120,7 @@ module MultiSwap::LiquidityPool {
     ): Coin<LP> acquires LiquidityPool, EventsStore {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
-        let lp_coins_total = CoinHelper::supply<LP>();
+        let lp_coins_total = (CoinHelper::supply<LP>() as u64);
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
@@ -174,7 +174,7 @@ module MultiSwap::LiquidityPool {
         let burned_lp_coins_val = Coin::value(&lp_coins);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
-        let lp_coins_total = CoinHelper::supply<LP>();
+        let lp_coins_total = (CoinHelper::supply<LP>() as u64);
         let x_reserve_val = Coin::value(&pool.coin_x_reserve);
         let y_reserve_val = Coin::value(&pool.coin_y_reserve);
 

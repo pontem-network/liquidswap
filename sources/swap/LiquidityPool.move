@@ -120,7 +120,7 @@ module MultiSwap::LiquidityPool {
     ): Coin<LP> acquires LiquidityPool, EventsStore {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
-        let lp_coins_total = (CoinHelper::supply<LP>() as u64);
+        let lp_coins_total = CoinHelper::supply<LP>();
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
@@ -133,8 +133,8 @@ module MultiSwap::LiquidityPool {
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liq = Math::mul_div(x_provided_val, lp_coins_total, x_reserve_size);
-            let y_liq = Math::mul_div(y_provided_val, lp_coins_total, y_reserve_size);
+            let x_liq = Math::mul_div_u128((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
+            let y_liq = Math::mul_div_u128((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
             if (x_liq < y_liq) {
                 x_liq
             } else {
@@ -172,15 +172,16 @@ module MultiSwap::LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let burned_lp_coins_val = Coin::value(&lp_coins);
+
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
-        let lp_coins_total = (CoinHelper::supply<LP>() as u64);
+        let lp_coins_total = CoinHelper::supply<LP>();
         let x_reserve_val = Coin::value(&pool.coin_x_reserve);
         let y_reserve_val = Coin::value(&pool.coin_y_reserve);
 
         // Compute x, y coin values for provided lp_coins value
-        let x_to_return_val = Math::mul_div(burned_lp_coins_val, x_reserve_val, lp_coins_total);
-        let y_to_return_val = Math::mul_div(burned_lp_coins_val, y_reserve_val, lp_coins_total);
+        let x_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
+        let y_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
 
         // Withdraw those values from reserves

@@ -258,10 +258,10 @@ module MultiSwap::Router {
         lp_to_burn_val: u64
     ): (u64, u64) {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
-        let lp_coins_total = (supply<LP>() as u64);
+        let lp_coins_total = supply<LP>();
 
-        let x_to_return_val = Math::mul_div(lp_to_burn_val, x_reserve, lp_coins_total);
-        let y_to_return_val = Math::mul_div(lp_to_burn_val, y_reserve, lp_coins_total);
+        let x_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
+        let y_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
 
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
 

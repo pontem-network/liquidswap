@@ -353,6 +353,21 @@ module MultiSwap::LiquidityPool {
         }
     }
 
+    #[test]
+    fun test_lp_value_compute() {
+        // 0.3 ^ 3 * 0.5 + 0.5 ^ 3 * 0.3 = 0.051 (12 decimals)
+        assert!(
+            compute_lp_value(300000, 6, 500000, 6, STABLE_CURVE) == 51000000000,
+            1
+        );
+
+        // 0.3 * 0.5 = 0.15 (12 decimals)
+        assert!(
+            compute_lp_value(300000, 6, 500000, 6, UNSTABLE_CURVE) == 150000000000,
+            2
+        );
+    }
+
     fun pow(num: u128, degree: u64): u128 {
         let res = 1;
         let i = 0;

@@ -26,7 +26,7 @@ module MultiSwap::Math {
     /// Can't overflow.
     public fun mul_div_u128(x: u128, y: u128, z: u128): u64 {
         assert!(z != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
-        let r = (x as u128) * (y as u128) / z;
+        let r = x * y / z;
         (r as u64)
     }
 

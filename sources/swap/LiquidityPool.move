@@ -59,7 +59,7 @@ module MultiSwap::LiquidityPool {
     // 10^12
     const CURVE_DENOMINATOR: u128 = 1000000000000;
     // 10^6
-    const CURVE_DENOMINATOR_2: u128 = 1000000;
+    const HALF_CURVE_DENOMINATOR: u128 = 1000000;
 
     // Public functions.
 
@@ -92,6 +92,10 @@ module MultiSwap::LiquidityPool {
 
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
+        assert!(
+            correlation_curve_type == STABLE_CURVE || correlation_curve_type == UNSTABLE_CURVE,
+            ERR_INVALID_CURVE
+        );
 
         let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
             owner,
@@ -340,7 +344,7 @@ module MultiSwap::LiquidityPool {
             // downscale to avoid integer overflow
             let a = (_x * _y) / CURVE_DENOMINATOR;
             let b = (_x * _x) / CURVE_DENOMINATOR + (_y * _y) / CURVE_DENOMINATOR;
-            ((a / CURVE_DENOMINATOR_2) * (b / CURVE_DENOMINATOR_2))
+            ((a / HALF_CURVE_DENOMINATOR) * (b / HALF_CURVE_DENOMINATOR))
         } else if (curve_type == UNSTABLE_CURVE) {
             // formula: x * y
             x_coin * y_coin

@@ -15,6 +15,7 @@ module MultiSwap::LiquidityPool {
     use MultiSwap::DAOStorage;
     use MultiSwap::Math;
     use MultiSwap::UQ64x64;
+    use MultiSwap::StableCurve;
 
     // Error codes.
     /// When coins used to create pair have wrong ordering.
@@ -54,13 +55,6 @@ module MultiSwap::LiquidityPool {
 
     const STABLE_CURVE: u8 = 1;
     const UNSTABLE_CURVE: u8 = 2;
-
-    /// coins with more than this number of decimals will have a precision loss for the curve computation
-    const CURVE_PRECISION_LIMIT: u64 = 12;
-    // 10^12
-    const CURVE_DENOMINATOR: u128 = 1000000000000;
-    // 10^6
-    const HALF_CURVE_DENOMINATOR: u128 = 1000000;
 
     // Public functions.
 
@@ -336,56 +330,13 @@ module MultiSwap::LiquidityPool {
 
     fun compute_lp_value(x_coin: u128, x_decimals: u64, y_coin: u128, y_decimals: u64, curve_type: u8): u128 {
         if (curve_type == STABLE_CURVE) {
-            // formula: x^3 * y + y^3 * x
-            // get coins to one dimension to avoid losing data dividing by denominator later
-            let x_scale = pow_10(CURVE_PRECISION_LIMIT - x_decimals);
-            let _x = x_coin * x_scale;
-            let y_scale = pow_10(CURVE_PRECISION_LIMIT - y_decimals);
-            let _y = y_coin * y_scale;
-            // downscale to avoid integer overflow
-            let a = (_x * _y) / CURVE_DENOMINATOR;
-            let b = (_x * _x) / CURVE_DENOMINATOR + (_y * _y) / CURVE_DENOMINATOR;
-            ((a / HALF_CURVE_DENOMINATOR) * (b / HALF_CURVE_DENOMINATOR))
+            StableCurve::lp_value(x_coin, x_decimals, y_coin, y_decimals)
         } else if (curve_type == UNSTABLE_CURVE) {
             // formula: x * y
             x_coin * y_coin
         } else {
             abort ERR_INVALID_CURVE
         }
-    }
-
-    #[test]
-    fun test_lp_value_compute() {
-        // 0.3 ^ 3 * 0.5 + 0.5 ^ 3 * 0.3 = 0.051 (12 decimals)
-        assert!(
-            compute_lp_value(300000, 6, 500000, 6, STABLE_CURVE) == 51000000000,
-            1
-        );
-
-        // 0.3 * 0.5 = 0.15 (12 decimals)
-        assert!(
-            compute_lp_value(300000, 6, 500000, 6, UNSTABLE_CURVE) == 150000000000,
-            2
-        );
-    }
-
-    fun pow_10(degree: u64): u128 {
-        let res = 1;
-        let i = 0;
-        while (i < degree) {
-            res = res * 10;
-            i = i + 1;
-        };
-        res
-    }
-
-    #[test]
-    fun test_pow_10() {
-        assert!(pow_10(0) == 1, 1);
-        assert!(pow_10(1) == 10, 2);
-        assert!(pow_10(2) == 100, 3);
-        assert!(pow_10(5) == 100000, 4);
-        assert!(pow_10(10) == 10000000000, 5);
     }
 
     /// Update current cumulative prices.

@@ -55,7 +55,8 @@ module MultiSwap::LiquidityPool {
     const STABLE_CURVE: u8 = 1;
     const UNSTABLE_CURVE: u8 = 2;
 
-    const MAX_DECIMALS: u64 = 12;
+    /// coins with more than this number of decimals will have a precision loss for the curve computation
+    const CURVE_PRECISION_LIMIT: u64 = 12;
     // 10^12
     const CURVE_DENOMINATOR: u128 = 1000000000000;
     // 10^6
@@ -337,9 +338,9 @@ module MultiSwap::LiquidityPool {
         if (curve_type == STABLE_CURVE) {
             // formula: x^3 * y + y^3 * x
             // get coins to one dimension to avoid losing data dividing by denominator later
-            let x_scale = pow(10, MAX_DECIMALS - x_decimals);
+            let x_scale = pow_10(CURVE_PRECISION_LIMIT - x_decimals);
             let _x = x_coin * x_scale;
-            let y_scale = pow(10, MAX_DECIMALS - y_decimals);
+            let y_scale = pow_10(CURVE_PRECISION_LIMIT - y_decimals);
             let _y = y_coin * y_scale;
             // downscale to avoid integer overflow
             let a = (_x * _y) / CURVE_DENOMINATOR;
@@ -368,14 +369,23 @@ module MultiSwap::LiquidityPool {
         );
     }
 
-    fun pow(num: u128, degree: u64): u128 {
+    fun pow_10(degree: u64): u128 {
         let res = 1;
         let i = 0;
         while (i < degree) {
-            res = res * num;
+            res = res * 10;
             i = i + 1;
         };
         res
+    }
+
+    #[test]
+    fun test_pow_10() {
+        assert!(pow_10(0) == 1, 1);
+        assert!(pow_10(1) == 10, 2);
+        assert!(pow_10(2) == 100, 3);
+        assert!(pow_10(5) == 100000, 4);
+        assert!(pow_10(10) == 10000000000, 5);
     }
 
     /// Update current cumulative prices.

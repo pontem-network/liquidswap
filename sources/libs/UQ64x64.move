@@ -62,6 +62,8 @@ module MultiSwap::UQ64x64 {
 
     /// Returns a `UQ64x64` which represents the ratio of the numerator to the denominator.
     public fun fraction(numerator: u64, denominator: u64): UQ64x64 {
+        assert!(denominator != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
+
         let r = (numerator as u128) * Q64;
         let v = r / (denominator as u128);
 

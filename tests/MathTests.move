@@ -22,7 +22,7 @@ module MultiSwap::MathTests {
         assert!(a == 4, 1);
 
         a = Math::mul_div_u128(100, 20, 100);
-        assert!(a == 20, 1);
+        assert!(a == 20, 2);
     }
 
     #[test]
@@ -55,12 +55,15 @@ module MultiSwap::MathTests {
         assert!(s == 1, 2);
 
         s = Math::sqrt(2);
-        assert!(s == 1, 2);
-
-        s = Math::sqrt(3);
         assert!(s == 1, 3);
 
+        s = Math::sqrt(3);
+        assert!(s == 1, 4);
+
         s = Math::sqrt(18446744073709551615);
-        assert!(s == 4294967295, 4);
+        assert!(s == 4294967295, 5);
+
+        s = Math::sqrt(340282366920938463426481119284349108225);
+        assert!(s == U64_MAX, 6);
     }
 }

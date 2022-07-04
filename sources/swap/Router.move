@@ -4,9 +4,9 @@ module MultiSwap::Router {
 
     use AptosFramework::Coin::{Coin, Self};
 
-    use MultiSwap::Math;
     use MultiSwap::CoinHelper::{Self, supply};
     use MultiSwap::LiquidityPool;
+    use MultiSwap::Math;
 
     // Errors codes.
 
@@ -138,11 +138,7 @@ module MultiSwap::Router {
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
         let coin_in_val = Coin::value(&coin_in);
-        let coin_out_val = if (CoinHelper::is_sorted<X, Y>()) {
-            get_coin_out_with_fees<X, Y, LP>(coin_in_val, x_reserve_size, y_reserve_size)
-        } else {
-            get_coin_out_with_fees<Y, X, LP>(coin_in_val, x_reserve_size, y_reserve_size)
-        };
+        let coin_out_val = get_coin_out_with_fees(coin_in_val, x_reserve_size, y_reserve_size);
         assert!(
             coin_out_val >= coin_out_min_val,
             Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
@@ -170,19 +166,15 @@ module MultiSwap::Router {
     ): (Coin<X>, Coin<Y>) {
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
-        let coin_x_val_needed = if (CoinHelper::is_sorted<X, Y>()) {
-            get_coin_in_with_fees<X, Y, LP>(coin_out_val, y_reserve_size, x_reserve_size)
-        } else {
-            get_coin_in_with_fees<Y, X, LP>(coin_out_val, y_reserve_size, x_reserve_size)
-        };
+        let coin_in_val_needed = get_coin_in_with_fees(coin_out_val, y_reserve_size, x_reserve_size);
 
         let coin_val_max = Coin::value(&coin_max_in);
         assert!(
-            coin_x_val_needed <= coin_val_max,
+            coin_in_val_needed <= coin_val_max,
             Errors::invalid_argument(ERR_COIN_VAL_MAX_LESS_THAN_NEEDED)
         );
 
-        let coin_in = Coin::extract(&mut coin_max_in, coin_x_val_needed);
+        let coin_in = Coin::extract(&mut coin_max_in, coin_in_val_needed);
 
         let (zero, coin_out);
         if (CoinHelper::is_sorted<X, Y>()) {
@@ -269,44 +261,55 @@ module MultiSwap::Router {
     }
 
     /// Get coin amount out by passing amount in (include fees).
-    /// * `coin_in_val` - exactly amount of coins to swap.
-    /// * `reserve_in_size` - reserves of coin we are going to swap.
-    /// * `reserve_out_size` - reserves of coin we are going to get.
-    public fun get_coin_out_with_fees<X, Y, LP>(coin_in_val: u64, reserve_in_size: u64, reserve_out_size: u64): u64 {
+    /// * `coin_in` - exactly amount of coins to swap.
+    /// * `reserve_in` - reserves of coin we are going to swap.
+    /// * `reserve_out` - reserves of coin we are going to get.
+    public fun get_coin_out_with_fees(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
         let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;
         // x_in * 0.997 (scaled to 1000)
-        let coin_in_val_after_fees = coin_in_val * fee_multiplier;
+        let coin_in_after_fees = coin_in * fee_multiplier;
         // x_reserve size after adding amount_in (scaled to 1000)
-        let new_reserves_in_size = reserve_in_size * fee_scale + coin_in_val_after_fees; // Get new reserve in.
+        let new_reserve_in = reserve_in * fee_scale + coin_in_after_fees; // Get new reserve in.
         // Multiply coin_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in_after_fees * current_exchange_rate -> amount_out
-        let res = Math::mul_div(coin_in_val_after_fees,   // scaled to 1000
-        reserve_out_size,
-        new_reserves_in_size);  // scaled to 1000
-        res
+        let coin_out = Math::mul_div(coin_in_after_fees, // scaled to 1000
+            reserve_out,
+            new_reserve_in);  // scaled to 1000
+        coin_out
     }
 
     /// Get coin amount in by amount out.
     /// * `coin_out_val` - exactly amount of coins to get.
     /// * `reserve_in_size` - reserves of coin we are going to swap.
     /// * `reserve_out_size` - reserves of coin we are going to get.
-    public fun get_coin_in_with_fees<X, Y, LP>(
-        coin_out_val: u64,
-        reserve_out_size: u64,
-        reserve_in_size: u64
+    ///
+    /// This computation is a reverse of get_coin_out formula:
+    ///     y = x * 0.997 * ry / (rx + x * 0.997)
+    ///
+    /// solving it for x returns this formula:
+    ///     x = y * rx / ((ry - y) * 0.997) or
+    ///     x = y * rx * 1000 / ((ry - y) * 997) which implemented in this function
+    ///
+    public fun get_coin_in_with_fees(
+        coin_out: u64,
+        reserve_out: u64,
+        reserve_in: u64
     ): u64 {
         let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
-
         // 0.997 for 0.3% fee
-        let fee_multiplier = fee_scale - fee_pct;
-        // reserves_out - coin_out * 0.997
-        let new_reserves_out_size = (reserve_out_size - coin_out_val) * fee_multiplier;
-        // coin_out * fee scale * reserve_in / new reserves out
-        let res = Math::mul_div(coin_out_val * fee_scale, reserve_in_size, new_reserves_out_size) + 1;
-        res
+        let fee_multiplier = fee_scale - fee_pct;  // 997
+        // (reserves_out - coin_out) * 0.997
+        let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
+        // coin_out * reserve_in * fee_scale / new reserves out
+        let coin_in = Math::mul_div(
+            coin_out, // y
+            reserve_in * fee_scale, // rx * 1000
+            new_reserves_out   // (ry - y) * 997
+        ) + 1;
+        coin_in
     }
 
     /// Return amount of liquidity need to for `amount_in`.

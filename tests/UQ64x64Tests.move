@@ -45,20 +45,20 @@ module MultiSwap::UQ64x64Tests {
 
     #[test]
     fun test_fraction() {
-        let a  = UQ64x64::fraction(256, 8);
+        let a = UQ64x64::fraction(256, 8);
         assert!(UQ64x64::to_u128(a) == 590295810358705651680, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = 256519)]
     fun test_fail_fraction() {
-        let a  = UQ64x64::fraction(256, 0);
+        let a = UQ64x64::fraction(256, 0);
         UQ64x64::to_u128(a);
     }
 
     #[test]
     fun test_div() {
-        let a  = UQ64x64::encode(256);
+        let a = UQ64x64::encode(256);
         let z = UQ64x64::div(a, 8);
         assert!(UQ64x64::to_u128(z) == 590295810358705651680, 0);
         assert!(UQ64x64::decode(z) == 32, 1);
@@ -67,7 +67,7 @@ module MultiSwap::UQ64x64Tests {
     #[test]
     #[expected_failure(abort_code = 256519)]
     fun test_fail_div() {
-        let a  = UQ64x64::encode(1);
+        let a = UQ64x64::encode(1);
         UQ64x64::div(a, 0);
     }
 }

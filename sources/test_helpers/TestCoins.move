@@ -5,6 +5,7 @@ module TestCoinAdmin::TestCoins {
     use AptosFramework::Coin::{Self, Coin, MintCapability, BurnCapability};
 
     struct BTC {}
+
     struct USDT {}
 
     struct Capabilities<phantom CoinType> has key {
@@ -30,12 +31,12 @@ module TestCoinAdmin::TestCoins {
                 true
             );
 
-        move_to(coin_admin, Capabilities<USDT> {
+        move_to(coin_admin, Capabilities<USDT>{
             mint_cap: usdt_mint_cap,
             burn_cap: usdt_burn_cap,
         });
 
-        move_to(coin_admin, Capabilities<BTC> {
+        move_to(coin_admin, Capabilities<BTC>{
             mint_cap: btc_mint_cap,
             burn_cap: btc_burn_cap,
         });

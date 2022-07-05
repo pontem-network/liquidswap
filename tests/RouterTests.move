@@ -342,4 +342,22 @@ module MultiSwap::RouterTests {
         assert!(usdt_cum_price == 745173212911578406, 8);
         assert!(last_timestamp == 4, 9);
     }
+
+    #[test]
+    #[expected_failure(abort_code = 25607)]
+    fun test_fail_convert_with_current_price_coin_in_val(){
+        Router::convert_with_current_price(0,1, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 25863)]
+    fun test_fail_convert_with_current_price_reserve_in_size(){
+        Router::convert_with_current_price(1,0, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 25863)]
+    fun test_fail_convert_with_current_price_reserve_out_size(){
+        Router::convert_with_current_price(1,1, 0);
+    }
 }

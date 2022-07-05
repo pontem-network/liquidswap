@@ -420,6 +420,19 @@ module MultiSwap::LiquidityPool {
         (FEE_MULTIPLIER, FEE_SCALE)
     }
 
+    public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
+        assert!(
+            CoinHelper::is_sorted<X, Y>(),
+            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+        );
+        assert!(
+            exists<LiquidityPool<X, Y, LP>>(pool_addr),
+            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+        );
+
+        borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).correlation_curve_type
+    }
+
     // Events
     struct EventsStore<phantom X, phantom Y, phantom LP> has key {
         pool_created_handle: Event::EventHandle<PoolCreatedEvent<X, Y, LP>>,

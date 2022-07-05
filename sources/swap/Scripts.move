@@ -107,6 +107,7 @@ module MultiSwap::Scripts {
         pool_addr: address,
         coin_val: u64,
         coin_out_min_val: u64
+
     ) {
         let coin_x = Coin::withdraw<X>(&account, coin_val);
 

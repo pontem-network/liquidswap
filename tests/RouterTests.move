@@ -159,8 +159,7 @@ module MultiSwap::RouterTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let btc_coins_to_swap = TestCoins::mint<BTC>(&coin_admin, 1);
 
-        let usdt_coins =
-            Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 90);
+        let usdt_coins = Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 90);
         assert!(Coin::value(&usdt_coins) == 98, 1);
 
         TestCoins::burn(&coin_admin, usdt_coins);
@@ -177,8 +176,7 @@ module MultiSwap::RouterTests {
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let usdt_coins_to_swap = TestCoins::mint<USDT>(&coin_admin, 110);
 
-        let btc_coins =
-            Router::swap_exact_coin_for_coin<USDT, BTC, LP>(pool_owner_addr, usdt_coins_to_swap, 1);
+        let btc_coins = Router::swap_exact_coin_for_coin<USDT, BTC, LP>(pool_owner_addr, usdt_coins_to_swap, 1);
         assert!(Coin::value(&btc_coins) == 1, 1);
 
         TestCoins::burn(&coin_admin, btc_coins);

@@ -25,6 +25,11 @@ module MultiSwap::Router {
     /// Needed amount in great than maximum.
     const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 106;
 
+    const ERR_INVALID_CURVE: u64 = 110;
+
+    const STABLE_CURVE: u8 = 1;
+    const UNSTABLE_CURVE: u8 = 2;
+
     // Public functions.
 
     /// Check liquidity pool exists for coins `X` and `Y` at owner address.
@@ -133,12 +138,18 @@ module MultiSwap::Router {
     public fun swap_exact_coin_for_coin<X, Y, LP>(
         pool_addr: address,
         coin_in: Coin<X>,
-        coin_out_min_val: u64
+        coin_out_min_val: u64,
     ): Coin<Y> {
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
+        let curve_type = if (CoinHelper::is_sorted<X, Y>()) {
+            LiquidityPool::get_curve_type<X, Y, LP>(pool_addr)
+        } else {
+            LiquidityPool::get_curve_type<Y, X, LP>(pool_addr)
+        };
+
         let coin_in_val = Coin::value(&coin_in);
-        let coin_out_val = get_coin_out_with_fees(coin_in_val, x_reserve_size, y_reserve_size);
+        let coin_out_val = get_coin_out_with_fees(coin_in_val, x_reserve_size, y_reserve_size, curve_type);
         assert!(
             coin_out_val >= coin_out_min_val,
             Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
@@ -264,7 +275,7 @@ module MultiSwap::Router {
     /// * `coin_in` - exactly amount of coins to swap.
     /// * `reserve_in` - reserves of coin we are going to swap.
     /// * `reserve_out` - reserves of coin we are going to get.
-    public fun get_coin_out_with_fees(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
+    public fun get_coin_out_with_fees(coin_in: u64, reserve_in: u64, reserve_out: u64, _curve_type: u8): u64 {
         let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;

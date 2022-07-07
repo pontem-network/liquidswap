@@ -112,7 +112,33 @@ module MultiSwap::VE {
         nft
     }
 
-    // TODO: unstake.
+    public fun unstake(nft: NFT): Coin<LAMM> acquires StakingPool {
+        // probably if we still have bias and slope we should revert, as it means there is still rewards on nft.
+        let pool = borrow_global_mut<StakingPool>(@StakingPool);
+
+        let now = Timestamp::now_seconds();
+        assert!(now >= nft.unlock_time, 0);
+
+        // double check we don't have to update m_slope and etc.
+        update_internal(pool);
+
+        let NFT {
+            token_id: _,
+            stake,
+            unlock_time: _,
+            epoch,
+            point_history,
+        } = nft;
+
+        let i = 1;
+        while (i <= epoch) { // i doubt it can more than 208 iterations
+            Table::remove(&mut point_history, i);
+            i = i + 1;
+        };
+        Table::destroy_empty(point_history);
+
+        stake
+    }
 
     // Get staked supply.
     public fun supply(): u64 acquires StakingPool {

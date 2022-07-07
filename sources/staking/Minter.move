@@ -97,18 +97,9 @@ module MultiSwap::Minter {
     #[test_only]
     use MultiSwap::Liquid;
     #[test_only]
-    use AptosFramework::Table::Table;
-    #[test_only]
-    use AptosFramework::Table;
-    #[test_only]
     use AptosFramework::Coin::register_internal;
     #[test_only]
     use MultiSwap::Distribution;
-
-    #[test_only]
-    struct NFTs has key {
-        nfts: Table<u64, VE::NFT>,
-    }
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
     public fun end_to_end(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires MinterConfig {
@@ -142,15 +133,15 @@ module MultiSwap::Minter {
 
         mint_rewards();
         assert!(get_active_period() == (new_time / 1000000) / WEEK * WEEK, 2);
-        assert!(get_weekly_emission() == 1960000000, 4);
+        assert!(get_weekly_emission() == 1960000000, 3);
+
+        Distribution::claim(&mut nft);
+        let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 4);
 
         Distribution::claim(&mut nft);
         let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
         assert!(reward_value == 1960000000, 5);
-
-        Distribution::claim(&mut nft);
-        let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
-        assert!(reward_value == 1960000000, 6);
 
         let new_time = (Timestamp::now_seconds() + WEEK) * 1000000;
         Timestamp::update_global_time_for_test(new_time);
@@ -160,11 +151,10 @@ module MultiSwap::Minter {
         let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
         assert!(reward_value == 1960000000, 6);
 
-        let nfts = Table::new<u64, VE::NFT>();
-        Table::add(&mut nfts, VE::get_nft_id(&nft), nft);
+        let staking_rewards = VE::unstake(nft);
+        assert!(Coin::value(&staking_rewards) == (1960000000 + to_stake_val), 7);
+        Coin::deposit(staker_addr, staking_rewards);
 
-        move_to(&staker, NFTs {
-            nfts
-        });
+        VE::update();
     }
 }

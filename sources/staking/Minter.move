@@ -2,7 +2,7 @@ module MultiSwap::Minter {
     use Std::Signer;
 
     use AptosFramework::Timestamp;
-    use AptosFramework::Coin::{MintCapability, Coin, value};
+    use AptosFramework::Coin::{MintCapability};
     use AptosFramework::Coin;
 
     use MultiSwap::CoinHelper;
@@ -21,9 +21,6 @@ module MultiSwap::Minter {
         mint_cap: MintCapability<LAMM>,
         weekly_emission: u64,
         active_period: u64,
-
-        // just for now we storing it here
-        rewards: Coin<LAMM>,
     }
 
     // Initialization function.
@@ -35,7 +32,6 @@ module MultiSwap::Minter {
             mint_cap,
             weekly_emission,
             active_period: Timestamp::now_seconds() / WEEK * WEEK,
-            rewards: Coin::zero<LAMM>(),
         })
     }
 
@@ -76,18 +72,15 @@ module MultiSwap::Minter {
 
             let w_e = calc_weekly_emission(config.weekly_emission);
 
-            let coins = Coin::mint<LAMM>(w_e, &config.mint_cap);
-            Coin::merge(&mut config.rewards, coins);
+            let rewards = Coin::mint<LAMM>(w_e, &config.mint_cap);
 
             // we should move rewards to another contract to distribute.
             config.weekly_emission = w_e;
+
+            Distribution::checkpoint(rewards);
         }
     }
 
-    public fun get_rewards_value(): u64 acquires MinterConfig {
-        let config = borrow_global<MinterConfig>(@StakingPool);
-        value(&config.rewards)
-    }
 
     #[test_only]
     fun get_active_period(): u64 acquires MinterConfig {
@@ -109,6 +102,8 @@ module MultiSwap::Minter {
     use AptosFramework::Table;
     #[test_only]
     use AptosFramework::Coin::register_internal;
+    #[test_only]
+    use MultiSwap::Distribution;
 
     #[test_only]
     struct NFTs has key {
@@ -121,6 +116,7 @@ module MultiSwap::Minter {
 
         Liquid::initialize(&multi_swap);
         VE::initialize(&staking_admin);
+        Distribution::initialize(&staking_admin);
 
         let mint_cap = Liquid::get_mint_cap(&multi_swap);
 
@@ -132,8 +128,9 @@ module MultiSwap::Minter {
         assert!(get_weekly_emission() == w_e, 1);
 
         let to_mint_val = 10000000000;
+        let staker_addr = Signer::address_of(&staker);
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint(&multi_swap, staker_addr, to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -144,13 +141,27 @@ module MultiSwap::Minter {
         Timestamp::update_global_time_for_test(new_time);
 
         mint_rewards();
-        let new_weekly_emission = get_rewards_value();
         assert!(get_active_period() == (new_time / 1000000) / WEEK * WEEK, 2);
-        assert!(get_rewards_value() == 1960000000, 3);
-        assert!(get_weekly_emission() == new_weekly_emission, 4);
+        assert!(get_weekly_emission() == 1960000000, 4);
+
+        Distribution::claim(&mut nft);
+        let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 5);
+
+        Distribution::claim(&mut nft);
+        let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 6);
+
+        let new_time = (Timestamp::now_seconds() + WEEK) * 1000000;
+        Timestamp::update_global_time_for_test(new_time);
+
+        mint_rewards();
+        Distribution::claim(&mut nft);
+        let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 6);
 
         let nfts = Table::new<u64, VE::NFT>();
-        Table::add(&mut nfts, VE::get_id(&nft), nft);
+        Table::add(&mut nfts, VE::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts

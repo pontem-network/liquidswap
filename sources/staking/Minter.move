@@ -8,22 +8,30 @@ module MultiSwap::Minter {
     use MultiSwap::CoinHelper;
     use MultiSwap::Liquid::LAMM;
     use MultiSwap::VE;
+    use MultiSwap::Distribution;
     use MultiSwap::Math;
 
+    // Errors.
+
+    /// When config already exists.
     const ERR_CONFIG_EXISTS: u64 = 100;
+
+    /// When wrong account trying to initialize.
     const ERR_WRONG_INITIALIZER: u64 = 101;
 
     // One week in seconds.
     const WEEK: u64 = 604800;
 
-    // Current minter config.
+    /// Represents minter configuration.
     struct MinterConfig has key {
         mint_cap: MintCapability<LAMM>,
         weekly_emission: u64,
         active_period: u64,
     }
 
-    // Initialization function.
+    /// Initialize minter configuration.
+    /// `weekly_emission` - initial emission of LAMM coins per week.
+    /// `mint_cap` - mint capability of LAMM coin.
     public fun initialize(account: &signer, weekly_emission: u64, mint_cap: MintCapability<LAMM>) {
         assert!(!exists<MinterConfig>(@StakingPool), ERR_CONFIG_EXISTS);
         assert!(Signer::address_of(account) == @StakingPool, ERR_WRONG_INITIALIZER);
@@ -35,34 +43,7 @@ module MultiSwap::Minter {
         })
     }
 
-    fun circulating_supply(): u64 {
-        CoinHelper::supply<LAMM>() - VE::supply()
-    }
-
-    fun calculate_emission(weekly_emission: u64): u64 {
-        let e=
-            Math::mul_to_u128(weekly_emission, 98) * (circulating_supply() as u128)
-            / 100
-            / (CoinHelper::supply<LAMM>() as u128);
-        (e as u64)
-    }
-
-    fun circulating_emission(): u64 {
-        let e = Math::mul_to_u128(circulating_supply(), 2) / 1000;
-        (e as u64)
-    }
-
-    fun calc_weekly_emission(weekly_emission: u64): u64 {
-        let e1 = calculate_emission(weekly_emission);
-        let e2 = circulating_emission();
-
-        if (e1 > e2) {
-            e1
-        } else {
-            e2
-        }
-    }
-
+    /// Mint rewards weekly.
     public fun mint_rewards() acquires MinterConfig {
         let config = borrow_global_mut<MinterConfig>(@StakingPool);
         let now = Timestamp::now_seconds();
@@ -70,7 +51,7 @@ module MultiSwap::Minter {
         if (now >= config.active_period + WEEK) {
             config.active_period = now / WEEK * WEEK;
 
-            let w_e = calc_weekly_emission(config.weekly_emission);
+            let w_e = calculate_emission(config.weekly_emission);
 
             let rewards = Coin::mint<LAMM>(w_e, &config.mint_cap);
 
@@ -81,6 +62,27 @@ module MultiSwap::Minter {
         }
     }
 
+    /// Get circulating supply (LAMM supply - VE supply).
+    fun circulating_supply(): u64 {
+        CoinHelper::supply<LAMM>() - VE::supply()
+    }
+
+    /// Get current emission.
+    fun calculate_emission(weekly_emission: u64): u64 {
+        let emission=
+            Math::mul_to_u128(weekly_emission, 98) * (circulating_supply() as u128)
+            / 100
+            / (CoinHelper::supply<LAMM>() as u128);
+
+        let minimum_emission = Math::mul_to_u128(circulating_supply(), 2) / 1000;
+
+        // Choose between minimum emission and emission.
+        if (emission < minimum_emission) {
+            (minimum_emission as u64)
+        } else {
+            (emission as u64)
+        }
+    }
 
     #[test_only]
     fun get_active_period(): u64 acquires MinterConfig {
@@ -98,8 +100,6 @@ module MultiSwap::Minter {
     use MultiSwap::Liquid;
     #[test_only]
     use AptosFramework::Coin::register_internal;
-    #[test_only]
-    use MultiSwap::Distribution;
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
     public fun end_to_end(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires MinterConfig {

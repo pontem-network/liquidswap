@@ -61,7 +61,7 @@ module MultiSwap::Distribution {
         checkpoint_total_supply_internal(config);
     }
 
-    public fun claim(nft: &mut VE::NFT) acquires DistConfig {
+    public fun claim(nft: &mut VE::VE_NFT) acquires DistConfig {
         let config = borrow_global_mut<DistConfig>(@StakingPool);
 
         let now = Timestamp::now_seconds();
@@ -138,7 +138,7 @@ module MultiSwap::Distribution {
                 };
 
                 let supply = Table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
-                *supply = VE::reduce_bias(&point, dt);
+                *supply = VE::calc_bias(&point, dt);
             };
 
             t = t + WEEK;
@@ -171,7 +171,7 @@ module MultiSwap::Distribution {
         min
     }
 
-    fun claim_internal(nft: &VE::NFT, config: &mut DistConfig, last_deposit_time: u64): u64 {
+    fun claim_internal(nft: &VE::VE_NFT, config: &mut DistConfig, last_deposit_time: u64): u64 {
         let _nft_epoch = 0;
         let to_distribute = 0;
 
@@ -221,7 +221,7 @@ module MultiSwap::Distribution {
             } else {
                 let dt = week_cursor - get_point_ts(&old_nft_point);
 
-                let balance_of = VE::reduce_bias(&old_nft_point, dt);
+                let balance_of = VE::calc_bias(&old_nft_point, dt);
 
                 if (balance_of == 0 && _nft_epoch > max_nft_epoch) {
                     break
@@ -285,7 +285,7 @@ module MultiSwap::Distribution {
         }
     }
 
-    fun find_timestamp_nft_epoch(nft: &VE::NFT, timestamp: u64, max_user_epoch: u64): u64 {
+    fun find_timestamp_nft_epoch(nft: &VE::VE_NFT, timestamp: u64, max_user_epoch: u64): u64 {
         let min = 0;
         let max = max_user_epoch;
 

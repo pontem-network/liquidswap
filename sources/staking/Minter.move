@@ -1,15 +1,15 @@
 module MultiSwap::Minter {
     use Std::Signer;
 
-    use AptosFramework::Timestamp;
-    use AptosFramework::Coin::{MintCapability};
     use AptosFramework::Coin;
+    use AptosFramework::Coin::MintCapability;
+    use AptosFramework::Timestamp;
 
     use MultiSwap::CoinHelper;
-    use MultiSwap::Liquid::LAMM;
-    use MultiSwap::VE;
     use MultiSwap::Distribution;
+    use MultiSwap::Liquid::LAMM;
     use MultiSwap::Math;
+    use MultiSwap::VE;
 
     // Errors.
 
@@ -86,6 +86,17 @@ module MultiSwap::Minter {
     }
 
     #[test_only]
+    use AptosFramework::Coin::register_internal;
+    #[test_only]
+    use AptosFramework::Genesis;
+    #[test_only]
+    use AptosFramework::Table;
+    #[test_only]
+    use AptosFramework::Table::Table;
+    #[test_only]
+    use MultiSwap::Liquid;
+
+    #[test_only]
     fun get_active_period(): u64 acquires MinterConfig {
         borrow_global<MinterConfig>(@StakingPool).active_period
     }
@@ -99,17 +110,6 @@ module MultiSwap::Minter {
     struct NFTs has key {
         nfts: Table<u64, VE::VE_NFT>,
     }
-
-    #[test_only]
-    use AptosFramework::Genesis;
-    #[test_only]
-    use MultiSwap::Liquid;
-    #[test_only]
-    use AptosFramework::Coin::register_internal;
-    #[test_only]
-    use AptosFramework::Table::Table;
-    #[test_only]
-    use AptosFramework::Table;
 
     #[test_only]
     fun initialize_test(core: &signer, staking_admin: &signer, multi_swap: &signer, staker: &signer) {

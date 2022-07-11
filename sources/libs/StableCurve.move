@@ -21,10 +21,10 @@ module MultiSwap::StableCurve {
 
     public fun coin_out(coin_in: u128, decimals_in: u64, decimals_out: u64, reserve_in: u128, reserve_out: u128): u128 {
         let xy = lp_value(reserve_in, decimals_in, reserve_out, decimals_out);
-        let reserveA = reserve_in * pow_10(DECIMALS_LIMIT - decimals_in);
-        let reserveB = reserve_out * pow_10(DECIMALS_LIMIT - decimals_out);
+        let reserve_in_scaled = reserve_in * pow_10(DECIMALS_LIMIT - decimals_in);
+        let reserve_out_scaled = reserve_out * pow_10(DECIMALS_LIMIT - decimals_out);
         let amountIn = coin_in * pow_10(DECIMALS_LIMIT - decimals_in);
-        let y = reserveB - get_y(amountIn + reserveA, xy, reserveB);
+        let y = reserve_out_scaled - get_y(amountIn + reserve_in_scaled, xy, reserve_out_scaled);
         y * pow_10(decimals_out) / ONE_E_12
     }
 

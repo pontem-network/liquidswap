@@ -150,16 +150,7 @@ module MultiSwap::Router {
         };
 
         let coin_in_val = Coin::value(&coin_in);
-
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
-        // 0.997 for 0.3% fee
-        let fee_multiplier = fee_scale - fee_pct;
-        // x_in * 0.997 (scaled to 1000)
-        let coin_in_after_fees = coin_in_val * fee_multiplier;
-        // x_reserve size after adding amount_in (scaled to 1000)
-        let new_reserve_in = reserve_in * fee_scale + coin_in_after_fees; // Get new reserve in.
-
-        let coin_out_val = get_coin_out_with_fees<X, Y>(coin_in_val, new_reserve_in, reserve_out, curve_type);
+        let coin_out_val = get_coin_out_with_fees<X, Y>(coin_in_val, reserve_in, reserve_out, curve_type);
         assert!(
             coin_out_val >= coin_out_min_val,
             Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
@@ -287,22 +278,40 @@ module MultiSwap::Router {
     /// * `reserve_out` - reserves of coin we are going to get.
     public fun get_coin_out_with_fees<X, Y>(coin_in: u64, reserve_in: u64, reserve_out: u64, curve_type: u8): u64 {
         if (curve_type == STABLE_CURVE) {
+            let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+            // 0.997 for 0.3% fee
+            let fee_multiplier = fee_scale - fee_pct;
+            // x_in * 0.997
+            let coin_in_val_after_fees = coin_in * fee_multiplier / fee_scale;
+            // x_reserve size after adding amount_in
+            let new_reserve_in = reserve_in + coin_in_val_after_fees; // Get new reserve in.
+
             let decimals_in = Coin::decimals<X>();
-            let decimals_out = Coin::decimals<X>();
+            let decimals_out = Coin::decimals<Y>();
             (StableCurve::coin_out(
-                (coin_in as u128),
+                (coin_in_val_after_fees as u128),
                 decimals_in,
                 decimals_out,
-                (reserve_in as u128),
+                (new_reserve_in as u128),
                 (reserve_out as u128)
             ) as u64)
+
         } else if (curve_type == UNSTABLE_CURVE) {
+            
+            let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+            // 0.997 for 0.3% fee
+            let fee_multiplier = fee_scale - fee_pct;
+            // x_in * 0.997 (scaled to 1000)
+            let coin_in_val_after_fees = coin_in * fee_multiplier;
+            // x_reserve size after adding amount_in (scaled to 1000)
+            let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees; // Get new reserve in.
+
             // Multiply coin_in by the current exchange rate:
             // current_exchange_rate = reserve_out / reserve_in
             // amount_in_after_fees * current_exchange_rate -> amount_out
-            Math::mul_div(coin_in, // scaled to 1000
+            Math::mul_div(coin_in_val_after_fees, // scaled to 1000
                 reserve_out,
-                reserve_in)  // scaled to 1000
+                new_reserve_in)  // scaled to 1000
         } else {
             abort ERR_INVALID_CURVE
         }

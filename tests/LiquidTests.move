@@ -32,7 +32,6 @@ module MultiSwap::LiquidTests {
     }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap)]
-    #[expected_failure(abort_code = 101)]
     fun test_mint_burn_with_caps(core_resource: signer, admin: signer) {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
@@ -45,8 +44,16 @@ module MultiSwap::LiquidTests {
 
         move_to(&admin, MintCap { mint_cap });
         Coin::destroy_burn_cap(burn_cap);
+    }
+
+    #[test(core_resource = @CoreResources, admin = @MultiSwap)]
+    #[expected_failure(abort_code = 101)]
+    fun test_cannot_get_mint_cap_if_locked(core_resource: signer, admin: signer) {
+        Genesis::setup(&core_resource);
+        Liquid::initialize(&admin);
 
         Liquid::lock_minting(&admin);
+        // failure here, need to store mint_cap somewhere anyway, otherwise it won't compile
         let mint_cap = Liquid::get_mint_cap(&admin);
         move_to(&admin, MintCap { mint_cap });
     }

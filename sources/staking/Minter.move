@@ -66,7 +66,8 @@ module MultiSwap::Minter {
 
     /// Get circulating supply (LAMM supply - VE supply).
     fun circulating_supply(): u64 {
-        CoinHelper::supply<LAMM>() - VE::supply()
+        let r = CoinHelper::supply<LAMM>() - (VE::supply() as u128);
+        (r as u64)
     }
 
     /// Get current emission.

@@ -149,18 +149,13 @@ module MultiSwap::VE {
     }
 
     /// Unstake NFT and get rewards and staked amount back.
-    public fun unstake(nft: VE_NFT, check_rewards: bool): Coin<LAMM> acquires StakingPool {
+    public fun unstake(nft: VE_NFT, check_rewards: bool): Coin<LAMM> {
         // probably if we still have bias and slope we should revert, as it means there is still rewards on nft.
-        let pool = borrow_global_mut<StakingPool>(@StakingPool);
-
         let now = Timestamp::now_seconds();
         assert!(now >= nft.unlock_time, ERR_EARLY_UNSTAKE);
 
         let point = get_nft_history_point(&nft, nft.epoch);
         assert!(!check_rewards || (point.slope == 0 && point.bias == 0), ERR_NON_ZERO_REWARDS);
-
-        // double check we don't have to update m_slope and etc.
-        update_internal(pool);
 
         let VE_NFT {
             token_id: _,

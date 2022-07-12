@@ -9,9 +9,6 @@ module MultiSwap::Math {
 
     // Constants.
 
-    /// Maximum of u64 number.
-    const U64_MAX: u128 = 18446744073709551615;
-
     /// Implements: `x` * `y` / `z`.
     /// The func checks for overflows or divide by zero.
     /// Can't overflow.

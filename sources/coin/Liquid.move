@@ -2,8 +2,7 @@ module MultiSwap::Liquid {
     use Std::ASCII;
     use Std::Signer;
 
-    use AptosFramework::Coin;
-    use AptosFramework::Coin::{MintCapability, BurnCapability, Coin};
+    use AptosFramework::Coin::{Self, MintCapability, BurnCapability, Coin};
 
     // TODO: convert errors to Std::Errors.
     const ERR_CAPABILITIES_DOESNT_EXIST: u64 = 100;
@@ -20,7 +19,7 @@ module MultiSwap::Liquid {
     public fun initialize(admin: &signer) {
         let (mint_cap, burn_cap) = Coin::initialize<LAMM>(
             admin,
-            ASCII::string(b"LAMM"),
+            ASCII::string(b"Liquid"),
             ASCII::string(b"LAMM"),
             6,
             true
@@ -47,6 +46,13 @@ module MultiSwap::Liquid {
         *&caps.mint_cap
     }
 
+    public fun get_burn_cap(): BurnCapability<LAMM> acquires Capabilities {
+        assert!(exists<Capabilities>(@MultiSwap), ERR_CAPABILITIES_DOESNT_EXIST);
+
+        let caps = borrow_global<Capabilities>(@MultiSwap);
+        *&caps.burn_cap
+    }
+
     public fun mint(admin: &signer, addr: address, amount: u64) acquires Capabilities {
         let admin_addr = Signer::address_of(admin);
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
@@ -64,6 +70,5 @@ module MultiSwap::Liquid {
         Coin::burn(coins, &caps.burn_cap);
     }
 
-    // TODO: get burn cap.
     // TODO: add scripts.
 }

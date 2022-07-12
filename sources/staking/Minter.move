@@ -311,7 +311,7 @@ module MultiSwap::Minter {
         let reward_value = VE::get_nft_staked_value(&nft) - to_stake_val;
         assert!(reward_value == 1960000000, 6);
 
-        let staking_rewards = VE::unstake(nft);
+        let staking_rewards = VE::unstake(nft, true);
         assert!(Coin::value(&staking_rewards) == (1960000000 + to_stake_val), 7);
         Coin::deposit(Signer::address_of(&staker), staking_rewards);
     }

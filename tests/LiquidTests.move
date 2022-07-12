@@ -13,7 +13,6 @@ module MultiSwap::LiquidTests {
     struct BurnCap has key { burn_cap: BurnCapability<LAMM> }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x43)]
-    #[expected_failure(abort_code = 101)]
     fun test_mint_burn_with_functions(core_resource: signer, admin: signer, user: signer) {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
@@ -26,9 +25,6 @@ module MultiSwap::LiquidTests {
         let lamm_coins = Coin::withdraw<LAMM>(&user, 50);
         Liquid::burn(&admin, lamm_coins);
         assert!(Coin::supply<LAMM>() == Option::some(50), 2);
-
-        Liquid::lock_minting(&admin);
-        Liquid::mint(&admin, user_addr, 100);
     }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap)]
@@ -58,6 +54,17 @@ module MultiSwap::LiquidTests {
         move_to(&admin, MintCap { mint_cap });
     }
 
+    #[test(core_resource = @CoreResources, admin = @MultiSwap)]
+    #[expected_failure(abort_code = 101)]
+    fun test_cannot_mint_if_locked(core_resource: signer, admin: signer) {
+        Genesis::setup(&core_resource);
+        Liquid::initialize(&admin);
+
+        Liquid::lock_minting(&admin);
+        // failure here
+        Liquid::mint(&admin, Signer::address_of(&admin), 100);
+    }
+
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x42)]
     #[expected_failure(abort_code = 100)]
     fun test_cannot_mint_if_no_cap(core_resource: signer, admin: signer, user: signer) {
@@ -65,6 +72,16 @@ module MultiSwap::LiquidTests {
         Liquid::initialize(&admin);
 
         Liquid::mint(&user, Signer::address_of(&user), 100);
+    }
+
+    #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x42)]
+    #[expected_failure(abort_code = 100)]
+    fun test_cannot_get_mint_cap_if_no_cap(core_resource: signer, admin: signer, user: signer) {
+        Genesis::setup(&core_resource);
+        Liquid::initialize(&admin);
+
+        let mint_cap = Liquid::get_mint_cap(&user);
+        move_to(&user, MintCap { mint_cap });
     }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x43)]

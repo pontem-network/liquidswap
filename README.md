@@ -24,12 +24,6 @@ The current repository contains:
 
     aptos move test
 
-### Pool example
-
-Repo contains sample implementation of the pool in the `./lp-pool-example`. It defines `USDT`, `BTC` tokens for the exchange, 
-and `LP` token for the liquidity. 
-
-
 ### License
 
 See [LICENSE](LICENSE)

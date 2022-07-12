@@ -50,7 +50,7 @@ module MultiSwap::CoinHelper {
 
     /// Get supply for `CoinType`.
     /// Would throw error if supply for `CoinType` doesn't exist.
-    public fun supply<CoinType>(): u64 {
+    public fun supply<CoinType>(): u128 {
         Option::extract(&mut Coin::supply<CoinType>())
     }
 

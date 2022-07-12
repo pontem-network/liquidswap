@@ -41,9 +41,6 @@ module MultiSwap::LiquidityPool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
-    /// When too little fee multiplier is passed when pool is registered
-    const ERR_INCORRECT_FEE: u64 = 109;
-
     // Constants.
 
     /// Minimal liquidity.
@@ -51,8 +48,6 @@ module MultiSwap::LiquidityPool {
 
     /// Current fee is 0.3%
     const FEE_MULTIPLIER: u64 = 30;
-    /// Minimum allowed fee is 0.3% (30 / 10000 = 0.003)
-    const MINIMUM_ALLOWED_FEE: u64 = 30;
     /// Denominator to handle decimal points for fees
     const FEE_SCALE: u64 = 10000;
 
@@ -63,7 +58,6 @@ module MultiSwap::LiquidityPool {
     struct LiquidityPool<phantom X, phantom Y, phantom LP> has key {
         coin_x_reserve: Coin<X>,
         coin_y_reserve: Coin<Y>,
-        fee_multiplier: u64,
         last_block_timestamp: u64,
         last_price_x_cumulative: u128,
         last_price_y_cumulative: u128,
@@ -72,20 +66,13 @@ module MultiSwap::LiquidityPool {
     }
 
     /// Register liquidity pool `X`/`Y`.
-    /// * `fee` - chunk of swapped coins that goes to the liquidity providers, scaled by 10000,
-    /// examples:
-    ///     30 => 0.0030 or 0.3%
-    ///     65 => 0.0065 or 0.65%
-    ///     100 => 0.0100 or 1%
-    public fun register<X, Y, LP>(owner: &signer, fee: u64, lp_name: String, lp_symbol: String) {
+    public fun register<X, Y, LP>(owner: &signer, lp_name: String, lp_symbol: String) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
 
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
-
-        assert!(MINIMUM_ALLOWED_FEE <= fee && fee <= FEE_SCALE, ERR_INCORRECT_FEE);
 
         let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
             owner,
@@ -103,7 +90,6 @@ module MultiSwap::LiquidityPool {
             last_price_y_cumulative: 0,
             lp_mint_cap,
             lp_burn_cap,
-            fee_multiplier: fee,
         };
         move_to(owner, pool);
 
@@ -147,8 +133,8 @@ module MultiSwap::LiquidityPool {
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liq = Math::mul_div(x_provided_val, lp_coins_total, x_reserve_size);
-            let y_liq = Math::mul_div(y_provided_val, lp_coins_total, y_reserve_size);
+            let x_liq = Math::mul_div_u128((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
+            let y_liq = Math::mul_div_u128((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
             if (x_liq < y_liq) {
                 x_liq
             } else {
@@ -186,6 +172,7 @@ module MultiSwap::LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
         let burned_lp_coins_val = Coin::value(&lp_coins);
+
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
         let lp_coins_total = CoinHelper::supply<LP>();
@@ -193,8 +180,8 @@ module MultiSwap::LiquidityPool {
         let y_reserve_val = Coin::value(&pool.coin_y_reserve);
 
         // Compute x, y coin values for provided lp_coins value
-        let x_to_return_val = Math::mul_div(burned_lp_coins_val, x_reserve_val, lp_coins_total);
-        let y_to_return_val = Math::mul_div(burned_lp_coins_val, y_reserve_val, lp_coins_total);
+        let x_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
+        let y_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
 
         // Withdraw those values from reserves
@@ -266,7 +253,7 @@ module MultiSwap::LiquidityPool {
 
         // Split 33% of fee multiplier of provided coins to the DAOStorage
         // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
-        let dao_fee_multiplier = pool.fee_multiplier / 3;
+        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
         let dao_x_fee_val = (x_in_val * dao_fee_multiplier) / FEE_SCALE;
         let dao_y_fee_val = (y_in_val * dao_fee_multiplier) / FEE_SCALE;
 
@@ -274,16 +261,15 @@ module MultiSwap::LiquidityPool {
         let dao_y_in = Coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
         DAOStorage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
 
-        let fee_multiplier = pool.fee_multiplier;
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
         // and make sure lp_value doesn't decrease:
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
         let x_res_new_after_fee = Math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
-                                  - Math::mul_to_u128(x_in_val, fee_multiplier);
+                                  - Math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
         let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
-                                  - Math::mul_to_u128(y_in_val, fee_multiplier);
+                                  - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
         let lp_value_before_swap = Math::mul_to_u128(x_reserve_size, y_reserve_size);
         lp_value_before_swap = lp_value_before_swap * (FEE_SCALE as u128) * (FEE_SCALE as u128);
@@ -386,14 +372,8 @@ module MultiSwap::LiquidityPool {
 
     /// Get fees numerator, denumerator.
     /// Returns (numerator, denumerator).
-    public fun get_fees_config<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
-        assert!(
-            pool_exists_at<X, Y, LP>(pool_addr),
-            ERR_POOL_DOES_NOT_EXIST
-        );
-        let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
-        let fee_multiplier = pool.fee_multiplier;
-        (fee_multiplier, FEE_SCALE)
+    public fun get_fees_config(): (u64, u64) {
+        (FEE_MULTIPLIER, FEE_SCALE)
     }
 
     // Events

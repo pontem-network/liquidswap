@@ -47,11 +47,10 @@ module MultiSwap::Liquid {
         *&caps.mint_cap
     }
 
-    public fun get_burn_cap(admin: &signer): BurnCapability<LAMM> acquires Capabilities {
-        let admin_addr = Signer::address_of(admin);
-        assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
+    public fun get_burn_cap(): BurnCapability<LAMM> acquires Capabilities {
+        assert!(exists<Capabilities>(@MultiSwap), ERR_CAPABILITIES_DOESNT_EXIST);
 
-        let caps = borrow_global<Capabilities>(admin_addr);
+        let caps = borrow_global<Capabilities>(@MultiSwap);
         *&caps.burn_cap
     }
 

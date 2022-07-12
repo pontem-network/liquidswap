@@ -640,7 +640,7 @@ module MultiSwap::VE {
     }
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
-    #[expected]
+    #[expected_failure(abort_code = 102)]
     fun test_stake_fails(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
         Genesis::setup(&core);
         Liquid::initialize(&multi_swap);
@@ -653,7 +653,7 @@ module MultiSwap::VE {
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
 
-        let nft = stake(to_stake, WEEK * 208 + 1);
+        let nft = stake(to_stake, WEEK * 209);
 
         let nfts = Table::new<u64, VE_NFT>();
         Table::add(&mut nfts, nft.token_id, nft);
@@ -922,7 +922,100 @@ module MultiSwap::VE {
         });
     }
 
-    // test unstake
+    #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
+    fun test_unstake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+        Genesis::setup(&core);
+        Liquid::initialize(&multi_swap);
+        initialize(&staking_admin);
+
+        let to_mint_val = 20000000000;
+        register_internal<LAMM>(&staker);
+        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+
+        let to_stake_val = 1000000000;
+        let dist = WEEK;
+        let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = stake(to_stake, dist);
+
+        let now = Timestamp::now_seconds() + WEEK;
+        Timestamp::update_global_time_for_test(now * 1000000);
+
+        let unstaked = unstake(nft, false);
+        assert!(Coin::value(&unstaked) == to_stake_val, 0);
+
+        Coin::deposit(Signer::address_of(&staker), unstaked);
+
+        to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
+        nft = stake(to_stake, dist);
+
+        let reward_val = 256000000;
+        let reward = Coin::withdraw<LAMM>(&staker, reward_val);
+
+        now = Timestamp::now_seconds() + WEEK;
+        Timestamp::update_global_time_for_test(now * 1000000);
+        update_stake(&mut nft, reward);
+
+        unstaked = unstake(nft, true);
+        assert!(Coin::value(&unstaked) == (to_stake_val + reward_val), 1);
+        Coin::deposit(Signer::address_of(&staker), unstaked);
+    }
+
+    #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
+    #[expected_failure(abort_code = 104)]
+    fun test_unstake_fail_early(
+        core: signer,
+        staking_admin: signer,
+        multi_swap: signer,
+        staker: signer
+    ) acquires StakingPool {
+        Genesis::setup(&core);
+        Liquid::initialize(&multi_swap);
+        initialize(&staking_admin);
+
+        let to_mint_val = 20000000000;
+        register_internal<LAMM>(&staker);
+        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+
+        let to_stake_val = 1000000000;
+        let dist = WEEK;
+        let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = stake(to_stake, dist);
+        let unstaked = unstake(nft, false);
+
+        Coin::deposit(Signer::address_of(&staker), unstaked);
+    }
+
+    #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
+    #[expected_failure(abort_code = 105)]
+    fun test_unstake_fail_has_rewards(
+        core: signer,
+        staking_admin: signer,
+        multi_swap: signer,
+        staker: signer
+    ) acquires StakingPool {
+        Genesis::setup(&core);
+        Liquid::initialize(&multi_swap);
+        initialize(&staking_admin);
+
+        let to_mint_val = 20000000000;
+        register_internal<LAMM>(&staker);
+        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+
+        let to_stake_val = 1000000000;
+        let dist = WEEK;
+        let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = stake(to_stake, dist);
+
+        let now = Timestamp::now_seconds() + WEEK;
+        Timestamp::update_global_time_for_test(now * 1000000);
+
+        let unstaked = unstake(nft, true);
+
+        Coin::deposit(Signer::address_of(&staker), unstaked);
+    }
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]
     fun end_to_end(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {

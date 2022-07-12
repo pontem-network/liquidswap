@@ -19,7 +19,7 @@ module MultiSwap::Liquid {
     public fun initialize(admin: &signer) {
         let (mint_cap, burn_cap) = Coin::initialize<LAMM>(
             admin,
-            ASCII::string(b"LAMM"),
+            ASCII::string(b"Liquid"),
             ASCII::string(b"LAMM"),
             6,
             true

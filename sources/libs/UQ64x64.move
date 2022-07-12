@@ -31,7 +31,7 @@ module MultiSwap::UQ64x64 {
     /// Encode `u64` to `UQ64x64`
     public fun encode(x: u64): UQ64x64 {
         let v = (x as u128) * Q64;
-        UQ64x64 { v }
+        UQ64x64{ v }
     }
 
     /// Decode a `UQ64x64` into a `u64` by truncating after the radix point.
@@ -49,7 +49,7 @@ module MultiSwap::UQ64x64 {
         // vm would direct abort when overflow occured
         let v = uq.v * (y as u128);
 
-        UQ64x64 { v }
+        UQ64x64{ v }
     }
 
     /// Divide a `UQ64x64` by a `u128`, returning a `UQ64x64`.
@@ -57,15 +57,17 @@ module MultiSwap::UQ64x64 {
         assert!(y != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
 
         let v = uq.v / (y as u128);
-        UQ64x64 { v }
+        UQ64x64{ v }
     }
 
     /// Returns a `UQ64x64` which represents the ratio of the numerator to the denominator.
     public fun fraction(numerator: u64, denominator: u64): UQ64x64 {
+        assert!(denominator != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
+
         let r = (numerator as u128) * Q64;
         let v = r / (denominator as u128);
 
-        UQ64x64 { v }
+        UQ64x64{ v }
     }
 
     /// Compare two `UQ64x64` numbers.

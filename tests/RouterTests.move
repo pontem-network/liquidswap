@@ -11,6 +11,8 @@ module MultiSwap::RouterTests {
     use TestCoinAdmin::TestCoins::{Self, USDT, BTC};
     use TestPoolOwner::TestLP::LP;
 
+    const U64_MAX: u64 = 18446744073709551615;
+
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64) {
@@ -341,5 +343,35 @@ module MultiSwap::RouterTests {
         assert!(btc_cum_price == 7307080858374124739730, 7);
         assert!(usdt_cum_price == 745173212911578406, 8);
         assert!(last_timestamp == 4, 9);
+    }
+
+    #[test]
+    fun test_convert_with_current_price() {
+        let a = Router::convert_with_current_price(U64_MAX, U64_MAX, U64_MAX);
+        assert!(a == U64_MAX, 0);
+
+        a = Router::convert_with_current_price(100, 100, 20);
+        assert!(a == 20, 1);
+
+        a = Router::convert_with_current_price(256, 8, 2);
+        assert!(a == 64, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 25607)]
+    fun test_fail_convert_with_current_price_coin_in_val() {
+        Router::convert_with_current_price(0, 1, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 25863)]
+    fun test_fail_convert_with_current_price_reserve_in_size() {
+        Router::convert_with_current_price(1, 0, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 25863)]
+    fun test_fail_convert_with_current_price_reserve_out_size() {
+        Router::convert_with_current_price(1, 1, 0);
     }
 }

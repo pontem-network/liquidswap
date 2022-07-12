@@ -283,9 +283,9 @@ module MultiSwap::Router {
         // Multiply coin_in by the current exchange rate:
         // current_exchange_rate = reserve_out / reserve_in
         // amount_in_after_fees * current_exchange_rate -> amount_out
-        let res = Math::mul_div(coin_in_val_after_fees,   // scaled to 1000
-        reserve_out_size,
-        new_reserves_in_size);  // scaled to 1000
+        let res = Math::mul_div(coin_in_val_after_fees, // scaled to 1000
+            reserve_out_size,
+            new_reserves_in_size);  // scaled to 1000
         res
     }
 

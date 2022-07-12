@@ -1,13 +1,15 @@
 #[test_only]
 module MultiSwap::LiquidTests {
+    use Std::Option;
+    use Std::Signer;
+
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
     use AptosFramework::Genesis;
 
     use MultiSwap::Liquid::{Self, LAMM};
-    use Std::Signer;
-    use Std::Option;
 
     struct MintCap has key { mint_cap: MintCapability<LAMM> }
+
     struct BurnCap has key { burn_cap: BurnCapability<LAMM> }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x43)]

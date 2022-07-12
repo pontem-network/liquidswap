@@ -2,8 +2,7 @@ module MultiSwap::Liquid {
     use Std::ASCII;
     use Std::Signer;
 
-    use AptosFramework::Coin;
-    use AptosFramework::Coin::{MintCapability, BurnCapability, Coin};
+    use AptosFramework::Coin::{Self, MintCapability, BurnCapability, Coin};
 
     // TODO: convert errors to Std::Errors.
     const ERR_CAPABILITIES_DOESNT_EXIST: u64 = 100;

@@ -1,5 +1,5 @@
 /// The module describing NFTized staking position (Voting Escrow).
-/// The staking position could be transfered between account, used for voting, etc.
+/// The staking position could be transfered between accounts, used for voting, etc.
 /// Detailed explanation of VE standard: https://curve.readthedocs.io/dao-vecrv.html
 module MultiSwap::VE {
     use Std::Signer;
@@ -106,6 +106,9 @@ module MultiSwap::VE {
     }
 
     /// Stake LAMM coins for lock_duration seconds.
+    /// - `coins` - LAMM coins to stake.
+    /// - `lock_duration` - duration of lock in seconds, can't be more than `MAX_TIME`.
+    /// Returns `VE_NFT` object contains staked position and related information.
     public fun stake(coins: Coin<LAMM>, lock_duration: u64): VE_NFT acquires StakingPool {
         let pool = borrow_global_mut<StakingPool>(@StakingPool);
 
@@ -149,6 +152,10 @@ module MultiSwap::VE {
     }
 
     /// Unstake NFT and get rewards and staked amount back.
+    /// `nft` - `VE_NFT` object to unstake.
+    /// `check_rewards` - determine if we should check if `nft` have rewards to earn. If assigned bool and in case `nft`
+    /// has rewards to earn would revert with error.
+    /// Returns staked `LAMM` coins + rewards.
     public fun unstake(nft: VE_NFT, check_rewards: bool): Coin<LAMM> {
         // probably if we still have bias and slope we should revert, as it means there is still rewards on nft.
         let now = Timestamp::now_seconds();
@@ -176,7 +183,7 @@ module MultiSwap::VE {
         stake
     }
 
-    /// Get VE NFT supply (staked supply).
+    /// Get `VE_NFT` supply (staked supply).
     public fun supply(): u64 acquires StakingPool {
         let pool = borrow_global<StakingPool>(@StakingPool);
         let last_point = *Table::borrow(&pool.history_points, pool.current_epoch);
@@ -209,7 +216,7 @@ module MultiSwap::VE {
         last_point.bias
     }
 
-    /// Creates a new epoch and update historical points.
+    /// Create a new epoch and update historical points.
     public fun update() acquires StakingPool {
         let pool = borrow_global_mut<StakingPool>(@StakingPool);
 
@@ -227,11 +234,16 @@ module MultiSwap::VE {
 
     // Internal & friend funcs.
 
-    /// Update the current stake with rewards.
+    /// Update the `VE_NFT` with rewards.
+    /// Only distribution (friend) contract can call it.
+    ///
     /// We could allow to update stake with new LAMM coins if NFT holder wants
     /// yet we really can't at this stage, as history table can become too large
     /// and we wouldn't be able destroy it. Yet i think we can play around it later.
-    /// So for now it's friend function.
+    /// So for now it's friend function and we can't merge two NFTs.
+    ///
+    /// * `nft` - the `VE_NFT` object to update.
+    /// * `coins` - coins that will be added to `nft`, usually it's rewards from staking.
     public(friend) fun update_stake(nft: &mut VE_NFT, coins: Coin<LAMM>) acquires StakingPool {
         let pool = borrow_global_mut<StakingPool>(@StakingPool);
 
@@ -284,6 +296,7 @@ module MultiSwap::VE {
     }
 
     /// Filling history with new epochs, always adding at least one epoch and history point.
+    /// `pool` - staking pool to update.
     fun update_internal(pool: &mut StakingPool) {
         let last_point = *Table::borrow(&pool.history_points, pool.current_epoch);
         let now = Timestamp::now_seconds();
@@ -328,6 +341,7 @@ module MultiSwap::VE {
     }
 
     /// Get m_slope value with default value equal zero.
+    /// `timestamp` - as m_slope stored by timestamps, we should provide time.
     fun get_m_slope(pool: &StakingPool, timestamp: u64): u64 {
         if (Table::contains(&pool.m_slope, timestamp)) {
             *Table::borrow(&pool.m_slope, timestamp)
@@ -341,6 +355,9 @@ module MultiSwap::VE {
     /// Calculates new bias: Math.max(point.bias - point.slope * time_diff, 0);
     /// Bias can't go under zero, so we should check if we can substrate point * slope
     /// from bias or just replace it with zero.
+    /// `point` - point to calculate new bias.
+    /// `time_diff` - time difference used in math.
+    /// Returns new bias value.
     public fun calc_bias(point: &Point, time_diff: u64): u64 {
         let r = point.slope * time_diff;
 
@@ -357,6 +374,7 @@ module MultiSwap::VE {
     }
 
     /// Get history point.
+    /// `epoch` - epoch of history point.
     public fun get_history_point(epoch: u64): Point acquires StakingPool {
         let pool = borrow_global<StakingPool>(@StakingPool);
 
@@ -368,26 +386,32 @@ module MultiSwap::VE {
     // VE NFT getters.
 
     /// Get VE NFT id.
+    /// `nft` - reference to `VE_NFT`.
     public fun get_nft_id(nft: &VE_NFT): u64 {
         nft.token_id
     }
 
     /// Get VE NFT staked value.
+    /// `nft` - reference to `VE_NFT`.
     public fun get_nft_staked_value(nft: &VE_NFT): u64 {
         Coin::value(&nft.stake)
     }
 
     /// Get VE NFT unlock time (timestamp).
+    /// `nft` - reference to `VE_NFT`.
     public fun get_nft_unlock_time(nft: &VE_NFT): u64 {
         nft.unlock_time
     }
 
     /// Get current VE NFT epoch.
+    /// `nft` - reference to `VE_NFT`.
     public fun get_nft_epoch(nft: &VE_NFT): u64 {
         nft.epoch
     }
 
     /// Get VE NFT history point.
+    /// `nft` - reference to `VE_NFT`.
+    /// `epoch` - epoch of history point.
     public fun get_nft_history_point(nft: &VE_NFT, epoch: u64): Point {
         assert!(Table::contains(&nft.history_points, epoch), ERR_KEY_NOT_FOUND);
 
@@ -396,17 +420,17 @@ module MultiSwap::VE {
 
     // Point getters.
 
-    /// Get a time when Point created.
+    /// Get a time when `point` created.
     public fun get_point_ts(point: &Point): u64 {
         point.ts
     }
 
-    /// Get a bias value of Point.
+    /// Get a bias value of `point`.
     public fun get_point_bias(point: &Point): u64 {
         point.bias
     }
 
-    /// Get a slope value of Point.
+    /// Get a slope value of `point`.
     public fun get_point_slope(point: &Point): u64 {
         point.slope
     }

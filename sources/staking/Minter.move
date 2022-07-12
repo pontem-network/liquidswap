@@ -1,3 +1,4 @@
+/// Inflation rewards minter for VE.
 module MultiSwap::Minter {
     use Std::Signer;
 

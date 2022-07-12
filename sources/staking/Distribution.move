@@ -77,6 +77,11 @@ module MultiSwap::Distribution {
         };
     }
 
+    public fun get_rewards_value(): u64 acquires DistConfig {
+        let config = borrow_global_mut<DistConfig>(@StakingPool);
+        Coin::value(&config.rewards)
+    }
+
     fun checkpoint_token(config: &mut DistConfig, deposit: Coin<LAMM>) {
         let deposit_value = Coin::value(&deposit);
 
@@ -134,7 +139,7 @@ module MultiSwap::Distribution {
                 let dt = 0;
                 let ts = get_point_ts(&point);
                 if (t > ts) {
-                   dt = t - ts;
+                    dt = t - ts;
                 };
 
                 let supply = Table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
@@ -197,7 +202,7 @@ module MultiSwap::Distribution {
         let nft_point = VE::get_nft_history_point(nft, _nft_epoch);
 
         if (week_cursor == 0) week_cursor = (get_point_ts(&nft_point) + WEEK - 1) / WEEK * WEEK;
-        if (week_cursor >= last_deposit_time)  {
+        if (week_cursor >= last_deposit_time) {
             return 0
         };
         if (week_cursor < start_time) week_cursor = start_time;
@@ -309,5 +314,4 @@ module MultiSwap::Distribution {
 
         min
     }
-
 }

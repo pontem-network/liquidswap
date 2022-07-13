@@ -19,11 +19,11 @@ module MultiSwap::LiquidTests {
         Coin::register_internal<LAMM>(&user);
 
         let user_addr = Signer::address_of(&user);
-        Liquid::mint(&admin, user_addr, 100);
+        Liquid::mint_internal(&admin, user_addr, 100);
         assert!(Coin::balance<LAMM>(user_addr) == 100, 1);
 
         let lamm_coins = Coin::withdraw<LAMM>(&user, 50);
-        Liquid::burn(&admin, lamm_coins);
+        Liquid::burn_internal(&admin, lamm_coins);
         assert!(Coin::supply<LAMM>() == Option::some(50), 2);
     }
 
@@ -48,7 +48,7 @@ module MultiSwap::LiquidTests {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
 
-        Liquid::lock_minting(&admin);
+        Liquid::lock_minting_internal(&admin);
         // failure here, need to store mint_cap somewhere anyway, otherwise it won't compile
         let mint_cap = Liquid::get_mint_cap(&admin);
         move_to(&admin, MintCap { mint_cap });
@@ -60,9 +60,9 @@ module MultiSwap::LiquidTests {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
 
-        Liquid::lock_minting(&admin);
+        Liquid::lock_minting_internal(&admin);
         // failure here
-        Liquid::mint(&admin, Signer::address_of(&admin), 100);
+        Liquid::mint_internal(&admin, Signer::address_of(&admin), 100);
     }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x42)]
@@ -71,7 +71,7 @@ module MultiSwap::LiquidTests {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
 
-        Liquid::mint(&user, Signer::address_of(&user), 100);
+        Liquid::mint_internal(&user, Signer::address_of(&user), 100);
     }
 
     #[test(core_resource = @CoreResources, admin = @MultiSwap, user = @0x42)]
@@ -90,7 +90,7 @@ module MultiSwap::LiquidTests {
         Liquid::initialize(&admin);
         Coin::register_internal<LAMM>(&user);
 
-        Liquid::mint(&admin, Signer::address_of(&user), 100);
+        Liquid::mint_internal(&admin, Signer::address_of(&user), 100);
 
         let coins = Coin::withdraw<LAMM>(&user, 100);
         let burn_cap = Liquid::get_burn_cap();

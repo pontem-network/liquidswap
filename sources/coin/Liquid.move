@@ -28,7 +28,11 @@ module MultiSwap::Liquid {
         move_to(admin, Capabilities { mint_cap, burn_cap, lock_mint_cap: false });
     }
 
-    public fun lock_minting(admin: &signer) acquires Capabilities {
+    public(script) fun lock_minting(admin: &signer) acquires Capabilities {
+        lock_minting_internal(admin);
+    }
+
+    public fun lock_minting_internal(admin: &signer) acquires Capabilities {
         let admin_addr = Signer::address_of(admin);
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
 
@@ -53,7 +57,11 @@ module MultiSwap::Liquid {
         *&caps.burn_cap
     }
 
-    public fun mint(admin: &signer, addr: address, amount: u64) acquires Capabilities {
+    public(script) fun mint(admin: &signer, addr: address, amount: u64) acquires Capabilities {
+        mint_internal(admin, addr, amount);
+    }
+
+    public fun mint_internal(admin: &signer, addr: address, amount: u64) acquires Capabilities {
         let admin_addr = Signer::address_of(admin);
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
 
@@ -64,11 +72,15 @@ module MultiSwap::Liquid {
         Coin::deposit(addr, coins);
     }
 
-    public fun burn(admin: &signer, coins: Coin<LAMM>) acquires Capabilities {
+    public(script) fun burn(admin: &signer, coins: Coin<LAMM>) acquires Capabilities {
+        burn_internal(admin, coins);
+    }
+
+    public fun burn_internal(admin: &signer, coins: Coin<LAMM>) acquires Capabilities {
         let admin_addr = Signer::address_of(admin);
         let caps = borrow_global<Capabilities>(admin_addr);
         Coin::burn(coins, &caps.burn_cap);
     }
 
-    // TODO: add scripts.
+
 }

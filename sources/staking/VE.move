@@ -7,12 +7,13 @@ module MultiSwap::VE {
     use AptosFramework::Coin::{Self, Coin};
     use AptosFramework::Table::{Self, Table};
     use AptosFramework::Timestamp;
+
+    use MultiSwap::Liquid::LAMM;
+
     #[test_only]
     use AptosFramework::Coin::register_internal;
     #[test_only]
     use AptosFramework::Genesis;
-
-    use MultiSwap::Liquid::LAMM;
     #[test_only]
     use MultiSwap::Liquid;
 
@@ -24,7 +25,7 @@ module MultiSwap::VE {
     const ERR_POOL_EXISTS: u64 = 100;
 
     /// When wrong account initializing staking pool.
-    const ERR_WRONG_INITIALIZER: u64 = 101;
+    const ERR_WRONG_INITIALIZATION_ACCOUNT: u64 = 101;
 
     /// When user tried to stake for time more than 4 years (see `MAX_TIME`).
     const ERR_DURATION_MORE_THAN_MAX_TIME: u64 = 102;
@@ -43,26 +44,26 @@ module MultiSwap::VE {
     /// One week in seconds.
     const WEEK: u64 = 604800;
 
-    /// Max stacking time (~4 years).
-    const MAX_TIME: u64 = 4 * 365 * 86400;
+    /// Max staking time (~4 years).
+    const MAX_LOCK_DURATION: u64 = 4 * 365 * 86400;
 
     /// Represents a staking history point.
     struct Point has store, drop, copy {
+        created_at_ts: u64,
         bias: u64,
         slope: u64,
-        ts: u64,
     }
 
     /// Represents staking pool.
     struct StakingPool has key {
-        // ID counter for new VE NFTs.
-        token_id_counter: u64,
+        // ID for the next issued VE_NFT
+        next_token_id: u64,
         // Current history epoch.
         current_epoch: u64,
         // History points: <epoch, point>.
-        history_points: Table<u64, Point>,
+        point_history: Table<u64, Point>,
         // The historical slope changes we should take into account during each new epoch.
-        m_slope: Table<u64, u64>,
+        slope_history: Table<u64, u64>,
     }
 
     /// Represents VE NFT itself.
@@ -72,13 +73,13 @@ module MultiSwap::VE {
         token_id: u64,
         // Stake.
         stake: Coin<LAMM>,
-        // Time when NFT could be reedemed.
-        unlock_time: u64,
+        // Time when NFT could be redeemed.
+        unlock_ts: u64,
 
         // The current epoch, when last slope/bias change happened.
         epoch: u64,
         // History points: <epoch, point>.
-        history_points: Table<u64, Point>,
+        point_history: Table<u64, Point>,
     }
 
     // Public functions.
@@ -88,24 +89,27 @@ module MultiSwap::VE {
     /// Should be called first and immidiatelly after deploy.
     public fun initialize(account: &signer) {
         assert!(!exists<StakingPool>(@StakingPool), ERR_POOL_EXISTS);
-        assert!(Signer::address_of(account) == @StakingPool, ERR_WRONG_INITIALIZER);
+        assert!(
+            Signer::address_of(account) == @StakingPool,
+            ERR_WRONG_INITIALIZATION_ACCOUNT
+        );
 
         let point_history = Table::new();
         Table::add(&mut point_history, 0, Point {
             bias: 0,
             slope: 0,
-            ts: Timestamp::now_seconds(),
+            created_at_ts: Timestamp::now_seconds(),
         });
 
         move_to(account, StakingPool {
-            token_id_counter: 0,
+            next_token_id: 0,
             current_epoch: 0,
-            history_points: point_history,
-            m_slope: Table::new(),
+            point_history,
+            slope_history: Table::new(),
         });
     }
 
-    /// Stake LAMM coins for lock_duration seconds.
+    /// Stake LAMM coins for `lock_duration` seconds.
     /// - `coins` - LAMM coins to stake.
     /// - `lock_duration` - duration of lock in seconds, can't be more than `MAX_TIME`.
     /// Returns `VE_NFT` object contains staked position and related information.
@@ -113,42 +117,43 @@ module MultiSwap::VE {
         let pool = borrow_global_mut<StakingPool>(@StakingPool);
 
         let now = Timestamp::now_seconds();
-        let unlock_time = (now + lock_duration) / WEEK * WEEK;
-        assert!((unlock_time - now) <= MAX_TIME, ERR_DURATION_MORE_THAN_MAX_TIME);
+        let unlock_ts = round_off_to_week(now + lock_duration);
+        assert!(
+            (unlock_ts - now) <= MAX_LOCK_DURATION,
+            ERR_DURATION_MORE_THAN_MAX_TIME
+        );
 
-        pool.token_id_counter = pool.token_id_counter + 1;
+        pool.next_token_id = pool.next_token_id + 1;
 
-        let coins_value = Coin::value(&coins);
-        let u_slope = coins_value / MAX_TIME;
-        let u_bias = u_slope * (unlock_time - now);
+        let u_slope = Coin::value(&coins) / MAX_LOCK_DURATION;
+        let u_bias = u_slope * (unlock_ts - now);
 
-        let last_point = Table::borrow_mut(&mut pool.history_points, pool.current_epoch);
+        let last_point = Table::borrow_mut(&mut pool.point_history, pool.current_epoch);
         last_point.bias = last_point.bias + u_bias;
         last_point.slope = last_point.slope + u_slope;
 
         update_internal(pool);
 
-        let m_slope = Table::borrow_mut_with_default(&mut pool.m_slope, unlock_time, 0);
-        *m_slope = *m_slope + u_slope;
+        let slope_at_unlock_ts =
+            Table::borrow_mut_with_default(&mut pool.slope_history, unlock_ts, 0);
+        *slope_at_unlock_ts = *slope_at_unlock_ts + u_slope;
 
-        let u_epoch = 1;
-        let user_point_history = Table::new();
-
-        Table::add(&mut user_point_history, u_epoch, Point {
+        let start_epoch = 1;
+        let user_epoch_points = Table::new();
+        Table::add(&mut user_epoch_points, start_epoch, Point {
+            created_at_ts: now,
             bias: u_bias,
             slope: u_slope,
-            ts: now,
         });
 
-        let nft = VE_NFT {
-            token_id: pool.token_id_counter,
+        let ve_nft = VE_NFT {
+            token_id: pool.next_token_id,
             stake: coins,
-            unlock_time,
-            epoch: u_epoch,
-            history_points: user_point_history,
+            unlock_ts,
+            epoch: start_epoch,
+            point_history: user_epoch_points,
         };
-
-        nft
+        ve_nft
     }
 
     /// Unstake NFT and get rewards and staked amount back.
@@ -159,7 +164,7 @@ module MultiSwap::VE {
     public fun unstake(nft: VE_NFT, check_rewards: bool): Coin<LAMM> {
         // probably if we still have bias and slope we should revert, as it means there is still rewards on nft.
         let now = Timestamp::now_seconds();
-        assert!(now >= nft.unlock_time, ERR_EARLY_UNSTAKE);
+        assert!(now >= nft.unlock_ts, ERR_EARLY_UNSTAKE);
 
         let point = get_nft_history_point(&nft, nft.epoch);
         assert!(!check_rewards || (point.slope == 0 && point.bias == 0), ERR_NON_ZERO_REWARDS);
@@ -167,9 +172,9 @@ module MultiSwap::VE {
         let VE_NFT {
             token_id: _,
             stake,
-            unlock_time: _,
+            unlock_ts: _,
             epoch,
-            history_points: point_history,
+            point_history,
         } = nft;
 
         let i = 1;
@@ -186,10 +191,10 @@ module MultiSwap::VE {
     /// Get `VE_NFT` supply (staked supply).
     public fun supply(): u64 acquires StakingPool {
         let pool = borrow_global<StakingPool>(@StakingPool);
-        let last_point = *Table::borrow(&pool.history_points, pool.current_epoch);
+        let last_point = *Table::borrow(&pool.point_history, pool.current_epoch);
 
         let now = Timestamp::now_seconds();
-        let t_i = last_point.ts / WEEK * WEEK;
+        let t_i = round_off_to_week(last_point.created_at_ts);
         let i = 0;
         while (i < 255) {
             t_i = t_i + WEEK;
@@ -201,14 +206,14 @@ module MultiSwap::VE {
                 m_slope = get_m_slope(pool, t_i);
             };
 
-            last_point.bias = calc_bias(&last_point, (t_i - last_point.ts));
+            last_point.bias = calc_bias(&last_point, (t_i - last_point.created_at_ts));
 
             if (t_i == now) {
                 break
             };
 
             last_point.slope = last_point.slope - m_slope;
-            last_point.ts = t_i;
+            last_point.created_at_ts = t_i;
 
             i = i + 1;
         };
@@ -228,7 +233,7 @@ module MultiSwap::VE {
         Point {
             bias: 0,
             slope: 0,
-            ts: 0,
+            created_at_ts: 0,
         }
     }
 
@@ -252,14 +257,14 @@ module MultiSwap::VE {
         let old_locked = Coin::value(&nft.stake);
         let new_locked = coins_value + old_locked;
 
-        let locked_end = nft.unlock_time;
+        let locked_end = nft.unlock_ts;
         let now = Timestamp::now_seconds();
 
         let u_old_slope = 0;
         let u_old_bias = 0;
 
         if (locked_end > now && old_locked > 0) {
-            u_old_slope = old_locked / MAX_TIME;
+            u_old_slope = old_locked / MAX_LOCK_DURATION;
             u_old_bias = u_old_slope * (locked_end - now);
         };
 
@@ -267,20 +272,20 @@ module MultiSwap::VE {
         let u_new_bias = 0;
 
         if (locked_end > now && new_locked > 0) {
-            u_new_slope = new_locked / MAX_TIME;
+            u_new_slope = new_locked / MAX_LOCK_DURATION;
             u_new_bias = u_new_slope * (locked_end - now);
         };
 
         update_internal(pool);
 
         // probably should be just borrow?
-        let last_point = Table::borrow_mut(&mut pool.history_points, pool.current_epoch);
+        let last_point = Table::borrow_mut(&mut pool.point_history, pool.current_epoch);
         last_point.slope = last_point.slope + (u_new_slope - u_old_slope);
         last_point.bias = last_point.bias + (u_new_bias - u_old_bias);
 
         let old_dslope = get_m_slope(pool, locked_end);
         if (old_locked > now) {
-            let m_slope = Table::borrow_mut_with_default(&mut pool.m_slope, locked_end, 0);
+            let m_slope = Table::borrow_mut_with_default(&mut pool.slope_history, locked_end, 0);
             *m_slope = old_dslope - u_old_slope + u_new_slope; // maybe: old_dslope - u_old_slope + u_new_slope?
         };
 
@@ -288,23 +293,23 @@ module MultiSwap::VE {
         let new_point = Point {
             slope: u_new_slope,
             bias: u_new_bias,
-            ts: now,
+            created_at_ts: now,
         };
 
-        Table::add(&mut nft.history_points, nft.epoch, new_point);
+        Table::add(&mut nft.point_history, nft.epoch, new_point);
         Coin::merge(&mut nft.stake, coins);
     }
 
     /// Filling history with new epochs, always adding at least one epoch and history point.
     /// `pool` - staking pool to update.
     fun update_internal(pool: &mut StakingPool) {
-        let last_point = *Table::borrow(&pool.history_points, pool.current_epoch);
-        let now = Timestamp::now_seconds();
+        let last_point = *Table::borrow(&pool.point_history, pool.current_epoch);
 
-        let last_checkpoint = last_point.ts;
-        let t_i = last_checkpoint / WEEK * WEEK;
+        let last_checkpoint = last_point.created_at_ts;
+        let t_i = round_off_to_week(last_checkpoint);
         let epoch = pool.current_epoch;
 
+        let now = Timestamp::now_seconds();
         let i = 0;
         while (i < 255) {
             t_i = t_i + WEEK;
@@ -320,13 +325,13 @@ module MultiSwap::VE {
             last_point.slope = last_point.slope - m_slope;
 
             last_checkpoint = t_i;
-            last_point.ts = t_i;
+            last_point.created_at_ts = t_i;
             epoch = epoch + 1;
 
             if (t_i == now) {
                 break
             } else {
-                Table::add(&mut pool.history_points, epoch, last_point);
+                Table::add(&mut pool.point_history, epoch, last_point);
             };
 
             i = i + 1;
@@ -334,17 +339,18 @@ module MultiSwap::VE {
 
         pool.current_epoch = epoch;
 
-        let new_point = Table::borrow_mut_with_default(&mut pool.history_points, pool.current_epoch, zero_point());
+        let new_point =
+            Table::borrow_mut_with_default(&mut pool.point_history, pool.current_epoch, zero_point());
         new_point.slope = last_point.slope;
         new_point.bias = last_point.bias;
-        new_point.ts = last_point.ts;
+        new_point.created_at_ts = last_point.created_at_ts;
     }
 
     /// Get m_slope value with default value equal zero.
     /// `timestamp` - as m_slope stored by timestamps, we should provide time.
     fun get_m_slope(pool: &StakingPool, timestamp: u64): u64 {
-        if (Table::contains(&pool.m_slope, timestamp)) {
-            *Table::borrow(&pool.m_slope, timestamp)
+        if (Table::contains(&pool.slope_history, timestamp)) {
+            *Table::borrow(&pool.slope_history, timestamp)
         } else {
             0
         }
@@ -378,9 +384,9 @@ module MultiSwap::VE {
     public fun get_history_point(epoch: u64): Point acquires StakingPool {
         let pool = borrow_global<StakingPool>(@StakingPool);
 
-        assert!(Table::contains(&pool.history_points, epoch), ERR_KEY_NOT_FOUND);
+        assert!(Table::contains(&pool.point_history, epoch), ERR_KEY_NOT_FOUND);
 
-        *Table::borrow(&pool.history_points, epoch)
+        *Table::borrow(&pool.point_history, epoch)
     }
 
     // VE NFT getters.
@@ -400,7 +406,7 @@ module MultiSwap::VE {
     /// Get VE NFT unlock time (timestamp).
     /// `nft` - reference to `VE_NFT`.
     public fun get_nft_unlock_time(nft: &VE_NFT): u64 {
-        nft.unlock_time
+        nft.unlock_ts
     }
 
     /// Get current VE NFT epoch.
@@ -413,16 +419,16 @@ module MultiSwap::VE {
     /// `nft` - reference to `VE_NFT`.
     /// `epoch` - epoch of history point.
     public fun get_nft_history_point(nft: &VE_NFT, epoch: u64): Point {
-        assert!(Table::contains(&nft.history_points, epoch), ERR_KEY_NOT_FOUND);
+        assert!(Table::contains(&nft.point_history, epoch), ERR_KEY_NOT_FOUND);
 
-        *Table::borrow(&nft.history_points, epoch)
+        *Table::borrow(&nft.point_history, epoch)
     }
 
     // Point getters.
 
     /// Get a time when `point` created.
     public fun get_point_ts(point: &Point): u64 {
-        point.ts
+        point.created_at_ts
     }
 
     /// Get a bias value of `point`.
@@ -435,6 +441,11 @@ module MultiSwap::VE {
         point.slope
     }
 
+    /// rounds `val` to the closest week, so the resulting number is a integer multiplier of WEEK
+    fun round_off_to_week(val: u64): u64 {
+        val / WEEK * WEEK
+    }
+
     // Tests.
 
     #[test_only]
@@ -444,7 +455,7 @@ module MultiSwap::VE {
 
     #[test_only]
     fun get_id_counter(): u64 acquires StakingPool {
-        borrow_global<StakingPool>(@StakingPool).token_id_counter
+        borrow_global<StakingPool>(@StakingPool).next_token_id
     }
 
     #[test_only]
@@ -458,7 +469,7 @@ module MultiSwap::VE {
         let point = zero_point();
         assert!(point.slope == 0, 0);
         assert!(point.bias == 0, 1);
-        assert!(point.ts == 0, 2);
+        assert!(point.created_at_ts == 0, 2);
     }
 
     #[test]
@@ -466,7 +477,7 @@ module MultiSwap::VE {
         let point = Point {
             bias: 32,
             slope: 7,
-            ts: 0,
+            created_at_ts: 0,
         };
 
         let new_bias = calc_bias(&point, 5);
@@ -487,12 +498,12 @@ module MultiSwap::VE {
         let pool = borrow_global<StakingPool>(stacker_admin_addr);
 
         assert!(pool.current_epoch == 0, 0);
-        assert!(pool.token_id_counter == 0, 1);
-        assert!(Table::length(&pool.m_slope) == 0, 2);
-        assert!(Table::length(&pool.history_points) == 1, 3);
+        assert!(pool.next_token_id == 0, 1);
+        assert!(Table::length(&pool.slope_history) == 0, 2);
+        assert!(Table::length(&pool.point_history) == 1, 3);
 
-        let point = Table::borrow(&pool.history_points, 0);
-        assert!(point.ts == Timestamp::now_seconds(), 4);
+        let point = Table::borrow(&pool.point_history, 0);
+        assert!(point.created_at_ts == Timestamp::now_seconds(), 4);
         assert!(point.slope == 0, 5);
         assert!(point.bias == 0, 6);
 
@@ -537,15 +548,15 @@ module MultiSwap::VE {
         Table::add(&mut history_points, epoch, Point {
             bias: 50,
             slope: 250,
-            ts: now,
+            created_at_ts: now,
         });
 
         let nft = VE_NFT {
             token_id: 100,
             stake: to_stake,
-            unlock_time: Timestamp::now_seconds(),
+            unlock_ts: Timestamp::now_seconds(),
             epoch,
-            history_points,
+            point_history: history_points,
         };
 
         assert!(get_nft_id(&nft) == 100, 0);
@@ -557,7 +568,7 @@ module MultiSwap::VE {
 
         assert!(point.bias == 50, 4);
         assert!(point.slope == 250, 5);
-        assert!(point.ts == now, 6);
+        assert!(point.created_at_ts == now, 6);
 
         let nfts = Table::new<u64, VE_NFT>();
         Table::add(&mut nfts, nft.token_id, nft);
@@ -575,9 +586,9 @@ module MultiSwap::VE {
         let nft = VE_NFT {
             token_id: 1,
             stake: Coin::zero(),
-            unlock_time: Timestamp::now_seconds(),
+            unlock_ts: Timestamp::now_seconds(),
             epoch: 0,
-            history_points: Table::new(),
+            point_history: Table::new(),
         };
 
         let _ = get_nft_history_point(&nft, 100);
@@ -604,17 +615,17 @@ module MultiSwap::VE {
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
 
         let now = Timestamp::now_seconds();
-        let until = (now + WEEK) / WEEK * WEEK;
+        let until = round_off_to_week(now + WEEK);
 
         let nft = stake(to_stake, WEEK);
         assert!(nft.token_id == 1, 0);
-        assert!(nft.unlock_time == until, 1);
+        assert!(nft.unlock_ts == until, 1);
 
         let nft_point = get_nft_history_point(&nft, nft.epoch);
-        assert!(Table::length(&nft.history_points) == 1, 2);
-        assert!(nft_point.slope == (to_stake_val / MAX_TIME), 3);
+        assert!(Table::length(&nft.point_history) == 1, 2);
+        assert!(nft_point.slope == (to_stake_val / MAX_LOCK_DURATION), 3);
         assert!(nft_point.bias == (nft_point.slope * (until - now)), 4);
-        assert!(nft_point.ts == now, 5);
+        assert!(nft_point.created_at_ts == now, 5);
 
         assert!(get_current_epoch() == 1, 6);
         assert!(get_id_counter() == 1, 7);
@@ -622,7 +633,7 @@ module MultiSwap::VE {
         let point = get_history_point(get_current_epoch());
         assert!(point.bias == nft_point.bias, 8);
         assert!(point.slope == nft_point.slope, 9);
-        assert!(point.ts == now, 10);
+        assert!(point.created_at_ts == now, 10);
 
         let m_slope = get_m_slope_for_test(until);
         assert!(m_slope == nft_point.slope, 11);
@@ -636,15 +647,15 @@ module MultiSwap::VE {
 
         until = (now + WEEK * 208) / WEEK * WEEK;
         let nft_point2 = get_nft_history_point(&nft_2, nft_2.epoch);
-        assert!(Table::length(&nft.history_points) == 1, 14);
-        assert!(nft_point2.slope == (to_stake_val / MAX_TIME), 15);
+        assert!(Table::length(&nft.point_history) == 1, 14);
+        assert!(nft_point2.slope == (to_stake_val / MAX_LOCK_DURATION), 15);
         assert!(nft_point2.bias == (nft_point2.slope * (until - now)), 16);
-        assert!(nft_point2.ts == now, 17);
+        assert!(nft_point2.created_at_ts == now, 17);
 
         let point2 = get_history_point(get_current_epoch());
         assert!(point2.bias == (nft_point.bias + nft_point2.bias), 18);
         assert!(point2.slope == (nft_point.slope + nft_point2.slope), 19);
-        assert!(point2.ts == now, 20);
+        assert!(point2.created_at_ts == now, 20);
 
         let m_slope = get_m_slope_for_test(until);
         assert!(m_slope == nft_point2.slope, 21);
@@ -696,7 +707,7 @@ module MultiSwap::VE {
 
         assert!(point.slope == 0, 1);
         assert!(point.bias == 0, 2);
-        assert!(point.ts == now, 3);
+        assert!(point.created_at_ts == now, 3);
 
         // Let's move time and check how history changes.
         now = (Timestamp::now_seconds() + WEEK);
@@ -708,7 +719,7 @@ module MultiSwap::VE {
         point = get_history_point(get_current_epoch());
         assert!(point.slope == 0, 5);
         assert!(point.bias == 0, 6);
-        assert!(point.ts == now, 7);
+        assert!(point.created_at_ts == now, 7);
 
         // Let's stake and see how history changed.
         let to_mint_val = 20000000000;
@@ -723,9 +734,9 @@ module MultiSwap::VE {
 
         assert!(get_current_epoch() == 3, 8);
         point = get_history_point(get_current_epoch());
-        assert!(point.slope == to_stake_val_1 / MAX_TIME, 9);
+        assert!(point.slope == to_stake_val_1 / MAX_LOCK_DURATION, 9);
         assert!(point.bias == point.slope * (until_1 - now), 10);
-        assert!(point.ts == now, 11);
+        assert!(point.created_at_ts == now, 11);
         assert!(get_m_slope_for_test(until_1) == point.slope, 12);
 
         update();
@@ -733,9 +744,9 @@ module MultiSwap::VE {
         // Let's check nothing changed.
         assert!(get_current_epoch() == 4, 13);
         let point_1 = get_history_point(get_current_epoch());
-        assert!(point_1.slope == to_stake_val_1 / MAX_TIME, 14);
+        assert!(point_1.slope == to_stake_val_1 / MAX_LOCK_DURATION, 14);
         assert!(point_1.bias == point_1.slope * (until_1 - now), 15);
-        assert!(point_1.ts == now, 16);
+        assert!(point_1.created_at_ts == now, 16);
 
         // Let's stake again.
         let to_stake_val_2 = 5000000000;
@@ -749,8 +760,8 @@ module MultiSwap::VE {
         assert!(get_current_epoch() == 5, 17);
         let point_2 = get_history_point(get_current_epoch());
 
-        assert!(point_2.slope == point_1.slope + (to_stake_val_2 / MAX_TIME), 18);
-        assert!(point_2.bias == point_1.bias + ((to_stake_val_2 / MAX_TIME) * (until_2 - now)), 19);
+        assert!(point_2.slope == point_1.slope + (to_stake_val_2 / MAX_LOCK_DURATION), 18);
+        assert!(point_2.bias == point_1.bias + ((to_stake_val_2 / MAX_LOCK_DURATION) * (until_2 - now)), 19);
         assert!(point_2.bias == bias_sum, 20);
 
         // Let's move time to half of week and check history.
@@ -762,8 +773,8 @@ module MultiSwap::VE {
         let point_3 = get_history_point(get_current_epoch());
         // Slope is not changed yet.
         assert!(point_3.slope == point_2.slope, 22);
-        assert!(point_3.bias == point_2.bias - (point_2.slope * (now - point_2.ts)), 23);
-        assert!(point_3.ts == now, 24);
+        assert!(point_3.bias == point_2.bias - (point_2.slope * (now - point_2.created_at_ts)), 23);
+        assert!(point_3.created_at_ts == now, 24);
 
         // Let's expire one stake and see how points changed.
         now = Timestamp::now_seconds() + WEEK;
@@ -824,7 +835,7 @@ module MultiSwap::VE {
         let dur_1 = 208 * WEEK;
         let nft_1 = stake(to_stake_1, dur_1);
 
-        let expected_supply = (to_stake_val_1 / MAX_TIME) * dur_1;
+        let expected_supply = (to_stake_val_1 / MAX_LOCK_DURATION) * dur_1;
 
         supply = supply();
         assert!(supply == expected_supply, 1);
@@ -833,7 +844,7 @@ module MultiSwap::VE {
         let now = Timestamp::now_seconds() + WEEK;
         Timestamp::update_global_time_for_test(now * 1000000);
 
-        expected_supply = (to_stake_val_1 / MAX_TIME) * (dur_1 - WEEK);
+        expected_supply = (to_stake_val_1 / MAX_LOCK_DURATION) * (dur_1 - WEEK);
         supply = supply();
         assert!(supply == expected_supply, 2);
 
@@ -841,7 +852,7 @@ module MultiSwap::VE {
         now = Timestamp::now_seconds() + WEEK * 103;
         Timestamp::update_global_time_for_test(now * 1000000);
 
-        expected_supply = (to_stake_val_1 / MAX_TIME) * (dur_1 - (WEEK * 104));
+        expected_supply = (to_stake_val_1 / MAX_LOCK_DURATION) * (dur_1 - (WEEK * 104));
         supply = supply();
         assert!(supply == expected_supply, 3);
 
@@ -881,7 +892,7 @@ module MultiSwap::VE {
         let nft = stake(to_stake, dist);
         let token_id = nft.token_id;
 
-        let slope = to_stake_val / MAX_TIME;
+        let slope = to_stake_val / MAX_LOCK_DURATION;
         let bias = slope * (until - now);
 
         let nft_point = get_nft_history_point(&nft, 1);
@@ -896,16 +907,16 @@ module MultiSwap::VE {
         assert!(nft.epoch == 2, 2);
         assert!(Coin::value(&nft.stake) == to_stake_val + rewards_val, 3);
         assert!(nft.token_id == token_id, 4);
-        assert!(nft.unlock_time == until, 5);
+        assert!(nft.unlock_ts == until, 5);
 
-        let new_slope = (to_stake_val + rewards_val) / MAX_TIME;
+        let new_slope = (to_stake_val + rewards_val) / MAX_LOCK_DURATION;
         let new_bias = new_slope * (until - now);
 
         let nft_point = get_nft_history_point(&nft, 2);
 
         assert!(nft_point.bias == new_bias, 6);
         assert!(nft_point.slope == new_slope, 7);
-        assert!(nft_point.ts == now, 8);
+        assert!(nft_point.created_at_ts == now, 8);
 
         assert!(new_slope == get_m_slope_for_test(until), 9);
 
@@ -914,7 +925,7 @@ module MultiSwap::VE {
         let old_bias = slope * (until - now);
         assert!(point.slope == slope + (new_slope - slope), 10);
         assert!(point.bias == old_bias + (new_bias - old_bias), 11);
-        assert!(point.ts == now, 12);
+        assert!(point.created_at_ts == now, 12);
 
         // Move to 208 weeks and check update.
         now = Timestamp::now_seconds() + WEEK * 208;
@@ -926,12 +937,12 @@ module MultiSwap::VE {
         nft_point = get_nft_history_point(&nft, 3);
         assert!(nft_point.bias == 0, 14);
         assert!(nft_point.slope == 0, 15);
-        assert!(nft_point.ts == now, 16);
+        assert!(nft_point.created_at_ts == now, 16);
 
         point = get_history_point(get_current_epoch());
         assert!(point.slope == 0, 17);
         assert!(point.bias == 0, 18);
-        assert!(point.ts == now, 19);
+        assert!(point.created_at_ts == now, 19);
 
         let nfts = Table::new<u64, VE_NFT>();
         Table::add(&mut nfts, nft.token_id, nft);
@@ -1048,7 +1059,7 @@ module MultiSwap::VE {
         assert!(current_epoch == 0, 0);
 
         let point = get_history_point(current_epoch);
-        assert!(point.ts == Timestamp::now_seconds(), 1);
+        assert!(point.created_at_ts == Timestamp::now_seconds(), 1);
         assert!(point.bias == 0, 2);
         assert!(point.slope == 0, 3);
 
@@ -1065,7 +1076,7 @@ module MultiSwap::VE {
         let until = (now + WEEK) / WEEK * WEEK;
 
         let nft_point = get_nft_history_point(&nft, nft.epoch);
-        assert!(nft_point.slope == (to_stake_val / MAX_TIME), 4);
+        assert!(nft_point.slope == (to_stake_val / MAX_LOCK_DURATION), 4);
         assert!(nft_point.bias == (nft_point.slope * (until - now)), 5);
 
         current_epoch = get_current_epoch();
@@ -1079,7 +1090,7 @@ module MultiSwap::VE {
         point = get_history_point(current_epoch);
         assert!(point.bias == 0, 8);
         assert!(point.slope == 0, 9);
-        assert!(point.ts == WEEK, 10);
+        assert!(point.created_at_ts == WEEK, 10);
 
         let nfts = Table::new<u64, VE_NFT>();
         Table::add(&mut nfts, nft.token_id, nft);

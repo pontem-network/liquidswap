@@ -8,7 +8,7 @@ module MultiSwap::Distribution {
     use AptosFramework::Table;
 
     use MultiSwap::VE;
-    use MultiSwap::VE::get_point_ts;
+    use MultiSwap::VE::get_timestamp;
     use MultiSwap::Math;
     use MultiSwap::Liquid::LAMM;
 
@@ -137,13 +137,13 @@ module MultiSwap::Distribution {
                 let point = VE::get_history_point(epoch);
 
                 let dt = 0;
-                let ts = get_point_ts(&point);
+                let ts = get_timestamp(&point);
                 if (t > ts) {
                     dt = t - ts;
                 };
 
                 let supply = Table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
-                *supply = VE::calc_bias(&point, dt);
+                *supply = VE::calc_voting_power(&point, dt);
             };
 
             t = t + WEEK;
@@ -164,7 +164,7 @@ module MultiSwap::Distribution {
 
             let mid = (min + max + 2) / 2;
             let point = VE::get_history_point(mid);
-            let ts = VE::get_point_ts(&point);
+            let ts = VE::get_timestamp(&point);
 
             if (ts <= timestamp) {
                 min = mid;
@@ -201,7 +201,7 @@ module MultiSwap::Distribution {
 
         let nft_point = VE::get_nft_history_point(nft, _nft_epoch);
 
-        if (week_cursor == 0) week_cursor = (get_point_ts(&nft_point) + WEEK - 1) / WEEK * WEEK;
+        if (week_cursor == 0) week_cursor = (get_timestamp(&nft_point) + WEEK - 1) / WEEK * WEEK;
         if (week_cursor >= last_deposit_time) {
             return 0
         };
@@ -214,7 +214,7 @@ module MultiSwap::Distribution {
                 break
             };
 
-            if (week_cursor >= get_point_ts(&nft_point) && _nft_epoch <= max_nft_epoch) {
+            if (week_cursor >= get_timestamp(&nft_point) && _nft_epoch <= max_nft_epoch) {
                 _nft_epoch = _nft_epoch + 1;
                 old_nft_point = nft_point;
 
@@ -224,9 +224,9 @@ module MultiSwap::Distribution {
                     nft_point = VE::get_nft_history_point(nft, _nft_epoch);
                 };
             } else {
-                let dt = week_cursor - get_point_ts(&old_nft_point);
+                let dt = week_cursor - get_timestamp(&old_nft_point);
 
-                let balance_of = VE::calc_bias(&old_nft_point, dt);
+                let balance_of = VE::calc_voting_power(&old_nft_point, dt);
 
                 if (balance_of == 0 && _nft_epoch > max_nft_epoch) {
                     break
@@ -303,7 +303,7 @@ module MultiSwap::Distribution {
             let mid = (min + max + 2) / 2;
             let point = VE::get_nft_history_point(nft, mid);
 
-            let ts = VE::get_point_ts(&point);
+            let ts = VE::get_timestamp(&point);
 
             if (ts <= timestamp) {
                 min = mid;

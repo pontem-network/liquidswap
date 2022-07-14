@@ -45,4 +45,16 @@ module MultiSwap::Math {
             (z as u64)
         }
     }
+
+    /// Returns 10^degree.
+    public fun pow_10(degree: u64): u64 {
+        let res = 1;
+        let i = 0;
+        while (i < degree) {
+            res = res * 10;
+            i = i + 1;
+        };
+
+        res
+    }
 }

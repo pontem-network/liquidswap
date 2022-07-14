@@ -6,6 +6,9 @@ module MultiSwap::LiquidityPool {
     use Std::Event;
     use Std::Signer;
 
+    use UQ64x64::UQ64x64;
+    use U256::U256;
+
     use AptosFramework::Coin;
     use AptosFramework::Coin::Coin;
     use AptosFramework::Timestamp;
@@ -14,7 +17,6 @@ module MultiSwap::LiquidityPool {
     use MultiSwap::CoinHelper::assert_is_coin;
     use MultiSwap::DAOStorage;
     use MultiSwap::Math;
-    use MultiSwap::UQ64x64;
     use MultiSwap::StableCurve;
 
     // Error codes.
@@ -53,7 +55,12 @@ module MultiSwap::LiquidityPool {
     /// Denominator to handle decimal points for fees
     const FEE_SCALE: u64 = 10000;
 
+    // Curve types.
+
+    /// Stable curve (similar to Curve).
     const STABLE_CURVE: u8 = 1;
+
+    /// Uniswap like curve.
     const UNSTABLE_CURVE: u8 = 2;
 
     // Public functions.
@@ -68,6 +75,8 @@ module MultiSwap::LiquidityPool {
         last_price_y_cumulative: u128,
         lp_mint_cap: Coin::MintCapability<LP>,
         lp_burn_cap: Coin::BurnCapability<LP>,
+        x_scale: u64,
+        y_scale: u64,
         correlation_curve_type: u8,
     }
 
@@ -100,6 +109,14 @@ module MultiSwap::LiquidityPool {
             true
         );
 
+        let x_scale = 0;
+        let y_scale = 0;
+
+        if (correlation_curve_type == STABLE_CURVE) {
+            x_scale = Math::pow_10(Coin::decimals<X>());
+            y_scale = Math::pow_10(Coin::decimals<Y>());
+        };
+
         let pool = LiquidityPool<X, Y, LP> {
             coin_x_reserve: Coin::zero<X>(),
             coin_y_reserve: Coin::zero<Y>(),
@@ -108,6 +125,8 @@ module MultiSwap::LiquidityPool {
             last_price_y_cumulative: 0,
             lp_mint_cap,
             lp_burn_cap,
+            x_scale,
+            y_scale,
             correlation_curve_type,
         };
         move_to(owner, pool);
@@ -289,27 +308,14 @@ module MultiSwap::LiquidityPool {
         let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
                                   - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
-        let x_decimals = Coin::decimals<X>();
-        let y_decimals = Coin::decimals<Y>();
-
-        let lp_value_before_swap = compute_lp_value(
+        compute_and_verify_lp_value(
+            pool.x_scale,
+            pool.y_scale,
+            pool.correlation_curve_type,
             (x_reserve_size as u128),
-            x_decimals,
             (y_reserve_size as u128),
-            y_decimals,
-            pool.correlation_curve_type
-        );
-        lp_value_before_swap = lp_value_before_swap * (FEE_SCALE as u128) * (FEE_SCALE as u128);
-        let lp_value_after_swap_and_fee = compute_lp_value(
-            x_res_new_after_fee,
-            x_decimals,
-            y_res_new_after_fee,
-            y_decimals,
-            pool.correlation_curve_type
-        );
-        assert!(
-            lp_value_after_swap_and_fee >= (lp_value_before_swap as u128),
-            Errors::invalid_state(ERR_INCORRECT_SWAP),
+            (x_res_new_after_fee as u128),
+            (y_res_new_after_fee as u128),
         );
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
@@ -328,15 +334,40 @@ module MultiSwap::LiquidityPool {
         (x_swapped, y_swapped)
     }
 
-    fun compute_lp_value(x_coin: u128, x_decimals: u64, y_coin: u128, y_decimals: u64, curve_type: u8): u128 {
+    /// Compute and very LP value after and before swap, in nutshell, _k function.
+    fun compute_and_verify_lp_value(
+        x_scale: u64,
+        y_scale: u64,
+        curve_type: u8,
+        x_res: u128, // x reserve without fees and swap data
+        y_res: u128, // y reserve without fees and swap data
+        x_res_with_fees: u128,
+        y_res_with_fees: u128,
+    ) {
         if (curve_type == STABLE_CURVE) {
-            StableCurve::lp_value(x_coin, x_decimals, y_coin, y_decimals)
+            let lp_value_before_swap = StableCurve::lp_value(x_res, x_scale, y_res, y_scale);
+            // 100000000 == FEE_SCALE * FEE_SCALE
+            lp_value_before_swap = U256::mul(
+                lp_value_before_swap,
+                U256::from_u128(100000000),
+            );
+            let lp_value_after_swap_and_fee = StableCurve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
+
+            let cmp = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
+            assert!(cmp == 0 || cmp == 2, Errors::invalid_state(ERR_INCORRECT_SWAP));
         } else if (curve_type == UNSTABLE_CURVE) {
-            // formula: x * y
-            x_coin * y_coin
+            let lp_value_before_swap = x_res * y_res;
+            // 100000000 == FEE_SCALE * FEE_SCALE
+            lp_value_before_swap = lp_value_before_swap * 100000000;
+            let lp_value_after_swap_and_fee = x_res_with_fees * y_res_with_fees;
+
+            assert!(
+                lp_value_after_swap_and_fee >= lp_value_before_swap,
+                Errors::invalid_state(ERR_INCORRECT_SWAP),
+            );
         } else {
-            abort ERR_INVALID_CURVE
-        }
+            abort Errors::invalid_state(ERR_INVALID_CURVE)
+        };
     }
 
     /// Update current cumulative prices.
@@ -408,18 +439,9 @@ module MultiSwap::LiquidityPool {
         (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
     }
 
-    /// Check if lp exists at address
+
+    /// Get curve type of the pool.
     /// * pool_addr - pool owner address.
-    public fun pool_exists_at<X, Y, LP>(pool_addr: address): bool {
-        exists<LiquidityPool<X, Y, LP>>(pool_addr)
-    }
-
-    /// Get fees numerator, denumerator.
-    /// Returns (numerator, denumerator).
-    public fun get_fees_config(): (u64, u64) {
-        (FEE_MULTIPLIER, FEE_SCALE)
-    }
-
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
         assert!(
             CoinHelper::is_sorted<X, Y>(),
@@ -431,6 +453,19 @@ module MultiSwap::LiquidityPool {
         );
 
         borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).correlation_curve_type
+    }
+
+
+    /// Check if lp exists at address
+    /// * pool_addr - pool owner address.
+    public fun pool_exists_at<X, Y, LP>(pool_addr: address): bool {
+        exists<LiquidityPool<X, Y, LP>>(pool_addr)
+    }
+
+    /// Get fees numerator, denumerator.
+    /// Returns (numerator, denumerator).
+    public fun get_fees_config(): (u64, u64) {
+        (FEE_MULTIPLIER, FEE_SCALE)
     }
 
     // Events

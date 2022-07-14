@@ -43,4 +43,14 @@ module MultiSwap::MathTests {
         s = Math::sqrt(18446744073709551615);
         assert!(s == 4294967295, 4);
     }
+
+
+    #[test]
+    fun test_pow_10() {
+        assert!(Math::pow_10(0) == 1, 1);
+        assert!(Math::pow_10(1) == 10, 2);
+        assert!(Math::pow_10(2) == 100, 3);
+        assert!(Math::pow_10(5) == 100000, 4);
+        assert!(Math::pow_10(10) == 10000000000, 5);
+    }
 }

@@ -1,17 +1,13 @@
 module MultiSwap::StableCurve {
     use U256::U256::{Self, U256};
 
-    /// coins with more than this number of decimals will have a precision loss for the curve computation
-    const DECIMALS_LIMIT: u64 = 12;
-    // 10^12
+    /// We take 10^8 as we expect most of the coins to have 6-8 decimals.
     const ONE_E_8: u128 = 100000000;
-    // 10^6
-    const ONE_E_6: u128 = 1000000;
 
     public fun lp_value(x_coin: u128, x_scale: u64, y_coin: u128, y_scale: u64): U256 {
         let x_u256 = U256::from_u128(x_coin);
         let y_u256 = U256::from_u128(y_coin);
-        let u2561e8 = U256::from_u128(100000000);
+        let u2561e8 = U256::from_u128(ONE_E_8);
 
         let x_scale_u256 = U256::from_u64(x_scale);
         let y_scale_u256 = U256::from_u64(y_scale);

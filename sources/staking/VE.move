@@ -525,7 +525,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -598,7 +598,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -667,7 +667,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -713,7 +713,7 @@ module MultiSwap::VE {
         // Let's stake and see how history changed.
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = Coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -817,7 +817,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = Coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -867,7 +867,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let now = Timestamp::now_seconds();
         let to_stake_val = 1000000000;
@@ -949,7 +949,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -994,7 +994,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1020,7 +1020,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1054,7 +1054,7 @@ module MultiSwap::VE {
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        Liquid::mint(&multi_swap, Signer::address_of(&staker), to_mint_val);
+        Liquid::mint_internal(&multi_swap, Signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = Coin::withdraw<LAMM>(&staker, to_stake_val);

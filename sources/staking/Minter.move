@@ -123,7 +123,7 @@ module MultiSwap::Minter {
         let to_mint_val = 20000000000;
         let staker_addr = Signer::address_of(staker);
         register_internal<LAMM>(staker);
-        Liquid::mint(multi_swap, staker_addr, to_mint_val);
+        Liquid::mint_internal(multi_swap, staker_addr, to_mint_val);
     }
 
     #[test(core = @CoreResources, staking_admin = @StakingPool, multi_swap = @MultiSwap, staker = @TestStaker)]

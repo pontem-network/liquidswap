@@ -18,7 +18,6 @@ module MultiSwap::Liquid {
         mint_cap: MintCapability<LAMM>,
         burn_cap: BurnCapability<LAMM>,
         lock_mint_cap: bool,
-        admin_address: address,
         lock_mint_time: u64,
     }
 
@@ -31,13 +30,10 @@ module MultiSwap::Liquid {
             true
         );
 
-        let admin_address = Signer::address_of(admin);
-
         move_to(admin, Capabilities {
             mint_cap,
             burn_cap,
             lock_mint_cap: false,
-            admin_address,
             lock_mint_time: Timestamp::now_seconds() + LOCK_MINT_AFTER_SECONDS
         });
     }
@@ -80,7 +76,6 @@ module MultiSwap::Liquid {
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
 
         let caps = borrow_global_mut<Capabilities>(admin_addr);
-        assert!(admin_addr == caps.admin_address, ERR_NOT_ADMIN);
 
         if(caps.lock_mint_time < Timestamp::now_seconds() && !caps.lock_mint_cap)
             caps.lock_mint_cap = true;

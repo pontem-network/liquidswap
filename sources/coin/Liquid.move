@@ -8,7 +8,6 @@ module MultiSwap::Liquid {
     // TODO: convert errors to Std::Errors.
     const ERR_CAPABILITIES_DOESNT_EXIST: u64 = 100;
     const ERR_MINTING_LOCKED: u64 = 101;
-    const ERR_NOT_ADMIN: u64 = 102;
 
     const LOCK_MINT_AFTER_SECONDS: u64 = 60 * 60 * 24 * 30 * 6; // 6 months
 
@@ -75,11 +74,8 @@ module MultiSwap::Liquid {
         let admin_addr = Signer::address_of(admin);
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
 
-        let caps = borrow_global_mut<Capabilities>(admin_addr);
-
-        if(caps.lock_mint_time < Timestamp::now_seconds() && !caps.lock_mint_cap)
-            caps.lock_mint_cap = true;
-        assert!(!caps.lock_mint_cap, ERR_MINTING_LOCKED);
+        let caps = borrow_global<Capabilities>(admin_addr);
+        assert!(!caps.lock_mint_cap && Timestamp::now_seconds() < caps.lock_mint_time, ERR_MINTING_LOCKED);
 
         let coins = Coin::mint(amount, &caps.mint_cap);
         Coin::deposit(addr, coins);

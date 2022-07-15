@@ -106,7 +106,7 @@ module MultiSwap::LiquidTests {
         Genesis::setup(&core_resource);
         Liquid::initialize(&admin);
 
-        Timestamp::update_global_time_for_test((Timestamp::now_seconds() + (60 * 60 * 24 * 30 * 6) + 1) * 1000000);
+        Timestamp::update_global_time_for_test((Timestamp::now_seconds() + (60 * 60 * 24 * 30 * 6)) * 1000000);
 
         Liquid::mint_internal(&admin, Signer::address_of(&admin), 100);
     }

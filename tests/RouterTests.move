@@ -44,8 +44,8 @@ module MultiSwap::RouterTests {
             Router::add_liquidity<BTC, USDT, LP>(
                 pool_addr,
                 btc_coins,
-                101,
                 usdt_coins,
+                101,
                 10100
             );
 
@@ -76,7 +76,7 @@ module MultiSwap::RouterTests {
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
-            Router::add_liquidity<BTC, USDT, LP>(pool_addr, btc_coins, 10, usdt_coins, 9000);
+            Router::add_liquidity<BTC, USDT, LP>(pool_addr, btc_coins,  usdt_coins, 10, 9000);
         // 101 - 90 = 11
         assert!(Coin::value(&coin_x) == 11, 1);
         assert!(Coin::value(&coin_y) == 0, 2);
@@ -103,7 +103,7 @@ module MultiSwap::RouterTests {
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) =
-            Router::add_liquidity<USDT, BTC, LP>(pool_addr, usdt_coins, 9000, btc_coins, 10);
+            Router::add_liquidity<USDT, BTC, LP>(pool_addr, usdt_coins,  btc_coins, 9000, 10);
         // 101 - 90 = 11
         assert!(Coin::value(&coin_x) == 11, 1);
         assert!(Coin::value(&coin_y) == 0, 2);
@@ -136,7 +136,7 @@ module MultiSwap::RouterTests {
         let (coin_x, coin_y) =
             Router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
 
-        let (usdt_reserve, btc_reserve) = Router::get_reserves_size<USDT, BTC, LP>(pool_addr);
+        let (usdt_reserve, btc_reserve) = Router::get_reserves<USDT, BTC, LP>(pool_addr);
         assert!(usdt_reserve == 8080, 3);
         assert!(btc_reserve == 81, 4);
 
@@ -281,7 +281,7 @@ module MultiSwap::RouterTests {
             Router::swap_exact_coin_for_coin<BTC, USDT, LP>(pool_owner_addr, btc_coins_to_swap, 1);
         assert!(Coin::value(&usdt_coins) == 6704, 1);
 
-        let (btc_reserve, usdt_reserve) = Router::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (btc_reserve, usdt_reserve) = Router::get_reserves<BTC, USDT, LP>(pool_owner_addr);
         assert!(btc_reserve == 301, 2);
         assert!(usdt_reserve == 3396, 3);
         assert!(Router::current_price<USDT, BTC, LP>(pool_owner_addr) == 11, 4);
@@ -347,31 +347,31 @@ module MultiSwap::RouterTests {
 
     #[test]
     fun test_convert_with_current_price() {
-        let a = Router::convert_with_current_price(U64_MAX, U64_MAX, U64_MAX);
+        let a = Router::quote(U64_MAX, U64_MAX, U64_MAX);
         assert!(a == U64_MAX, 0);
 
-        a = Router::convert_with_current_price(100, 100, 20);
+        a = Router::quote(100, 100, 20);
         assert!(a == 20, 1);
 
-        a = Router::convert_with_current_price(256, 8, 2);
+        a = Router::quote(256, 8, 2);
         assert!(a == 64, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 25607)]
     fun test_fail_convert_with_current_price_coin_in_val() {
-        Router::convert_with_current_price(0, 1, 1);
+        Router::quote(0, 1, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 25863)]
     fun test_fail_convert_with_current_price_reserve_in_size() {
-        Router::convert_with_current_price(1, 0, 1);
+        Router::quote(1, 0, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 25863)]
     fun test_fail_convert_with_current_price_reserve_out_size() {
-        Router::convert_with_current_price(1, 1, 0);
+        Router::quote(1, 1, 0);
     }
 }

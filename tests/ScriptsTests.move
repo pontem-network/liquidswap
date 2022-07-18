@@ -100,8 +100,8 @@ module MultiSwap::ScriptsTests {
             pool_owner,
             pool_owner_addr,
             101,
-            101,
             10100,
+            101,
             10100
         );
 
@@ -121,7 +121,7 @@ module MultiSwap::ScriptsTests {
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 10100);
 
         let (btc, usdt, lp) =
-            Router::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, 101, usdt_coins, 10100);
+            Router::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins, 101, 10100);
         Coin::register_internal<BTC>(&pool_owner);
         Coin::register_internal<USDT>(&pool_owner);
         Coin::register_internal<LP>(&pool_owner);

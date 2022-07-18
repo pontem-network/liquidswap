@@ -4,6 +4,11 @@ module MultiSwap::StableCurve {
     /// We take 10^8 as we expect most of the coins to have 6-8 decimals.
     const ONE_E_8: u128 = 100000000;
 
+    /// Get LP value for stable curve.
+    /// * `x_coin` - reserves of coin X.
+    /// * `x_scale` - 10 pow X coin decimals amount.
+    /// * `y_coin` - reserves of coin Y.
+    /// * `y_scale` - 10 pow Y coin decimals amount.
     public fun lp_value(x_coin: u128, x_scale: u64, y_coin: u128, y_scale: u64): U256 {
         let x_u256 = U256::from_u128(x_coin);
         let y_u256 = U256::from_u128(y_coin);
@@ -27,7 +32,7 @@ module MultiSwap::StableCurve {
             u2561e8,
         );
 
-        // ((_x * _x) / 1e18 + (_y * _y) / 1e18);
+        // ((_x * _x) / 1e18 + (_y * _y) / 1e18)
         let _b = U256::add(
             U256::div(
                 U256::mul(_x, _x),
@@ -45,56 +50,231 @@ module MultiSwap::StableCurve {
         )
     }
 
-    public fun coin_out(_coin_in: u128, _decimals_in: u64, _decimals_out: u64, _reserve_in: u128, _reserve_out: u128): u128 {
-        0
+    /// Get coin amount out by passing amount in, returns amount (we don't take fees into account here).
+    /// * `coin_in` - amount of coin to swap.
+    /// * `scale_in` - 10 pow by `coin_in` coins decimals.
+    /// * `scale_out` - 10 pow by coin that user gets in exchange.
+    /// * `reserve_in` - reserves of coin to swap (`coin_in`).
+    /// * `reserve_out` - reserves of coin to get in exchange.
+    public fun coin_out(coin_in: u128, scale_in: u64, scale_out: u64, reserve_in: u128, reserve_out: u128): u128 {
+        let u2561e8 = U256::from_u128(ONE_E_8);
+
+        let xy = lp_value(reserve_in, scale_in, reserve_out, scale_out);
+        let reserve_in_u256 = U256::div(
+            U256::mul(
+                U256::from_u128(reserve_in),
+                u2561e8,
+            ),
+            U256::from_u64(scale_in),
+        );
+        let reserve_out_u256 = U256::div(
+            U256::mul(
+                U256::from_u128(reserve_out),
+                u2561e8,
+            ),
+            U256::from_u64(scale_out),
+        );
+        let amountIn = U256::div(
+            U256::mul(
+                U256::from_u128(coin_in),
+                u2561e8
+            ),
+            U256::from_u64(scale_in)
+        );
+        let total_reserve = U256::add(amountIn, reserve_in_u256);
+        let y = U256::sub(
+            reserve_out_u256,
+            get_y(total_reserve, xy, reserve_out_u256),
+        );
+
+        let r = U256::div(
+            U256::mul(
+                y,
+                U256::from_u64(scale_out),
+            ),
+            u2561e8
+        );
+
+        U256::as_u128(r)
     }
 
-//    public fun coin_out(coin_in: u128, decimals_in: u64, decimals_out: u64, reserve_in: u128, reserve_out: u128): u128 {
-//        let xy = lp_value(reserve_in, decimals_in, reserve_out, decimals_out);
-//        let reserve_in_scaled = reserve_in * pow_10(DECIMALS_LIMIT - decimals_in);
-//        let reserve_out_scaled = reserve_out * pow_10(DECIMALS_LIMIT - decimals_out);
-//        let amountIn = coin_in * pow_10(DECIMALS_LIMIT - decimals_in);
-//        let y = reserve_out_scaled - get_y(amountIn + reserve_in_scaled, xy, reserve_out_scaled);
-//        y * pow_10(decimals_out) / ONE_E_12
-//    }
-//
-//
-//    fun get_y(x0: u128, xy: u128, y: u128): u128 {
-//        let i = 0;
-//        while (i < 255) {
-//            let y_prev = y;
-//
-//            let k = f(x0, y);
-//            if (k < xy) {
-//                let dy = (xy - k) * ONE_E_12 / d(x0, y);
-//                y = y + dy;
-//            } else {
-//                let dy = (k - xy) * ONE_E_12 / d(x0, y);
-//                y = y - dy;
-//            };
-//
-//            if (y > y_prev) {
-//                if (y - y_prev <= 1) {
-//                    return y
-//                };
-//            } else {
-//                if (y_prev - y <= 1) {
-//                    return y
-//                }
-//            };
-//
-//            i = i + 1;
-//        };
-//        y
-//    }
-//
-//    fun f(x0: u128, y: u128): u128 {
-//        // x0 * y^3 + x0^3 * y
-//        x0 * (y * y / ONE_E_12 * y / ONE_E_12) + (x0 * x0 / ONE_E_12 * x0 / ONE_E_12) * y / ONE_E_12
-//    }
-//
-//    fun d(x0: u128, y: u128): u128 {
-//        // 3 * x0 * y^2 + x^3
-//        3 * x0 * (y * y / ONE_E_12) / ONE_E_12 + x0 * x0 / ONE_E_12 * x0 / ONE_E_12
-//    }
+    /// Trying to find siutable `y` value.
+    /// * `x0` - total reserve x (include `coin_in`) with transformed decimals.
+    /// * `xy` - lp value (see `lp_value` func).
+    /// * `y` - reserves out with transformed decimals.
+    fun get_y(x0: U256, xy: U256, y: U256): U256 {
+        let i = 0;
+        let u2561e8 = U256::from_u128(ONE_E_8);
+        let one_u256 = U256::from_u128(1);
+
+        while (i < 255) {
+            let y_prev = y;
+            let k = f(x0, y);
+
+            let cmp = U256::compare(&k, &xy);
+            if (cmp == 1) { // LESS THAN
+                let dy = U256::div(
+                    U256::mul(
+                        U256::sub(xy, k),
+                        u2561e8,
+                    ),
+                    d(x0, y),
+                );
+                y = U256::add(y, dy);
+            } else {
+                let dy = U256::div(
+                    U256::mul(
+                        U256::sub(k, xy),
+                        u2561e8,
+                    ),
+                    d(x0, y),
+                );
+                y = U256::sub(y, dy);
+            };
+            cmp = U256::compare(&y, &y_prev);
+            if (cmp == 2) {
+                let diff = U256::sub(y, y_prev);
+                cmp = U256::compare(&diff, &one_u256);
+                if (cmp == 0 || cmp == 1) {
+                    return y
+                };
+            } else {
+                let diff = U256::sub(y_prev, y);
+                cmp = U256::compare(&diff, &one_u256);
+                if (cmp == 0 || cmp == 1) {
+                    return y
+                };
+            };
+
+            i = i + 1;
+        };
+
+        y
+    }
+
+    /// Implements x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
+    fun f(x0_u256: U256, y_u256: U256): U256 {
+        let u2561e8 = U256::from_u128(ONE_E_8);
+
+        // x0*(y*y/1e18*y/1e18)/1e18
+        let yy = U256::div(
+            U256::mul(y_u256, y_u256),
+            u2561e8,
+        );
+        let yyy = U256::div(
+            U256::mul(yy, y_u256),
+            u2561e8,
+        );
+        let a = U256::div(
+            U256::mul(x0_u256, yyy),
+            u2561e8
+        );
+        //(x0*x0/1e18*x0/1e18)*y/1e18
+        let xx = U256::div(
+            U256::mul(x0_u256, x0_u256),
+            u2561e8,
+        );
+        let xxx = U256::div(
+            U256::mul(xx, x0_u256),
+            u2561e8
+        );
+        let b = U256::div(
+            U256::mul(xxx, y_u256),
+            u2561e8,
+        );
+
+        // a + b
+        U256::add(a, b)
+    }
+
+    /// Implements 3 * x0 * y^2 + x0^3 = 3 * x0 * (y * y / 1e8) / 1e8 + (x0 * x0 / 1e8 * x0) / 1e8
+    fun d(x0_u256: U256, y_u256: U256): U256 {
+        let three_u256 = U256::from_u128(3);
+        let u2561e8 = U256::from_u128(ONE_E_8);
+
+        // 3 * x0 * (y * y / 1e8) / 1e8
+        let x3 = U256::mul(three_u256, x0_u256);
+        let yy = U256::div(
+            U256::mul(y_u256, y_u256),
+            u2561e8,
+        );
+        let xyy3 = U256::div(
+            U256::mul(x3, yy),
+            u2561e8,
+        );
+
+        let xx = U256::div(
+            U256::mul(x0_u256, x0_u256),
+            u2561e8,
+        );
+
+        // x0 * x0 / 1e8 * x0 / 1e8
+        let xxx = U256::div(
+            U256::mul(xx, x0_u256),
+            u2561e8,
+        );
+
+        U256::add(xyy3, xxx)
+    }
+
+    // TODO: test f
+    // TODO: test get_y
+
+    #[test]
+    fun test_coin_out() {
+        let reserve_in = 25582858050757; // Let's say it's USDC (6 decimals).
+        let reserve_out = 2558285805075712; // It's USDT (8 decimals).
+
+        let in = 2513058000; // We swap 2513.058000 USDC to USDT.
+        // coin_in: u128, scale_in: u64, scale_out: u64, reserve_in: u128, reserve_out: u128
+        let out = coin_out(in, 1000000, 100000000, reserve_in, reserve_out);
+        assert!(out == 251305799999, 0);
+
+        // more tests.
+    }
+
+    #[test]
+    fun test_d() {
+        let x0 = U256::from_u128(10000518365287);
+        let y = U256::from_u128(2520572000001255);
+
+        let z = d(x0, y);
+        let r = U256::as_u128(z);
+
+        assert!(r == 19060937633564670887039886324, 0);
+
+        let x0 = U256::from_u128(5000000000);
+        let y = U256::from_u128(10000000000000000);
+
+        let z = d(x0, y);
+        let r = U256::as_u128(z);
+        assert!(r == 150000000000012500000000000, 0);
+
+
+        let x0 = U256::from_u128(1);
+        let y = U256::from_u128(2);
+
+        let z = d(x0, y);
+        let r = U256::as_u128(z);
+        assert!(r == 0, 0);
+    }
+
+    #[test]
+    fun test_lp_value_compute() {
+        // 0.3 ^ 3 * 0.5 + 0.5 ^ 3 * 0.3 = 0.051 (12 decimals)
+        let lp_value = lp_value(300000, 1000000, 500000, 1000000);
+        assert!(
+             U256::as_u128(lp_value) == 5100000,
+            1
+        );
+
+        lp_value = lp_value(
+            500000899318256,
+            1000000,
+            25000567572582123,
+            1000000000000
+        );
+
+        assert!(U256::as_u128(lp_value) == 312508781701599715772530613362069248234, 2);
+    }
 }

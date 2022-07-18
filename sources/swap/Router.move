@@ -142,15 +142,23 @@ module MultiSwap::Router {
         coin_out_min_val: u64,
     ): Coin<Y> {
         let (reserve_in, reserve_out) = get_reserves_size<X, Y, LP>(pool_addr);
+        let curve_type = get_curve_type<X, Y, LP>(pool_addr);
 
-        let curve_type = if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::get_curve_type<X, Y, LP>(pool_addr)
-        } else {
-            LiquidityPool::get_curve_type<Y, X, LP>(pool_addr)
+        let scale_in = 0;
+        let scale_out = 0;
+        if (curve_type == STABLE_CURVE) {
+            (scale_in, scale_out) = get_decimals_scales<X, Y, LP>(pool_addr);
         };
 
         let coin_in_val = Coin::value(&coin_in);
-        let coin_out_val = get_coin_out_with_fees<X, Y>(coin_in_val, reserve_in, reserve_out, curve_type);
+        let coin_out_val = get_coin_out_with_fees(
+            coin_in_val,
+            reserve_in,
+            reserve_out,
+            scale_in,
+            scale_out,
+            curve_type
+        );
         assert!(
             coin_out_val >= coin_out_min_val,
             Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
@@ -242,6 +250,28 @@ module MultiSwap::Router {
         }
     }
 
+    /// Get pool curve type (stable/unstable).
+    /// * `pool_addr` - pool owner address.
+    /// Returns 1 = stable, 2 = uniswap.
+    public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 {
+        if (CoinHelper::is_sorted<X, Y>()) {
+            LiquidityPool::get_curve_type<X, Y, LP>(pool_addr)
+        } else {
+            LiquidityPool::get_curve_type<Y, X, LP>(pool_addr)
+        }
+    }
+
+    /// Get decimals scales, works only for stable curve.
+    /// * `pool_addr` - pool owner address.
+    /// Returns `X` and `Y` coins decimals scales.
+    fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) {
+        if (CoinHelper::is_sorted<X, Y>()) {
+            LiquidityPool::get_decimals_scales<X, Y, LP>(pool_addr)
+        } else {
+            LiquidityPool::get_decimals_scales<Y, X, LP>(pool_addr)
+        }
+    }
+
     /// Get current cumulative prices in liquidity pool `X`/`Y`.
     /// * `pool_addr` - pool owner address.
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64) {
@@ -276,35 +306,36 @@ module MultiSwap::Router {
     /// * `coin_in` - exactly amount of coins to swap.
     /// * `reserve_in` - reserves of coin we are going to swap.
     /// * `reserve_out` - reserves of coin we are going to get.
-    public fun get_coin_out_with_fees<X, Y>(coin_in: u64, reserve_in: u64, reserve_out: u64, curve_type: u8): u64 {
+    public fun get_coin_out_with_fees(
+            coin_in: u64,
+            reserve_in: u64,
+            reserve_out: u64,
+            scale_in: u64,
+            scale_out: u64,
+            curve_type: u8
+    ): u64 {
+        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+        // 0.997 for 0.3% fee
+        let fee_multiplier = fee_scale - fee_pct;
+
+
         if (curve_type == STABLE_CURVE) {
-            let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
-            // 0.997 for 0.3% fee
-            let fee_multiplier = fee_scale - fee_pct;
             // x_in * 0.997
             let coin_in_val_after_fees = coin_in * fee_multiplier / fee_scale;
             // x_reserve size after adding amount_in
             let new_reserve_in = reserve_in + coin_in_val_after_fees; // Get new reserve in.
 
-            let decimals_in = Coin::decimals<X>();
-            let decimals_out = Coin::decimals<Y>();
             (StableCurve::coin_out(
                 (coin_in_val_after_fees as u128),
-                decimals_in,
-                decimals_out,
+                scale_in,
+                scale_out,
                 (new_reserve_in as u128),
                 (reserve_out as u128)
             ) as u64)
-
         } else if (curve_type == UNSTABLE_CURVE) {
-            
-            let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
-            // 0.997 for 0.3% fee
-            let fee_multiplier = fee_scale - fee_pct;
-            // x_in * 0.997 (scaled to 1000)
             let coin_in_val_after_fees = coin_in * fee_multiplier;
             // x_reserve size after adding amount_in (scaled to 1000)
-            let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees; // Get new reserve in.
+            let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees;
 
             // Multiply coin_in by the current exchange rate:
             // current_exchange_rate = reserve_out / reserve_in

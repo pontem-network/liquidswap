@@ -82,8 +82,9 @@ module MultiSwap::LiquidityPool {
 
     /// Register liquidity pool `X`/`Y`.
     /// Parameters:
-    ///     - `correlation_curve_type` - which math for lp_value is preferred,
-    ///                                  1 = stable, 2 = uniswap
+    /// * `lp_name` - lp coin name.
+    /// * `lp_symbol` - lp coin symbol.
+    /// * `correlation_curve_type` - pool curve type:  1 = stable, 2 = uniswap like.
     public fun register<X, Y, LP>(
         owner: &signer,
         lp_name: String,
@@ -439,7 +440,6 @@ module MultiSwap::LiquidityPool {
         (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
     }
 
-
     /// Get curve type of the pool.
     /// * pool_addr - pool owner address.
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
@@ -455,6 +455,22 @@ module MultiSwap::LiquidityPool {
         borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).correlation_curve_type
     }
 
+
+    /// Returns decimals scales (X, Y) for stable curve.
+    public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
+        assert!(
+            CoinHelper::is_sorted<X, Y>(),
+            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+        );
+        assert!(
+            exists<LiquidityPool<X, Y, LP>>(pool_addr),
+            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+        );
+
+        let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
+        assert!(pool.correlation_curve_type == STABLE_CURVE, ERR_INVALID_CURVE);
+        (pool.x_scale, pool.y_scale)
+    }
 
     /// Check if lp exists at address
     /// * pool_addr - pool owner address.

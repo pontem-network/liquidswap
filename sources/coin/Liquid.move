@@ -54,7 +54,7 @@ module MultiSwap::Liquid {
         assert!(exists<Capabilities>(admin_addr), ERR_CAPABILITIES_DOESNT_EXIST);
 
         let caps = borrow_global<Capabilities>(admin_addr);
-        assert!(!caps.lock_mint_cap, ERR_MINTING_LOCKED);
+        assert!(!caps.lock_mint_cap && Timestamp::now_seconds() < caps.lock_mint_time, ERR_MINTING_LOCKED);
 
         *&caps.mint_cap
     }

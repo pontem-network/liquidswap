@@ -28,4 +28,4 @@ rev = "v0.1.0"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "ff8919045b70609149d8da2da58fda148aae9332"
+rev = "v0.1.0"

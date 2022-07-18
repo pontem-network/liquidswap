@@ -5,6 +5,7 @@ module MultiSwap::LiquidTests {
 
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
     use AptosFramework::Genesis;
+    use AptosFramework::Timestamp;
 
     use MultiSwap::Liquid::{Self, LAMM};
 
@@ -97,5 +98,28 @@ module MultiSwap::LiquidTests {
         Coin::burn(coins, &burn_cap);
 
         move_to(&admin, BurnCap { burn_cap });
+    }
+
+    #[test(core_resource = @CoreResources, admin = @MultiSwap)]
+    #[expected_failure(abort_code = 101)]
+    fun test_lock_minting_after_6_months_later(core_resource: signer, admin: signer) {
+        Genesis::setup(&core_resource);
+        Liquid::initialize(&admin);
+
+        Timestamp::update_global_time_for_test((Timestamp::now_seconds() + (60 * 60 * 24 * 30 * 6)) * 1000000);
+
+        Liquid::mint_internal(&admin, Signer::address_of(&admin), 100);
+    }
+
+    #[test(core_resource = @CoreResources, admin = @MultiSwap)]
+    #[expected_failure(abort_code = 101)]
+    fun test_cannot_get_mint_cap_after_6_months_late(core_resource: signer, admin: signer) {
+        Genesis::setup(&core_resource);
+        Liquid::initialize(&admin);
+
+        Timestamp::update_global_time_for_test((Timestamp::now_seconds() + (60 * 60 * 24 * 30 * 6)) * 1000000);
+        // failure here, need to store mint_cap somewhere anyway, otherwise it won't compile
+        let mint_cap = Liquid::get_mint_cap(&admin);
+        move_to(&admin, MintCap { mint_cap });
     }
 }

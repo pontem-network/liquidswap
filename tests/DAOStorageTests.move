@@ -24,14 +24,14 @@ module MultiSwap::DAOStorageTests {
         TestCoins::register_coins(&coin_admin);
 
         // 0.3% fee
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 2);
+        Router::register<BTC, USDT, LP>(&pool_owner, 2);
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let btc_coins = TestCoins::mint<BTC>(&coin_admin, 100000);
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100000);
 
         let lp_coins =
-            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 

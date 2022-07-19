@@ -88,7 +88,7 @@ module MultiSwap::LiquidityPoolTests {
 
         let pool_owner_addr = Signer::address_of(&pool_owner);
         let lp_coins =
-            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         assert!(Coin::value(&lp_coins) == 99100, 1);
 
         let (x_res, y_res) = LiquidityPool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
@@ -96,7 +96,7 @@ module MultiSwap::LiquidityPoolTests {
         assert!(y_res == 100100, 3);
 
         let (btc_return, usdt_return) =
-            LiquidityPool::burn_liquidity<BTC, USDT, LP>(pool_owner_addr, lp_coins);
+            LiquidityPool::burn<BTC, USDT, LP>(pool_owner_addr, lp_coins);
 
         assert!(Coin::value(&btc_return) == 100100, 1);
         assert!(Coin::value(&usdt_return) == 100100, 1);
@@ -128,7 +128,7 @@ module MultiSwap::LiquidityPoolTests {
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100100);
 
         let lp_coins =
-            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
@@ -169,7 +169,7 @@ module MultiSwap::LiquidityPoolTests {
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 100100);
 
         let lp_coins =
-            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 
@@ -241,7 +241,7 @@ module MultiSwap::LiquidityPoolTests {
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 1000000000);
 
         let lp_coins =
-            LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         Coin::register_internal<LP>(&pool_owner);
         Coin::deposit(pool_owner_addr, lp_coins);
 

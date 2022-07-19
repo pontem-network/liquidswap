@@ -17,14 +17,14 @@ module MultiSwap::ScriptsTests {
         x_val: u64,
         y_val: u64
     ) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 2);
+        Router::register<BTC, USDT, LP>(pool_owner, 2);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
             let btc_coins = TestCoins::mint<BTC>(coin_admin, x_val);
             let usdt_coins = TestCoins::mint<USDT>(coin_admin, y_val);
             let lp_coins =
-                LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+                LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
             Coin::register_internal<LP>(pool_owner);
             Coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
@@ -122,7 +122,7 @@ module MultiSwap::ScriptsTests {
         let usdt_coins = TestCoins::mint<USDT>(&coin_admin, 10100);
 
         let (btc, usdt, lp) =
-            Router::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, 101, usdt_coins, 10100);
+            Router::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, 101, usdt_coins, 10100);
         Coin::register_internal<BTC>(&pool_owner);
         Coin::register_internal<USDT>(&pool_owner);
         Coin::register_internal<LP>(&pool_owner);

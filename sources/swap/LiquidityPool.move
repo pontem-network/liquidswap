@@ -77,19 +77,19 @@ module MultiSwap::LiquidityPool {
         lp_burn_cap: Coin::BurnCapability<LP>,
         x_scale: u64,
         y_scale: u64,
-        correlation_curve_type: u8,
+        curve_type: u8,
     }
 
     /// Register liquidity pool `X`/`Y`.
     /// Parameters:
     /// * `lp_name` - lp coin name.
     /// * `lp_symbol` - lp coin symbol.
-    /// * `correlation_curve_type` - pool curve type:  1 = stable, 2 = uncorrelated (uniswap like).
+    /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, LP>(
         owner: &signer,
         lp_name: String,
         lp_symbol: String,
-        correlation_curve_type: u8
+        curve_type: u8
     ) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
@@ -98,7 +98,7 @@ module MultiSwap::LiquidityPool {
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
         assert!(
-            correlation_curve_type == STABLE_CURVE || correlation_curve_type == UNCORRELATED_CURVE,
+            curve_type == STABLE_CURVE || curve_type == UNCORRELATED_CURVE,
             ERR_INVALID_CURVE
         );
 
@@ -113,7 +113,7 @@ module MultiSwap::LiquidityPool {
         let x_scale = 0;
         let y_scale = 0;
 
-        if (correlation_curve_type == STABLE_CURVE) {
+        if (curve_type == STABLE_CURVE) {
             x_scale = Math::pow_10(Coin::decimals<X>());
             y_scale = Math::pow_10(Coin::decimals<Y>());
         };
@@ -128,7 +128,7 @@ module MultiSwap::LiquidityPool {
             lp_burn_cap,
             x_scale,
             y_scale,
-            correlation_curve_type,
+            curve_type,
         };
         move_to(owner, pool);
 
@@ -152,7 +152,8 @@ module MultiSwap::LiquidityPool {
     /// * `pool_addr` - pool owner address.
     /// * `coin_x` - coin X to add to liquidity reserves.
     /// * `coin_y` - coin Y to add to liquidity reserves.
-    public fun add_liquidity<X, Y, LP>(
+    /// Returns `Coin<LP>`.
+    public fun mint<X, Y, LP>(
         pool_addr: address,
         coin_x: Coin<X>,
         coin_y: Coin<Y>
@@ -205,8 +206,8 @@ module MultiSwap::LiquidityPool {
     /// Burn liquidity coins (LP) and get back X and Y coins from reserves.
     /// * `pool_addr` - pool owner address.
     /// * `lp_coins` - LP coins to burn.
-    /// Return both `Coin<X>` and `Coin<Y>`.
-    public fun burn_liquidity<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
+    /// Returns both `Coin<X>` and `Coin<Y>`.
+    public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
 
@@ -250,7 +251,7 @@ module MultiSwap::LiquidityPool {
     /// * `x_out` - expected amount of X coins to get out.
     /// * `y_in` - Y coins to swap.
     /// * `y_out` - expected amount of Y coins to get out.
-    /// Returns - both exchanged X and Y coins.
+    /// Returns - both exchanged `X` and `Y` coins: `(Coin<X>, Coin<Y>)`.
     public fun swap<X, Y, LP>(
         pool_addr: address,
         x_in: Coin<X>,
@@ -313,7 +314,7 @@ module MultiSwap::LiquidityPool {
         compute_and_verify_lp_value(
             pool.x_scale,
             pool.y_scale,
-            pool.correlation_curve_type,
+            pool.curve_type,
             (x_reserve_size as u128),
             (y_reserve_size as u128),
             (x_res_new_after_fee as u128),
@@ -337,12 +338,20 @@ module MultiSwap::LiquidityPool {
     }
 
     /// Compute and very LP value after and before swap, in nutshell, _k function.
+    /// * `x_scale` - 10 pow by X coin decimals.
+    /// * `y_scale` - 10 pow by Y coin decimals.
+    /// * `curve_type` - type of curve.
+    /// * `x_res` - X reserves before swap.
+    /// * `y_res` - Y reserves before swap.
+    /// * `x_res_with_fees` - X reserves after swap.
+    /// * `y_res_with_fees` - Y reserves after swap.
+    /// Aborts if swap can't be done.
     fun compute_and_verify_lp_value(
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
-        x_res: u128, // x reserve without fees and swap data
-        y_res: u128, // y reserve without fees and swap data
+        x_res: u128,
+        y_res: u128,
         x_res_with_fees: u128,
         y_res_with_fees: u128,
     ) {
@@ -412,7 +421,7 @@ module MultiSwap::LiquidityPool {
 
     /// Get reserves of a pool.
     /// * `pool_addr` - pool owner address.
-    /// Returns both (X, Y) reserves.
+    /// Returns both (`X`, `Y`) reserves.
     public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64)
     acquires LiquidityPool {
         assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
@@ -443,6 +452,7 @@ module MultiSwap::LiquidityPool {
 
     /// Get curve type of the pool.
     /// * pool_addr - pool owner address.
+    /// Returns 1 = stable or 2 = uncorrelated (uniswap like).
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
         assert!(
             CoinHelper::is_sorted<X, Y>(),
@@ -453,11 +463,12 @@ module MultiSwap::LiquidityPool {
             Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
         );
 
-        borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).correlation_curve_type
+        borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).curve_type
     }
 
 
     /// Returns decimals scales (X, Y) for stable curve.
+    /// For uncorrelated curve would return just zeros.
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
         assert!(
             CoinHelper::is_sorted<X, Y>(),
@@ -474,6 +485,7 @@ module MultiSwap::LiquidityPool {
 
     /// Check if lp exists at address
     /// * pool_addr - pool owner address.
+    /// If pool exists returns true, otherwise false.
     public fun pool_exists_at<X, Y, LP>(pool_addr: address): bool {
         exists<LiquidityPool<X, Y, LP>>(pool_addr)
     }

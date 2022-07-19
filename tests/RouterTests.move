@@ -16,28 +16,28 @@ module MultiSwap::RouterTests {
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64) {
-        Router::register_liquidity_pool<BTC, USDT, LP>(pool_owner, 2);
+        Router::register<BTC, USDT, LP>(pool_owner, 2);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
             let btc_coins = TestCoins::mint<BTC>(coin_admin, x_val);
             let usdt_coins = TestCoins::mint<USDT>(coin_admin, y_val);
             let lp_coins =
-                LiquidityPool::add_liquidity<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+                LiquidityPool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
             Coin::register_internal<LP>(pool_owner);
             Coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
     }
 
     fun register_stable_pool_with_liquidity(coin_admin: &signer, pool_owner: &signer, x_val: u64, y_val: u64) {
-        Router::register_liquidity_pool<USDC, USDT, LP>(pool_owner, 1);
+        Router::register<USDC, USDT, LP>(pool_owner, 1);
 
         let pool_owner_addr = Signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
             let usdc_coins = TestCoins::mint<USDC>(coin_admin, x_val);
             let usdt_coins = TestCoins::mint<USDT>(coin_admin, y_val);
             let lp_coins =
-                LiquidityPool::add_liquidity<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
+                LiquidityPool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
             Coin::register_internal<LP>(pool_owner);
             Coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
@@ -55,7 +55,7 @@ module MultiSwap::RouterTests {
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
-            Router::add_liquidity<BTC, USDT, LP>(
+            Router::mint<BTC, USDT, LP>(
                 pool_addr,
                 btc_coins,
                 101,
@@ -90,7 +90,7 @@ module MultiSwap::RouterTests {
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
-            Router::add_liquidity<BTC, USDT, LP>(pool_addr, btc_coins, 10, usdt_coins, 9000);
+            Router::mint<BTC, USDT, LP>(pool_addr, btc_coins, 10, usdt_coins, 9000);
         // 101 - 90 = 11
         assert!(Coin::value(&coin_x) == 11, 0);
         assert!(Coin::value(&coin_y) == 0, 1);
@@ -117,7 +117,7 @@ module MultiSwap::RouterTests {
         let pool_addr = Signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) =
-            Router::add_liquidity<USDT, BTC, LP>(pool_addr, usdt_coins, 9000, btc_coins, 10);
+            Router::mint<USDT, BTC, LP>(pool_addr, usdt_coins, 9000, btc_coins, 10);
         // 101 - 90 = 11
         assert!(Coin::value(&coin_x) == 11, 0);
         assert!(Coin::value(&coin_y) == 0, 1);
@@ -148,7 +148,7 @@ module MultiSwap::RouterTests {
             lp_coins_val
         );
         let (coin_x, coin_y) =
-            Router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
+            Router::burn<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
 
         let (usdt_reserve, btc_reserve) = Router::get_reserves_size<USDT, BTC, LP>(pool_addr);
         assert!(usdt_reserve == 8080, 0);
@@ -308,7 +308,7 @@ module MultiSwap::RouterTests {
 
         TestCoins::register_coins(&coin_admin);
 
-        Router::register_liquidity_pool<BTC, USDT, LP>(&pool_owner, 2);
+        Router::register<BTC, USDT, LP>(&pool_owner, 2);
 
         assert!(Router::pool_exists_at<BTC, USDT, LP>(Signer::address_of(&pool_owner)), 0);
         assert!(Router::pool_exists_at<USDT, BTC, LP>(Signer::address_of(&pool_owner)), 1);

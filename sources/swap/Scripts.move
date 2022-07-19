@@ -8,7 +8,7 @@ module MultiSwap::Scripts {
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     public(script) fun register_pool<X, Y, LP>(account: signer, correlation_curve_type: u8) {
-        Router::register_liquidity_pool<X, Y, LP>(&account, correlation_curve_type);
+        Router::register<X, Y, LP>(&account, correlation_curve_type);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
@@ -25,7 +25,7 @@ module MultiSwap::Scripts {
         coin_y_val_min: u64
     ) {
         let acc_addr = Signer::address_of(&account);
-        Router::register_liquidity_pool<X, Y, LP>(&account, correlation_curve_type);
+        Router::register<X, Y, LP>(&account, correlation_curve_type);
 
         add_liquidity<X, Y, LP>(
             account,
@@ -55,7 +55,7 @@ module MultiSwap::Scripts {
         let coin_y = Coin::withdraw<Y>(&account, coin_y_val);
 
         let (coin_x_remainder, coin_y_remainder, lp_coins) =
-            Router::add_liquidity<X, Y, LP>(
+            Router::mint<X, Y, LP>(
                 pool_addr,
                 coin_x,
                 coin_x_val_min,
@@ -86,7 +86,7 @@ module MultiSwap::Scripts {
     ) {
         let lp_coins = Coin::withdraw<LP>(&account, lp_val);
 
-        let (coin_x, coin_y) = Router::remove_liquidity<X, Y, LP>(
+        let (coin_x, coin_y) = Router::burn<X, Y, LP>(
             pool_addr,
             lp_coins,
             min_x_out_val,

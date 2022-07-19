@@ -284,8 +284,8 @@ module MultiSwap::Router {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
         let lp_coins_total = supply<LP>();
 
-        let x_to_return_val = Math::mul_div(lp_to_burn_val, x_reserve, lp_coins_total);
-        let y_to_return_val = Math::mul_div(lp_to_burn_val, y_reserve, lp_coins_total);
+        let x_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
+        let y_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
 
         assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
 
@@ -436,17 +436,22 @@ module MultiSwap::Router {
     }
 
     /// Return amount of liquidity need to for `amount_in`.
-    /// * `amount_in` - amount to swap.
+    /// * `coin_in` - amount to swap.
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get.
-    fun convert_with_current_price(coin_in_val: u64, reserve_in_size: u64, reserve_out_size: u64): u64 {
-        assert!(coin_in_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
-        assert!(reserve_in_size > 0 && reserve_out_size > 0, Errors::invalid_argument(ERR_WRONG_RESERVE));
+    fun convert_with_current_price(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
+        assert!(coin_in > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
+        assert!(reserve_in > 0 && reserve_out > 0, Errors::invalid_argument(ERR_WRONG_RESERVE));
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price
-        let res = Math::mul_div(coin_in_val, reserve_out_size, reserve_in_size);
+        let res = Math::mul_div(coin_in, reserve_out, reserve_in);
         (res as u64)
+    }
+
+    #[test_only]
+    public fun convert_with_current_price_for_test(coin_in: u64, reserve_in: u64, reserve_out: u64) : u64 {
+        convert_with_current_price(coin_in, reserve_in, reserve_out)
     }
 
     #[test_only]

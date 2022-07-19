@@ -1,6 +1,7 @@
 #[test_only]
 module TestPoolOwner::TestLP {
     use Std::ASCII::string;
+
     use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
 
     struct LP {}
@@ -20,6 +21,6 @@ module TestPoolOwner::TestLP {
                 true
             );
 
-        move_to(pool_owner, Capabilities<LP>{mint_cap, burn_cap});
+        move_to(pool_owner, Capabilities<LP> { mint_cap, burn_cap });
     }
 }

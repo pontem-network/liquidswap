@@ -22,3 +22,10 @@ rev = "49f08c7419b442461e47164848305fe74e846607"
 subdir = "aptos-move/framework/aptos-framework"
 addr_subst = { Std = "0x1" }
 
+[dependencies.UQ64x64]
+git = "https://github.com/pontem-network/UQ64x64.git"
+rev = "v0.2.0"
+
+[dependencies.U256]
+git = "https://github.com/pontem-network/U256.git"
+rev = "v0.2.0"

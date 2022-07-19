@@ -3,14 +3,13 @@ module MultiSwap::CoinHelper {
     use Std::BCS;
     use Std::ASCII::{Self, String, as_bytes};
     use Std::Option;
-    use Std::Errors;
     use Std::Vector;
 
     use AptosFramework::Coin;
 
     use MultiSwap::Compare;
 
-    // Errors.
+    // Errors codes.
 
     /// When both coins have same names and can't be ordered.
     const ERR_CANNOT_BE_THE_SAME_COIN: u64 = 100;
@@ -29,7 +28,7 @@ module MultiSwap::CoinHelper {
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
-        assert!(Coin::is_coin_initialized<CoinType>(), Errors::not_published(ERR_IS_NOT_COIN));
+        assert!(Coin::is_coin_initialized<CoinType>(), ERR_IS_NOT_COIN);
     }
 
     /// Compare two coins, `X` and `Y`, using names.
@@ -44,7 +43,7 @@ module MultiSwap::CoinHelper {
     /// X != Y && X.symbol < Y.symbol
     public fun is_sorted<X, Y>(): bool {
         let order = compare<X, Y>();
-        assert!(order != EQUAL, Errors::invalid_argument(ERR_CANNOT_BE_THE_SAME_COIN));
+        assert!(order != EQUAL, ERR_CANNOT_BE_THE_SAME_COIN);
         order == LESS_THAN
     }
 

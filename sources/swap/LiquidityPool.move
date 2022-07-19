@@ -2,7 +2,6 @@
 /// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
 module MultiSwap::LiquidityPool {
     use Std::ASCII::String;
-    use Std::Errors;
     use Std::Event;
     use Std::Signer;
 
@@ -93,10 +92,10 @@ module MultiSwap::LiquidityPool {
     ) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
+        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
         let owner_addr = Signer::address_of(owner);
-        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
+        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
         assert!(
             curve_type == STABLE_CURVE || curve_type == UNCORRELATED_CURVE,
             ERR_INVALID_CURVE
@@ -158,7 +157,7 @@ module MultiSwap::LiquidityPool {
         coin_x: Coin<X>,
         coin_y: Coin<Y>
     ): Coin<LP> acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let lp_coins_total = CoinHelper::supply<LP>();
 
@@ -169,7 +168,7 @@ module MultiSwap::LiquidityPool {
 
         let provided_liq = if (lp_coins_total == 0) {
             let initial_liq = Math::sqrt(Math::mul_to_u128(x_provided_val, y_provided_val));
-            assert!(initial_liq > MINIMAL_LIQUIDITY, Errors::invalid_state(ERR_NOT_ENOUGH_INITIAL_LIQUIDITY));
+            assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
@@ -181,7 +180,7 @@ module MultiSwap::LiquidityPool {
                 y_liq
             }
         };
-        assert!(provided_liq > 0, Errors::invalid_argument(ERR_NOT_ENOUGH_LIQUIDITY));
+        assert!(provided_liq > 0, ERR_NOT_ENOUGH_LIQUIDITY);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
         Coin::merge(&mut pool.coin_x_reserve, coin_x);
@@ -209,7 +208,7 @@ module MultiSwap::LiquidityPool {
     /// Returns both `Coin<X>` and `Coin<Y>`.
     public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let burned_lp_coins_val = Coin::value(&lp_coins);
 
@@ -222,7 +221,7 @@ module MultiSwap::LiquidityPool {
         // Compute x, y coin values for provided lp_coins value
         let x_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
         let y_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_INCORRECT_BURN_VALUES);
 
         // Withdraw those values from reserves
         let x_coin_to_return = Coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
@@ -259,12 +258,12 @@ module MultiSwap::LiquidityPool {
         y_in: Coin<Y>,
         y_out: u64
     ): (Coin<X>, Coin<Y>) acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let x_in_val = Coin::value(&x_in);
         let y_in_val = Coin::value(&y_in);
 
-        assert!(x_in_val > 0 || y_in_val > 0, Errors::invalid_argument(ERR_EMPTY_COIN_IN));
+        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
@@ -365,7 +364,7 @@ module MultiSwap::LiquidityPool {
             let lp_value_after_swap_and_fee = StableCurve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
-            assert!(cmp == 0 || cmp == 2, Errors::invalid_state(ERR_INCORRECT_SWAP));
+            assert!(cmp == 0 || cmp == 2, ERR_INCORRECT_SWAP);
         } else if (curve_type == UNCORRELATED_CURVE) {
             let lp_value_before_swap = x_res * y_res;
             // 100000000 == FEE_SCALE * FEE_SCALE
@@ -374,10 +373,10 @@ module MultiSwap::LiquidityPool {
 
             assert!(
                 lp_value_after_swap_and_fee >= lp_value_before_swap,
-                Errors::invalid_state(ERR_INCORRECT_SWAP),
+                ERR_INCORRECT_SWAP,
             );
         } else {
-            abort Errors::invalid_state(ERR_INVALID_CURVE)
+            abort ERR_INVALID_CURVE
         };
     }
 
@@ -424,8 +423,8 @@ module MultiSwap::LiquidityPool {
     /// Returns both (`X`, `Y`) reserves.
     public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let x_reserve = Coin::value(&liquidity_pool.coin_x_reserve);
@@ -439,8 +438,8 @@ module MultiSwap::LiquidityPool {
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(CoinHelper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
@@ -456,11 +455,11 @@ module MultiSwap::LiquidityPool {
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
         assert!(
             CoinHelper::is_sorted<X, Y>(),
-            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+            ERR_WRONG_PAIR_ORDERING
         );
         assert!(
             exists<LiquidityPool<X, Y, LP>>(pool_addr),
-            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+            ERR_POOL_DOES_NOT_EXIST
         );
 
         borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).curve_type
@@ -472,11 +471,11 @@ module MultiSwap::LiquidityPool {
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
         assert!(
             CoinHelper::is_sorted<X, Y>(),
-            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+            ERR_WRONG_PAIR_ORDERING
         );
         assert!(
             exists<LiquidityPool<X, Y, LP>>(pool_addr),
-            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+            ERR_POOL_DOES_NOT_EXIST
         );
 
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);

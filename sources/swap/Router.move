@@ -2,8 +2,6 @@
 module MultiSwap::Router {
     // !!! FOR AUDITOR!!!
     // Look at math part of this contract.
-    use Std::Errors;
-
     use AptosFramework::Coin::{Coin, Self};
 
     use MultiSwap::CoinHelper::{Self, supply};
@@ -106,11 +104,11 @@ module MultiSwap::Router {
 
         assert!(
             Coin::value(&x_out) >= min_x_out_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
         );
         assert!(
             Coin::value(&y_out) >= min_y_out_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
         );
 
         (x_out, y_out)
@@ -131,7 +129,7 @@ module MultiSwap::Router {
 
         assert!(
             coin_out_val >= coin_out_min_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM,
         );
 
         let (zero, coin_out);
@@ -160,7 +158,7 @@ module MultiSwap::Router {
         let coin_val_max = Coin::value(&coin_max_in);
         assert!(
             coin_in_val_needed <= coin_val_max,
-            Errors::invalid_argument(ERR_COIN_VAL_MAX_LESS_THAN_NEEDED)
+            ERR_COIN_VAL_MAX_LESS_THAN_NEEDED
         );
 
         let coin_in = Coin::extract(&mut coin_max_in, coin_in_val_needed);
@@ -259,12 +257,12 @@ module MultiSwap::Router {
         } else {
             let y_returned = convert_with_current_price(x_desired, reserves_x, reserves_y);
             if (y_returned <= y_desired) {
-                assert!(y_returned >= y_min, Errors::invalid_argument(ERR_INSUFFICIENT_Y_AMOUNT));
+                assert!(y_returned >= y_min, ERR_INSUFFICIENT_Y_AMOUNT);
                 return (x_desired, y_returned)
             } else {
                 let x_returned = convert_with_current_price(y_desired, reserves_y, reserves_x);
-                assert!(x_returned <= x_desired, Errors::invalid_argument(ERR_OVERLIMIT_X));
-                assert!(x_returned >= x_min, Errors::invalid_argument(ERR_INSUFFICIENT_X_AMOUNT));
+                assert!(x_returned <= x_desired, ERR_OVERLIMIT_X);
+                assert!(x_returned >= x_min, ERR_INSUFFICIENT_X_AMOUNT);
                 return (x_returned, y_desired)
             }
         }
@@ -284,7 +282,7 @@ module MultiSwap::Router {
         let x_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
         let y_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
 
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_WRONG_AMOUNT);
 
         (x_to_return_val, y_to_return_val)
     }
@@ -458,8 +456,8 @@ module MultiSwap::Router {
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get.
     fun convert_with_current_price(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
-        assert!(coin_in > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
-        assert!(reserve_in > 0 && reserve_out > 0, Errors::invalid_argument(ERR_WRONG_RESERVE));
+        assert!(coin_in > 0, ERR_WRONG_AMOUNT);
+        assert!(reserve_in > 0 && reserve_out > 0, ERR_WRONG_RESERVE);
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price

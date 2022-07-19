@@ -36,7 +36,7 @@ module MultiSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    #[expected_failure(abort_code = 25607)]
+    #[expected_failure(abort_code = 100)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -150,7 +150,7 @@ module MultiSwap::LiquidityPoolTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    #[expected_failure(abort_code = 26881)]
+    #[expected_failure(abort_code = 105)]
     fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 

@@ -1,7 +1,5 @@
 /// Implementation of math functions needed for Multi Swap.
 module MultiSwap::Math {
-    use Std::Errors;
-
     // Errors codes.
 
     /// When trying to divide by zero.
@@ -16,7 +14,7 @@ module MultiSwap::Math {
     /// The func checks for overflows or divide by zero.
     /// Can't overflow.
     public fun mul_div(x: u64, y: u64, z: u64): u64 {
-        assert!(z != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
+        assert!(z != 0, ERR_DIVIDE_BY_ZERO);
         let r = (x as u128) * (y as u128) / (z as u128);
         (r as u64)
     }
@@ -25,7 +23,7 @@ module MultiSwap::Math {
     /// The func checks for overflows or divide by zero.
     /// Can't overflow.
     public fun mul_div_u128(x: u128, y: u128, z: u128): u64 {
-        assert!(z != 0, Errors::invalid_argument(ERR_DIVIDE_BY_ZERO));
+        assert!(z != 0, ERR_DIVIDE_BY_ZERO);
         let r = x * y / z;
         (r as u64)
     }

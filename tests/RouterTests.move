@@ -241,7 +241,7 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    #[expected_failure(abort_code = 26887)]
+    #[expected_failure(abort_code = 105)]
     fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -260,7 +260,7 @@ module MultiSwap::RouterTests {
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin, pool_owner = @TestPoolOwner)]
-    #[expected_failure(abort_code = 26631)]
+    #[expected_failure(abort_code = 104)]
     fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         Genesis::setup(&core);
 
@@ -483,19 +483,19 @@ module MultiSwap::RouterTests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 25607)]
+    #[expected_failure(abort_code = 100)]
     fun test_fail_convert_with_current_price_coin_in_val() {
         Router::convert_with_current_price_for_test(0, 1, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 25863)]
+    #[expected_failure(abort_code = 101)]
     fun test_fail_convert_with_current_price_reserve_in_size() {
         Router::convert_with_current_price_for_test(1, 0, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 25863)]
+    #[expected_failure(abort_code = 101)]
     fun test_fail_convert_with_current_price_reserve_out_size() {
         Router::convert_with_current_price_for_test(1, 1, 0);
     }

@@ -39,9 +39,20 @@ module MultiSwap::CoinHelperTests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 25861)]
+    #[expected_failure(abort_code = 101)]
     fun test_assert_is_coin_failure() {
         CoinHelper::assert_is_coin<USDT>();
+    }
+
+    #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]
+    #[expected_failure(abort_code = 100)]
+    fun test_cant_be_same_coin_failure(core: signer, coin_admin: signer) {
+        Genesis::setup(&core);
+
+        TestCoins::register_coins(&coin_admin);
+
+        CoinHelper::assert_is_coin<USDT>();
+        let _ = CoinHelper::is_sorted<USDT, USDT>();
     }
 
     #[test(core = @CoreResources, coin_admin = @TestCoinAdmin)]

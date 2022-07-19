@@ -26,13 +26,13 @@ module MultiSwap::MathTests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 25607)]
+    #[expected_failure(abort_code = 100)]
     fun test_mul_div_zero() {
         let _ = Math::mul_div(10, 20, 0);
     }
 
     #[test]
-    #[expected_failure(abort_code = 25607)]
+    #[expected_failure(abort_code = 100)]
     fun test_mul_div_u128_zero() {
         let _ = Math::mul_div_u128(10, 20, 0);
     }

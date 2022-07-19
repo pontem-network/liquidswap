@@ -1,4 +1,4 @@
-/// The current module contains pre-deplopyed scripts for Multi Swap.
+/// The current module contains pre-deplopyed scripts for LiquidSwap.
 module MultiSwap::Scripts {
     use Std::Signer;
 
@@ -16,7 +16,7 @@ module MultiSwap::Scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    public(script) fun register_pool_with_liquidity<X, Y, LP>(
+    public(script) fun register_pool_and_mint<X, Y, LP>(
         account: signer,
         correlation_curve_type: u8,
         coin_x_val: u64,
@@ -27,7 +27,7 @@ module MultiSwap::Scripts {
         let acc_addr = Signer::address_of(&account);
         Router::register<X, Y, LP>(&account, correlation_curve_type);
 
-        add_liquidity<X, Y, LP>(
+        mint<X, Y, LP>(
             account,
             acc_addr,
             coin_x_val,
@@ -37,13 +37,13 @@ module MultiSwap::Scripts {
         );
     }
 
-    /// Add liquidity to pool `X`/`Y` with liquidity coin `LP`.
+    /// Mint new liquidity into pool `X`/`Y` with liquidity coin `LP`.
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    public(script) fun add_liquidity<X, Y, LP>(
+    public(script) fun mint<X, Y, LP>(
         account: signer,
         pool_addr: address,
         coin_x_val: u64,
@@ -74,10 +74,10 @@ module MultiSwap::Scripts {
         Coin::deposit(account_addr, lp_coins);
     }
 
-    /// Remove (burn) liquidity coins `LP`, get `X` and`Y` coins back.
+    /// Burn liquidity coins `LP`, get `X` and`Y` coins back.
     /// * `pool_addr` - address of account registered pool.
     /// * `lp_val` - amount of `LP` coins to burn.
-    public(script) fun remove_liquidity<X, Y, LP>(
+    public(script) fun burn<X, Y, LP>(
         account: signer,
         pool_addr: address,
         lp_val: u64,

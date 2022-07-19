@@ -64,7 +64,7 @@ module MultiSwap::ScriptsTests {
         Coin::deposit(pool_owner_addr, btc_coins);
         Coin::deposit(pool_owner_addr, usdt_coins);
 
-        Scripts::register_pool_with_liquidity<BTC, USDT, LP>(
+        Scripts::register_pool_and_mint<BTC, USDT, LP>(
             pool_owner,
             2,
             101,
@@ -97,7 +97,7 @@ module MultiSwap::ScriptsTests {
 
         Coin::register_internal<LP>(&pool_owner);
 
-        Scripts::add_liquidity<BTC, USDT, LP>(
+        Scripts::mint<BTC, USDT, LP>(
             pool_owner,
             pool_owner_addr,
             101,
@@ -130,7 +130,7 @@ module MultiSwap::ScriptsTests {
         Coin::deposit(pool_owner_addr, usdt);
         Coin::deposit(pool_owner_addr, lp);
 
-        Scripts::remove_liquidity<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 98, 10000);
+        Scripts::burn<BTC, USDT, LP>(pool_owner, pool_owner_addr, 10, 98, 10000);
 
         assert!(Coin::balance<LP>(pool_owner_addr) == 0, 1);
         assert!(Coin::balance<BTC>(pool_owner_addr) == 101, 2);

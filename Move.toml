@@ -24,8 +24,8 @@ addr_subst = { Std = "0x1" }
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.1.0"
+rev = "v0.2.0"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.1.0"
+rev = "v0.2.0"

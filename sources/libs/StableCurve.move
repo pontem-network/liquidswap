@@ -98,7 +98,7 @@ module MultiSwap::StableCurve {
         U256::as_u128(r)
     }
 
-    /// Trying to find siutable `y` value.
+    /// Trying to find suitable `y` value.
     /// * `x0` - total reserve x (include `coin_in`) with transformed decimals.
     /// * `xy` - lp value (see `lp_value` func).
     /// * `y` - reserves out with transformed decimals.
@@ -152,7 +152,7 @@ module MultiSwap::StableCurve {
         y
     }
 
-    /// Implements x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
+    /// Implements x0*y^3 + x0^3*y = x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
     fun f(x0_u256: U256, y_u256: U256): U256 {
         let u2561e8 = U256::from_u128(ONE_E_8);
 
@@ -217,20 +217,41 @@ module MultiSwap::StableCurve {
         U256::add(xyy3, xxx)
     }
 
-    // TODO: test f
-    // TODO: test get_y
-
     #[test]
     fun test_coin_out() {
-        let reserve_in = 25582858050757; // Let's say it's USDC (6 decimals).
-        let reserve_out = 2558285805075712; // It's USDT (8 decimals).
-
-        let in = 2513058000; // We swap 2513.058000 USDC to USDT.
-        // coin_in: u128, scale_in: u64, scale_out: u64, reserve_in: u128, reserve_out: u128
-        let out = coin_out(in, 1000000, 100000000, reserve_in, reserve_out);
+        let out = coin_out(
+            2513058000,
+            1000000,
+            100000000,
+            25582858050757,
+            2558285805075712
+        );
         assert!(out == 251305799999, 0);
+    }
 
-        // more tests.
+    #[test]
+    fun test_coin_out_vise_vera() {
+        let out = coin_out(
+            251305800000,
+            100000000,
+            1000000,
+            2558285805075701,
+            25582858050757
+        );
+        assert!(out == 2513057999, 1);
+    }
+
+    #[test]
+    fun test_f() {
+        //
+        let x0 = U256::from_u128(10000518365287);
+        let y = U256::from_u128(2520572000001255);
+
+        let r = U256::as_u128(f(x0, y));
+        assert!(r == 160149899619106589403932994151877362, 0);
+
+        let r = U256::as_u128(f(U256::zero(), U256::zero()));
+        assert!(r == 0, 1);
     }
 
     #[test]
@@ -249,7 +270,6 @@ module MultiSwap::StableCurve {
         let z = d(x0, y);
         let r = U256::as_u128(z);
         assert!(r == 150000000000012500000000000, 0);
-
 
         let x0 = U256::from_u128(1);
         let y = U256::from_u128(2);

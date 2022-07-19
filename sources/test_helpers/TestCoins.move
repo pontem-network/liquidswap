@@ -2,10 +2,14 @@
 module TestCoinAdmin::TestCoins {
     use Std::ASCII::string;
     use Std::Signer;
+
     use AptosFramework::Coin::{Self, Coin, MintCapability, BurnCapability};
 
     struct BTC {}
+
     struct USDT {}
+
+    struct USDC {}
 
     struct Capabilities<phantom CoinType> has key {
         mint_cap: MintCapability<CoinType>,
@@ -30,6 +34,15 @@ module TestCoinAdmin::TestCoins {
                 true
             );
 
+        let (usdc_mint_cap, usdc_burn_cap) =
+            Coin::initialize<USDC>(
+                coin_admin,
+                string(b"USDC"),
+                string(b"USDC"),
+                4,
+                true,
+            );
+
         move_to(coin_admin, Capabilities<USDT> {
             mint_cap: usdt_mint_cap,
             burn_cap: usdt_burn_cap,
@@ -38,6 +51,11 @@ module TestCoinAdmin::TestCoins {
         move_to(coin_admin, Capabilities<BTC> {
             mint_cap: btc_mint_cap,
             burn_cap: btc_burn_cap,
+        });
+
+        move_to(coin_admin, Capabilities<USDC> {
+            mint_cap: usdc_mint_cap,
+            burn_cap: usdc_burn_cap,
         });
     }
 

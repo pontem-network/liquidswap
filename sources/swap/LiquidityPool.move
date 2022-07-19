@@ -60,8 +60,8 @@ module MultiSwap::LiquidityPool {
     /// Stable curve (similar to Curve).
     const STABLE_CURVE: u8 = 1;
 
-    /// Uniswap like curve.
-    const UNSTABLE_CURVE: u8 = 2;
+    /// Uncorrelated (Uniswap like) curve.
+    const UNCORRELATED_CURVE: u8 = 2;
 
     // Public functions.
 
@@ -84,7 +84,7 @@ module MultiSwap::LiquidityPool {
     /// Parameters:
     /// * `lp_name` - lp coin name.
     /// * `lp_symbol` - lp coin symbol.
-    /// * `correlation_curve_type` - pool curve type:  1 = stable, 2 = uniswap like.
+    /// * `correlation_curve_type` - pool curve type:  1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, LP>(
         owner: &signer,
         lp_name: String,
@@ -98,7 +98,7 @@ module MultiSwap::LiquidityPool {
         let owner_addr = Signer::address_of(owner);
         assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
         assert!(
-            correlation_curve_type == STABLE_CURVE || correlation_curve_type == UNSTABLE_CURVE,
+            correlation_curve_type == STABLE_CURVE || correlation_curve_type == UNCORRELATED_CURVE,
             ERR_INVALID_CURVE
         );
 
@@ -284,8 +284,8 @@ module MultiSwap::LiquidityPool {
         // and on the next lines we are withdrawing part of funds to DAO Treasury from reserves, so reserves changed,
         // but not updated in variable.
         //
-        // So the Curve Math (Uniswap K) has really no idea we withdrew something already, means it still
-        // thinks we have that DAO Treasury percent in reserves, what seems doesn't break any logic
+        // So the Curve Math (compute_and_verify_lp_value) has really no idea we withdrew something already,
+        // means it still thinks we have that DAO Treasury percent in reserves, what seems doesn't break any logic
         // and don't affect persons who swap tokens but affect LP providers. At least logic it was initially
         // planned so.
 
@@ -356,7 +356,7 @@ module MultiSwap::LiquidityPool {
 
             let cmp = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
             assert!(cmp == 0 || cmp == 2, Errors::invalid_state(ERR_INCORRECT_SWAP));
-        } else if (curve_type == UNSTABLE_CURVE) {
+        } else if (curve_type == UNCORRELATED_CURVE) {
             let lp_value_before_swap = x_res * y_res;
             // 100000000 == FEE_SCALE * FEE_SCALE
             lp_value_before_swap = lp_value_before_swap * 100000000;
@@ -468,7 +468,6 @@ module MultiSwap::LiquidityPool {
         );
 
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
-        assert!(pool.correlation_curve_type == STABLE_CURVE, ERR_INVALID_CURVE);
         (pool.x_scale, pool.y_scale)
     }
 

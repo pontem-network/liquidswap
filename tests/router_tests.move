@@ -375,10 +375,10 @@ module liquid_swap::router_tests {
         let usdt_swapped = router::swap_exact_coin_for_coin<USDC, USDT, LP>(
             pool_owner_addr,
             usdc_to_swap,
-            125426899,
+            125426900,
         );
-        // Value 125426899 checked with coin_out func, yet can't run it, as getting timeout on test.
-        assert!(coin::value(&usdt_swapped) == 125426899, 1);
+        // Value 125426900 checked with coin_out func, yet can't run it, as getting timeout on test.
+        assert!(coin::value(&usdt_swapped) == 125426900, 1);
 
         coin::register_internal<USDT>(&pool_owner);
         coin::deposit(pool_owner_addr, usdt_swapped);

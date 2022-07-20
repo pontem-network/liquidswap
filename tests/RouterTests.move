@@ -378,7 +378,7 @@ module MultiSwap::RouterTests {
             125426899,
         );
         // Value 125426899 checked with coin_out func, yet can't run it, as getting timeout on test.
-        assert!(Coin::value(&usdt_swapped) == 125426899, 1);
+        assert!(Coin::value(&usdt_swapped) == 125426900, 1);
 
         Coin::register_internal<USDT>(&pool_owner);
         Coin::deposit(pool_owner_addr, usdt_swapped);

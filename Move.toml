@@ -1,31 +1,34 @@
 [package]
-name = "MultiSwap"
+name = "LiquidSwap"
 version = "0.1.0"
 
 [addresses]
-MultiSwap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
-DAOAdmin = "0x33"
+liquid_swap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
+dao_admin = "0x33"
 
 # Addresses for tests.
-TestCoinAdmin = "0x11"
-TestPoolOwner = "0x12"
+test_coin_admin = "0x11"
+test_pool_owner = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "49f08c7419b442461e47164848305fe74e846607"
+rev = "main"
 subdir = "aptos-move/framework/move-stdlib"
-addr_subst = { Std = "0x1" }
+
+[dependencies.MoveNursery]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "main"
+subdir = "aptos-move/framework/move-stdlib/nursery"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "49f08c7419b442461e47164848305fe74e846607"
+rev = "main"
 subdir = "aptos-move/framework/aptos-framework"
-addr_subst = { Std = "0x1" }
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.2.0"
+rev = "0bb66488873d379ad52cda5abb97227e8df5fa3b"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.2.0"
+rev = "8e5077783ac44423e8c79804f05adf907f67884a"

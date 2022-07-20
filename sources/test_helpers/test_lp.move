@@ -1,8 +1,8 @@
 #[test_only]
-module TestPoolOwner::TestLP {
-    use Std::ASCII::string;
+module test_pool_owner::test_lp {
+    use std::string::utf8;
 
-    use AptosFramework::Coin::{Self, MintCapability, BurnCapability};
+    use aptos_framework::coin::{Self, MintCapability, BurnCapability};
 
     struct LP {}
 
@@ -13,10 +13,10 @@ module TestPoolOwner::TestLP {
 
     public fun register_lp_for_fails(pool_owner: &signer) {
         let (mint_cap, burn_cap) =
-            Coin::initialize<LP>(
+            coin::initialize<LP>(
                 pool_owner,
-                string(b"LP"),
-                string(b"LP"),
+                utf8(b"LP"),
+                utf8(b"LP"),
                 6,
                 true
             );

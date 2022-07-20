@@ -1,18 +1,19 @@
 # Multi Swap 
 
-**The project is currently at MVP stage, not for production usage yet.**
+**LiquidSwap** is AMM protocol for [Aptos](https://www.aptos.com/) project. 
 
-**MultiSwap** is clone of [Uniswap V2](https://uniswap.org/) for [Aptos](https://www.aptos.com/) project. 
+We support two curves:
+    * Uncorrelated (like Uniswap).
+    * Stable (like Curve).
 
 Inspired from original Uniswap code, docs and math.
 
 The current repository contains: 
 
-* Low level core
-* Base router
-* Scripts
-* Tests
-* Formal verification (in the future)
+* Low level core.
+* Base router.
+* Scripts.
+* Tests.
 
 ### Build
 

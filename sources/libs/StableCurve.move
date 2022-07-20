@@ -2,8 +2,7 @@
 module MultiSwap::StableCurve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
-    // Some of the functions just migrated from Solidly (BaseV1-core).
-    // Some we implemented outself, like coin_in, dx.
+    // Look detailed at all math here, please.
     // Also look at all places in all contracts where the functions called and check places too and arguments.
     use U256::U256::{Self, U256};
 
@@ -80,6 +79,9 @@ module MultiSwap::StableCurve {
         get_dy(coin_out, scale_out, scale_in, reserve_out, reserve_in)
     }
 
+    /// Implementx -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8).
+    /// To get `coin_in` or `coin_out` using differentiate both sides.
+    /// More detailed report - https://github.com/pontem-network/multi-swap/pull/19 (see my comment contains pdf).
     public fun get_dy(coin_dx: u128, scale_x: u64, scale_y: u64, reserve_x: u128, reserve_y: u128): u128 {
         let dx_u256 = U256::from_u128(coin_dx);
         let x_u256 = U256::from_u128(reserve_x);
@@ -108,15 +110,15 @@ module MultiSwap::StableCurve {
         // dy = -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8)
         let _dy = U256::div(
             U256::mul(
-                _dx,
-                U256::div(
-                    U256::mul(
+                _dx, // dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)
+                U256::div( //  y * (3 * (x * x) / 1e18 + y * y / 1e8) / 1e8
+                    U256::mul( // y * (3 * (x * x) / 1e18 + y * y / 1e8)
                         _y,
-                        U256::add(
-                            U256::div(U256::mul(_y, _y), u2561e8),
-                            U256::mul(
+                        U256::add( // 3 * (x * x) / 1e18 + y * y / 1e8
+                            U256::div(U256::mul(_y, _y), u2561e8), // y * y / 1e8
+                            U256::mul( // 3 * (x * x) / 1e18
                                 three_u256,
-                                U256::div(U256::mul(_x, _x), u2561e8)
+                                U256::div(U256::mul(_x, _x), u2561e8) // x * x / 1e8
                             )
                         )
                     ),
@@ -125,12 +127,12 @@ module MultiSwap::StableCurve {
             ),
             U256::div(
                 U256::mul(
-                    _x,
-                    U256::add(
-                        U256::div(U256::mul(_x, _x), u2561e8),
+                    _x, // x * ((x * x) / 1e8 + (y * y) / 1e8)
+                    U256::add( // x * x / 1e8 +  3 * y * y / 1e8
+                        U256::div(U256::mul(_x, _x), u2561e8), // x * x / 1e8
                         U256::mul(
-                            three_u256,
-                            U256::div(U256::mul(_y, _y), u2561e8)
+                            three_u256, // 3 * y * y / 1e8
+                            U256::div(U256::mul(_y, _y), u2561e8) // y * y / 1e8
                         )
                     )
                 ),

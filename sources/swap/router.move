@@ -1,15 +1,13 @@
 /// Router for Liquidity Pool, similar to Uniswap router.
-module MultiSwap::Router {
+module liquid_swap::router {
     // !!! FOR AUDITOR!!!
     // Look at math part of this contract.
-    use Std::Errors;
+    use aptos_framework::coin::{Coin, Self};
 
-    use AptosFramework::Coin::{Coin, Self};
-
-    use MultiSwap::CoinHelper::{Self, supply};
-    use MultiSwap::LiquidityPool;
-    use MultiSwap::Math;
-    use MultiSwap::StableCurve;
+    use liquid_swap::coin_helper::{Self, supply};
+    use liquid_swap::liquidity_pool;
+    use liquid_swap::math;
+    use liquid_swap::stable_curve;
 
     // Errors codes.
 
@@ -43,12 +41,12 @@ module MultiSwap::Router {
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, LP>(account: &signer, curve_type: u8) {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<X, Y>();
-            LiquidityPool::register<X, Y, LP>(account, lp_name, lp_symbol, curve_type);
+        if (coin_helper::is_sorted<X, Y>()) {
+            let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
+            liquidity_pool::register<X, Y, LP>(account, lp_name, lp_symbol, curve_type);
         } else {
-            let (lp_name, lp_symbol) = CoinHelper::generate_lp_name<Y, X>();
-            LiquidityPool::register<Y, X, LP>(account, lp_name, lp_symbol, curve_type);
+            let (lp_name, lp_symbol) = coin_helper::generate_lp_name<Y, X>();
+            liquidity_pool::register<Y, X, LP>(account, lp_name, lp_symbol, curve_type);
         }
     }
 
@@ -66,8 +64,8 @@ module MultiSwap::Router {
         coin_y: Coin<Y>,
         min_coin_y_val: u64
     ): (Coin<X>, Coin<Y>, Coin<LP>) {
-        let coin_x_val = Coin::value(&coin_x);
-        let coin_y_val = Coin::value(&coin_y);
+        let coin_x_val = coin::value(&coin_x);
+        let coin_y_val = coin::value(&coin_y);
 
         let (optimal_x, optimal_y) =
             calc_optimal_coin_values<X, Y, LP>(
@@ -78,8 +76,8 @@ module MultiSwap::Router {
                 min_coin_y_val
             );
 
-        let coin_x_opt = Coin::extract(&mut coin_x, optimal_x);
-        let coin_y_opt = Coin::extract(&mut coin_y, optimal_y);
+        let coin_x_opt = coin::extract(&mut coin_x, optimal_x);
+        let coin_y_opt = coin::extract(&mut coin_y, optimal_y);
         let lp_coins = mint_inner<X, Y, LP>(pool_addr, coin_x_opt, coin_y_opt);
 
         (coin_x, coin_y, lp_coins)
@@ -97,20 +95,20 @@ module MultiSwap::Router {
         min_x_out_val: u64,
         min_y_out_val: u64
     ): (Coin<X>, Coin<Y>) {
-        let (x_out, y_out) = if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::burn<X, Y, LP>(pool_addr, lp_coins)
+        let (x_out, y_out) = if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::burn<X, Y, LP>(pool_addr, lp_coins)
         } else {
-            let (y, x) = LiquidityPool::burn<Y, X, LP>(pool_addr, lp_coins);
+            let (y, x) = liquidity_pool::burn<Y, X, LP>(pool_addr, lp_coins);
             (x, y)
         };
 
         assert!(
-            Coin::value(&x_out) >= min_x_out_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+            coin::value(&x_out) >= min_x_out_val,
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
         );
         assert!(
-            Coin::value(&y_out) >= min_y_out_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)
+            coin::value(&y_out) >= min_y_out_val,
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
         );
 
         (x_out, y_out)
@@ -126,21 +124,21 @@ module MultiSwap::Router {
         coin_in: Coin<X>,
         coin_out_min_val: u64,
     ): Coin<Y> {
-        let coin_in_val = Coin::value(&coin_in);
+        let coin_in_val = coin::value(&coin_in);
         let coin_out_val = get_amount_out<X, Y, LP>(pool_addr, coin_in_val);
 
         assert!(
             coin_out_val >= coin_out_min_val,
-            Errors::invalid_argument(ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM),
+            ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM,
         );
 
         let (zero, coin_out);
-        if (CoinHelper::is_sorted<X, Y>()) {
-            (zero, coin_out) = LiquidityPool::swap<X, Y, LP>(pool_addr, coin_in, 0, Coin::zero(), coin_out_val);
+        if (coin_helper::is_sorted<X, Y>()) {
+            (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
         } else {
-            (coin_out, zero) = LiquidityPool::swap<Y, X, LP>(pool_addr, Coin::zero(), coin_out_val, coin_in, 0);
+            (coin_out, zero) = liquidity_pool::swap<Y, X, LP>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
         };
-        Coin::destroy_zero(zero);
+        coin::destroy_zero(zero);
 
         coin_out
     }
@@ -157,21 +155,21 @@ module MultiSwap::Router {
     ): (Coin<X>, Coin<Y>) {
         let coin_in_val_needed = get_amount_in<X, Y, LP>(pool_addr, coin_out_val);
 
-        let coin_val_max = Coin::value(&coin_max_in);
+        let coin_val_max = coin::value(&coin_max_in);
         assert!(
             coin_in_val_needed <= coin_val_max,
-            Errors::invalid_argument(ERR_COIN_VAL_MAX_LESS_THAN_NEEDED)
+            ERR_COIN_VAL_MAX_LESS_THAN_NEEDED
         );
 
-        let coin_in = Coin::extract(&mut coin_max_in, coin_in_val_needed);
+        let coin_in = coin::extract(&mut coin_max_in, coin_in_val_needed);
 
         let (zero, coin_out);
-        if (CoinHelper::is_sorted<X, Y>()) {
-            (zero, coin_out) = LiquidityPool::swap<X, Y, LP>(pool_addr, coin_in, 0, Coin::zero(), coin_out_val);
+        if (coin_helper::is_sorted<X, Y>()) {
+            (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
         } else {
-            (coin_out, zero) = LiquidityPool::swap<Y, X, LP>(pool_addr, Coin::zero(), coin_out_val, coin_in, 0);
+            (coin_out, zero) = liquidity_pool::swap<Y, X, LP>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
         };
-        Coin::destroy_zero(zero);
+        coin::destroy_zero(zero);
 
         (coin_max_in, coin_out)
     }
@@ -182,10 +180,10 @@ module MultiSwap::Router {
     /// * `pool_addr` - pool owner address.
     /// Returns `X` and `Y` coins decimals scales.
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::get_decimals_scales<X, Y, LP>(pool_addr)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_decimals_scales<X, Y, LP>(pool_addr)
         } else {
-            let (y, x) = LiquidityPool::get_decimals_scales<Y, X, LP>(pool_addr);
+            let (y, x) = liquidity_pool::get_decimals_scales<Y, X, LP>(pool_addr);
             (x, y)
         }
     }
@@ -194,10 +192,10 @@ module MultiSwap::Router {
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64) {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::get_cumulative_prices<X, Y, LP>(pool_addr)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_cumulative_prices<X, Y, LP>(pool_addr)
         } else {
-            let (y, x, t) = LiquidityPool::get_cumulative_prices<Y, X, LP>(pool_addr);
+            let (y, x, t) = liquidity_pool::get_cumulative_prices<Y, X, LP>(pool_addr);
             (x, y, t)
         }
     }
@@ -206,10 +204,10 @@ module MultiSwap::Router {
     /// * `pool_addr` - pool owner address.
     /// Returns 1 = stable or 2 = uncorrelated (uniswap like).
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::get_curve_type<X, Y, LP>(pool_addr)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_curve_type<X, Y, LP>(pool_addr)
         } else {
-            LiquidityPool::get_curve_type<Y, X, LP>(pool_addr)
+            liquidity_pool::get_curve_type<Y, X, LP>(pool_addr)
         }
     }
 
@@ -217,10 +215,10 @@ module MultiSwap::Router {
     /// * `pool_addr` - pool owner address.
     /// Returns current reserves (`X`, `Y`).
     public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64) {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::get_reserves_size<X, Y, LP>(pool_addr)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_reserves_size<X, Y, LP>(pool_addr)
         } else {
-            let (y_res, x_res) = LiquidityPool::get_reserves_size<Y, X, LP>(pool_addr);
+            let (y_res, x_res) = liquidity_pool::get_reserves_size<Y, X, LP>(pool_addr);
             (x_res, y_res)
         }
     }
@@ -229,10 +227,10 @@ module MultiSwap::Router {
     /// * `pool_addr` - pool owner address.
     /// If pool exists returns true, otherwise false.
     public fun pool_exists_at<X, Y, LP>(pool_addr: address): bool {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::pool_exists_at<X, Y, LP>(pool_addr)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr)
         } else {
-            LiquidityPool::pool_exists_at<Y, X, LP>(pool_addr)
+            liquidity_pool::pool_exists_at<Y, X, LP>(pool_addr)
         }
     }
 
@@ -259,12 +257,12 @@ module MultiSwap::Router {
         } else {
             let y_returned = convert_with_current_price(x_desired, reserves_x, reserves_y);
             if (y_returned <= y_desired) {
-                assert!(y_returned >= y_min, Errors::invalid_argument(ERR_INSUFFICIENT_Y_AMOUNT));
+                assert!(y_returned >= y_min, ERR_INSUFFICIENT_Y_AMOUNT);
                 return (x_desired, y_returned)
             } else {
                 let x_returned = convert_with_current_price(y_desired, reserves_y, reserves_x);
-                assert!(x_returned <= x_desired, Errors::invalid_argument(ERR_OVERLIMIT_X));
-                assert!(x_returned >= x_min, Errors::invalid_argument(ERR_INSUFFICIENT_X_AMOUNT));
+                assert!(x_returned <= x_desired, ERR_OVERLIMIT_X);
+                assert!(x_returned >= x_min, ERR_INSUFFICIENT_X_AMOUNT);
                 return (x_returned, y_desired)
             }
         }
@@ -281,10 +279,10 @@ module MultiSwap::Router {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, LP>(pool_addr);
         let lp_coins_total = supply<LP>();
 
-        let x_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
-        let y_to_return_val = Math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
+        let x_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
+        let y_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
 
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_WRONG_AMOUNT);
 
         (x_to_return_val, y_to_return_val)
     }
@@ -343,10 +341,10 @@ module MultiSwap::Router {
     /// * `coin_y` - coins Y used to add liquidity.
     /// Returns `Coin<LP>`.
     fun mint_inner<X, Y, LP>(pool_addr: address, coin_x: Coin<X>, coin_y: Coin<Y>): Coin<LP> {
-        if (CoinHelper::is_sorted<X, Y>()) {
-            LiquidityPool::mint<X, Y, LP>(pool_addr, coin_x, coin_y)
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::mint<X, Y, LP>(pool_addr, coin_x, coin_y)
         } else {
-            LiquidityPool::mint<Y, X, LP>(pool_addr, coin_y, coin_x)
+            liquidity_pool::mint<Y, X, LP>(pool_addr, coin_y, coin_x)
         }
     }
 
@@ -366,7 +364,7 @@ module MultiSwap::Router {
         scale_out: u64,
         curve_type: u8
     ): u64 {
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;
 
@@ -374,7 +372,7 @@ module MultiSwap::Router {
             // x_in * 0.997
             let coin_in_val_after_fees = coin_in * fee_multiplier / fee_scale;
 
-            (StableCurve::coin_out(
+            (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),
                 scale_in,
                 scale_out,
@@ -389,7 +387,7 @@ module MultiSwap::Router {
             // Multiply coin_in by the current exchange rate:
             // current_exchange_rate = reserve_out / reserve_in
             // amount_in_after_fees * current_exchange_rate -> amount_out
-            Math::mul_div(coin_in_val_after_fees, // scaled to 1000
+            math::mul_div(coin_in_val_after_fees, // scaled to 1000
                 reserve_out,
                 new_reserve_in)  // scaled to 1000
         } else {
@@ -423,14 +421,14 @@ module MultiSwap::Router {
         scale_in: u64,
         curve_type: u8
     ): u64 {
-        let (fee_pct, fee_scale) = LiquidityPool::get_fees_config();
+        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;  // 997
 
         if (curve_type == STABLE_CURVE) {
             // !!!FOR AUDITOR!!!
             // Check it two times.
-            (StableCurve::coin_in(
+            (stable_curve::coin_in(
                 (coin_out as u128),
                 scale_out,
                 scale_in,
@@ -442,7 +440,7 @@ module MultiSwap::Router {
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
 
             // coin_out * reserve_in * fee_scale / new reserves out
-            let coin_in = Math::mul_div(
+            let coin_in = math::mul_div(
                 coin_out, // y
                 reserve_in * fee_scale, // rx * 1000
                 new_reserves_out   // (ry - y) * 997
@@ -458,12 +456,12 @@ module MultiSwap::Router {
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get.
     fun convert_with_current_price(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
-        assert!(coin_in > 0, Errors::invalid_argument(ERR_WRONG_AMOUNT));
-        assert!(reserve_in > 0 && reserve_out > 0, Errors::invalid_argument(ERR_WRONG_RESERVE));
+        assert!(coin_in > 0, ERR_WRONG_AMOUNT);
+        assert!(reserve_in > 0 && reserve_out > 0, ERR_WRONG_RESERVE);
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price
-        let res = Math::mul_div(coin_in, reserve_out, reserve_in);
+        let res = math::mul_div(coin_in, reserve_out, reserve_in);
         (res as u64)
     }
 

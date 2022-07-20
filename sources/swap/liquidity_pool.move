@@ -1,23 +1,21 @@
 /// Multi Swap liquidity pool.
 /// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
-module MultiSwap::LiquidityPool {
-    use Std::ASCII::String;
-    use Std::Errors;
-    use Std::Event;
-    use Std::Signer;
+module liquid_swap::liquidity_pool {
+    use std::string::String;
+    use std::event;
+    use std::signer;
 
-    use UQ64x64::UQ64x64;
-    use U256::U256;
+    use uq64x64::uq64x64;
+    use u256::u256;
 
-    use AptosFramework::Coin;
-    use AptosFramework::Coin::Coin;
-    use AptosFramework::Timestamp;
+    use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::timestamp;
 
-    use MultiSwap::CoinHelper;
-    use MultiSwap::CoinHelper::assert_is_coin;
-    use MultiSwap::DAOStorage;
-    use MultiSwap::Math;
-    use MultiSwap::StableCurve;
+    use liquid_swap::coin_helper;
+    use liquid_swap::coin_helper::assert_is_coin;
+    use liquid_swap::dao_storage;
+    use liquid_swap::math;
+    use liquid_swap::stable_curve;
 
     // Error codes.
     /// When coins used to create pair have wrong ordering.
@@ -73,8 +71,8 @@ module MultiSwap::LiquidityPool {
         last_block_timestamp: u64,
         last_price_x_cumulative: u128,
         last_price_y_cumulative: u128,
-        lp_mint_cap: Coin::MintCapability<LP>,
-        lp_burn_cap: Coin::BurnCapability<LP>,
+        lp_mint_cap: coin::MintCapability<LP>,
+        lp_burn_cap: coin::BurnCapability<LP>,
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
@@ -93,16 +91,16 @@ module MultiSwap::LiquidityPool {
     ) {
         assert_is_coin<X>();
         assert_is_coin<Y>();
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
-        let owner_addr = Signer::address_of(owner);
-        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), Errors::already_published(ERR_POOL_EXISTS_FOR_PAIR));
+        let owner_addr = signer::address_of(owner);
+        assert!(!exists<LiquidityPool<X, Y, LP>>(owner_addr), ERR_POOL_EXISTS_FOR_PAIR);
         assert!(
             curve_type == STABLE_CURVE || curve_type == UNCORRELATED_CURVE,
             ERR_INVALID_CURVE
         );
 
-        let (lp_mint_cap, lp_burn_cap) = Coin::initialize<LP>(
+        let (lp_mint_cap, lp_burn_cap) = coin::initialize<LP>(
             owner,
             lp_name,
             lp_symbol,
@@ -114,13 +112,13 @@ module MultiSwap::LiquidityPool {
         let y_scale = 0;
 
         if (curve_type == STABLE_CURVE) {
-            x_scale = Math::pow_10(Coin::decimals<X>());
-            y_scale = Math::pow_10(Coin::decimals<Y>());
+            x_scale = math::pow_10(coin::decimals<X>());
+            y_scale = math::pow_10(coin::decimals<Y>());
         };
 
         let pool = LiquidityPool<X, Y, LP> {
-            coin_x_reserve: Coin::zero<X>(),
-            coin_y_reserve: Coin::zero<Y>(),
+            coin_x_reserve: coin::zero<X>(),
+            coin_y_reserve: coin::zero<Y>(),
             last_block_timestamp: 0,
             last_price_x_cumulative: 0,
             last_price_y_cumulative: 0,
@@ -132,18 +130,19 @@ module MultiSwap::LiquidityPool {
         };
         move_to(owner, pool);
 
-        DAOStorage::register<X, Y, LP>(owner);
+        dao_storage::register<X, Y, LP>(owner);
 
         let events_store = EventsStore<X, Y, LP> {
-            pool_created_handle: Event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
-            liquidity_added_handle: Event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
-            liquidity_removed_handle: Event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
-            swap_handle: Event::new_event_handle<SwapEvent<X, Y, LP>>(owner),
-            oracle_updated_handle: Event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
+            pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
+            liquidity_added_handle: event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
+            liquidity_removed_handle: event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
+            swap_handle: event::new_event_handle<SwapEvent<X, Y, LP>>(owner),
+            oracle_updated_handle: event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
         };
-        Event::emit_event(
+        event::emit_event(
             &mut events_store.pool_created_handle,
-            PoolCreatedEvent<X, Y, LP> {});
+            PoolCreatedEvent<X, Y, LP> {},
+        );
 
         move_to(owner, events_store);
     }
@@ -158,41 +157,41 @@ module MultiSwap::LiquidityPool {
         coin_x: Coin<X>,
         coin_y: Coin<Y>
     ): Coin<LP> acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let lp_coins_total = CoinHelper::supply<LP>();
+        let lp_coins_total = coin_helper::supply<LP>();
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
 
-        let x_provided_val = Coin::value<X>(&coin_x);
-        let y_provided_val = Coin::value<Y>(&coin_y);
+        let x_provided_val = coin::value<X>(&coin_x);
+        let y_provided_val = coin::value<Y>(&coin_y);
 
         let provided_liq = if (lp_coins_total == 0) {
-            let initial_liq = Math::sqrt(Math::mul_to_u128(x_provided_val, y_provided_val));
-            assert!(initial_liq > MINIMAL_LIQUIDITY, Errors::invalid_state(ERR_NOT_ENOUGH_INITIAL_LIQUIDITY));
+            let initial_liq = math::sqrt(math::mul_to_u128(x_provided_val, y_provided_val));
+            assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liq - MINIMAL_LIQUIDITY
         } else {
             // (x_provided / x_reserve) * lp_tokens_total
-            let x_liq = Math::mul_div_u128((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
-            let y_liq = Math::mul_div_u128((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
+            let x_liq = math::mul_div_u128((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
+            let y_liq = math::mul_div_u128((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
             if (x_liq < y_liq) {
                 x_liq
             } else {
                 y_liq
             }
         };
-        assert!(provided_liq > 0, Errors::invalid_argument(ERR_NOT_ENOUGH_LIQUIDITY));
+        assert!(provided_liq > 0, ERR_NOT_ENOUGH_LIQUIDITY);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
-        Coin::merge(&mut pool.coin_x_reserve, coin_x);
-        Coin::merge(&mut pool.coin_y_reserve, coin_y);
+        coin::merge(&mut pool.coin_x_reserve, coin_x);
+        coin::merge(&mut pool.coin_y_reserve, coin_y);
 
-        let lp_coins = Coin::mint<LP>(provided_liq, &pool.lp_mint_cap);
+        let lp_coins = coin::mint<LP>(provided_liq, &pool.lp_mint_cap);
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        Event::emit_event(
+        event::emit_event(
             &mut events_store.liquidity_added_handle,
             LiquidityAddedEvent<X, Y, LP> {
                 added_x_val: x_provided_val,
@@ -209,31 +208,31 @@ module MultiSwap::LiquidityPool {
     /// Returns both `Coin<X>` and `Coin<Y>`.
     public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let burned_lp_coins_val = Coin::value(&lp_coins);
+        let burned_lp_coins_val = coin::value(&lp_coins);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
-        let lp_coins_total = CoinHelper::supply<LP>();
-        let x_reserve_val = Coin::value(&pool.coin_x_reserve);
-        let y_reserve_val = Coin::value(&pool.coin_y_reserve);
+        let lp_coins_total = coin_helper::supply<LP>();
+        let x_reserve_val = coin::value(&pool.coin_x_reserve);
+        let y_reserve_val = coin::value(&pool.coin_y_reserve);
 
         // Compute x, y coin values for provided lp_coins value
-        let x_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
-        let y_to_return_val = Math::mul_div_u128((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
-        assert!(x_to_return_val > 0 && y_to_return_val > 0, Errors::invalid_argument(ERR_INCORRECT_BURN_VALUES));
+        let x_to_return_val = math::mul_div_u128((burned_lp_coins_val as u128), (x_reserve_val as u128), lp_coins_total);
+        let y_to_return_val = math::mul_div_u128((burned_lp_coins_val as u128), (y_reserve_val as u128), lp_coins_total);
+        assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_INCORRECT_BURN_VALUES);
 
         // Withdraw those values from reserves
-        let x_coin_to_return = Coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
-        let y_coin_to_return = Coin::extract(&mut pool.coin_y_reserve, y_to_return_val);
+        let x_coin_to_return = coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
+        let y_coin_to_return = coin::extract(&mut pool.coin_y_reserve, y_to_return_val);
 
         // Update price and burn provided lp coins
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_val - x_to_return_val, y_reserve_val - y_to_return_val);
-        Coin::burn(lp_coins, &pool.lp_burn_cap);
+        coin::burn(lp_coins, &pool.lp_burn_cap);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        Event::emit_event(
+        event::emit_event(
             &mut events_store.liquidity_removed_handle,
             LiquidityRemovedEvent<X, Y, LP> {
                 returned_x_val: x_to_return_val,
@@ -259,27 +258,27 @@ module MultiSwap::LiquidityPool {
         y_in: Coin<Y>,
         y_out: u64
     ): (Coin<X>, Coin<Y>) acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
-        let x_in_val = Coin::value(&x_in);
-        let y_in_val = Coin::value(&y_in);
+        let x_in_val = coin::value(&x_in);
+        let y_in_val = coin::value(&y_in);
 
-        assert!(x_in_val > 0 || y_in_val > 0, Errors::invalid_argument(ERR_EMPTY_COIN_IN));
+        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
 
         let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
         // Deposit new coins to liquidity pool.
-        Coin::merge(&mut pool.coin_x_reserve, x_in);
-        Coin::merge(&mut pool.coin_y_reserve, y_in);
+        coin::merge(&mut pool.coin_x_reserve, x_in);
+        coin::merge(&mut pool.coin_y_reserve, y_in);
 
         // Withdraw expected amount from reserves.
-        let x_swapped = Coin::extract(&mut pool.coin_x_reserve, x_out);
-        let y_swapped = Coin::extract(&mut pool.coin_y_reserve, y_out);
+        let x_swapped = coin::extract(&mut pool.coin_x_reserve, x_out);
+        let y_swapped = coin::extract(&mut pool.coin_y_reserve, y_out);
 
         // Get new reserves.
-        let x_reserve_size_new = Coin::value(&pool.coin_x_reserve);
-        let y_reserve_size_new = Coin::value(&pool.coin_y_reserve);
+        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
 
         // !!IMPORTANT!! TO !!!AUDITOR!!!
         // Double check this part, as on previous lines we getting new reserves sizes,
@@ -297,19 +296,19 @@ module MultiSwap::LiquidityPool {
         let dao_x_fee_val = (x_in_val * dao_fee_multiplier) / FEE_SCALE;
         let dao_y_fee_val = (y_in_val * dao_fee_multiplier) / FEE_SCALE;
 
-        let dao_x_in = Coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
-        let dao_y_in = Coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
-        DAOStorage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
+        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
+        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
+        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
 
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
         // and make sure lp_value doesn't decrease:
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = Math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
-                                  - Math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
-        let y_res_new_after_fee = Math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
-                                  - Math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+        let x_res_new_after_fee = math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
+                                  - math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
+        let y_res_new_after_fee = math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
+                                  - math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
 
         compute_and_verify_lp_value(
             pool.x_scale,
@@ -324,7 +323,7 @@ module MultiSwap::LiquidityPool {
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        Event::emit_event(
+        event::emit_event(
             &mut events_store.swap_handle,
             SwapEvent<X, Y, LP> {
                 x_in: x_in_val,
@@ -356,16 +355,16 @@ module MultiSwap::LiquidityPool {
         y_res_with_fees: u128,
     ) {
         if (curve_type == STABLE_CURVE) {
-            let lp_value_before_swap = StableCurve::lp_value(x_res, x_scale, y_res, y_scale);
+            let lp_value_before_swap = stable_curve::lp_value(x_res, x_scale, y_res, y_scale);
             // 100000000 == FEE_SCALE * FEE_SCALE
-            lp_value_before_swap = U256::mul(
+            lp_value_before_swap = u256::mul(
                 lp_value_before_swap,
-                U256::from_u128(100000000),
+                u256::from_u128(100000000),
             );
-            let lp_value_after_swap_and_fee = StableCurve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
+            let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
-            let cmp = U256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
-            assert!(cmp == 0 || cmp == 2, Errors::invalid_state(ERR_INCORRECT_SWAP));
+            let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
+            assert!(cmp == 0 || cmp == 2, ERR_INCORRECT_SWAP);
         } else if (curve_type == UNCORRELATED_CURVE) {
             let lp_value_before_swap = x_res * y_res;
             // 100000000 == FEE_SCALE * FEE_SCALE
@@ -374,10 +373,10 @@ module MultiSwap::LiquidityPool {
 
             assert!(
                 lp_value_after_swap_and_fee >= lp_value_before_swap,
-                Errors::invalid_state(ERR_INCORRECT_SWAP),
+                ERR_INCORRECT_SWAP,
             );
         } else {
-            abort Errors::invalid_state(ERR_INVALID_CURVE)
+            abort ERR_INVALID_CURVE
         };
     }
 
@@ -393,7 +392,7 @@ module MultiSwap::LiquidityPool {
     ) acquires EventsStore {
         let last_block_timestamp = pool.last_block_timestamp;
 
-        let block_timestamp = Timestamp::now_seconds() % (1u64 << 32);
+        let block_timestamp = timestamp::now_seconds() % (1u64 << 32);
 
         let time_elapsed = ((block_timestamp - last_block_timestamp) as u128);
 
@@ -401,8 +400,8 @@ module MultiSwap::LiquidityPool {
             // If we are not in the same block.
             // Uniswap is using the following library https://github.com/Uniswap/v2-core/blob/master/contracts/libraries/UQ112x112.sol
             // And doing it so - https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L77.
-            let last_price_x_cumulative = UQ64x64::to_u128(UQ64x64::div(UQ64x64::encode(y_reserve), x_reserve)) * time_elapsed;
-            let last_price_y_cumulative = UQ64x64::to_u128(UQ64x64::div(UQ64x64::encode(x_reserve), y_reserve)) * time_elapsed;
+            let last_price_x_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(y_reserve), x_reserve)) * time_elapsed;
+            let last_price_y_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(x_reserve), y_reserve)) * time_elapsed;
 
             pool.last_price_x_cumulative = *&pool.last_price_x_cumulative + last_price_x_cumulative;
             pool.last_price_y_cumulative = *&pool.last_price_y_cumulative + last_price_y_cumulative;
@@ -411,7 +410,7 @@ module MultiSwap::LiquidityPool {
         pool.last_block_timestamp = block_timestamp;
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        Event::emit_event(
+        event::emit_event(
             &mut events_store.oracle_updated_handle,
             OracleUpdatedEvent<X, Y, LP> {
                 last_price_x_cumulative: pool.last_price_x_cumulative,
@@ -424,12 +423,12 @@ module MultiSwap::LiquidityPool {
     /// Returns both (`X`, `Y`) reserves.
     public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
-        let x_reserve = Coin::value(&liquidity_pool.coin_x_reserve);
-        let y_reserve = Coin::value(&liquidity_pool.coin_y_reserve);
+        let x_reserve = coin::value(&liquidity_pool.coin_x_reserve);
+        let y_reserve = coin::value(&liquidity_pool.coin_y_reserve);
 
         (x_reserve, y_reserve)
     }
@@ -439,8 +438,8 @@ module MultiSwap::LiquidityPool {
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
     acquires LiquidityPool {
-        assert!(CoinHelper::is_sorted<X, Y>(), Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING));
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), Errors::not_published(ERR_POOL_DOES_NOT_EXIST));
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;
@@ -455,12 +454,12 @@ module MultiSwap::LiquidityPool {
     /// Returns 1 = stable or 2 = uncorrelated (uniswap like).
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
         assert!(
-            CoinHelper::is_sorted<X, Y>(),
-            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+            coin_helper::is_sorted<X, Y>(),
+            ERR_WRONG_PAIR_ORDERING
         );
         assert!(
             exists<LiquidityPool<X, Y, LP>>(pool_addr),
-            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+            ERR_POOL_DOES_NOT_EXIST
         );
 
         borrow_global<LiquidityPool<X, Y, LP>>(pool_addr).curve_type
@@ -471,12 +470,12 @@ module MultiSwap::LiquidityPool {
     /// For uncorrelated curve would return just zeros.
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
         assert!(
-            CoinHelper::is_sorted<X, Y>(),
-            Errors::invalid_argument(ERR_WRONG_PAIR_ORDERING)
+            coin_helper::is_sorted<X, Y>(),
+            ERR_WRONG_PAIR_ORDERING
         );
         assert!(
             exists<LiquidityPool<X, Y, LP>>(pool_addr),
-            Errors::not_published(ERR_POOL_DOES_NOT_EXIST)
+            ERR_POOL_DOES_NOT_EXIST
         );
 
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
@@ -498,11 +497,11 @@ module MultiSwap::LiquidityPool {
 
     // Events
     struct EventsStore<phantom X, phantom Y, phantom LP> has key {
-        pool_created_handle: Event::EventHandle<PoolCreatedEvent<X, Y, LP>>,
-        liquidity_added_handle: Event::EventHandle<LiquidityAddedEvent<X, Y, LP>>,
-        liquidity_removed_handle: Event::EventHandle<LiquidityRemovedEvent<X, Y, LP>>,
-        swap_handle: Event::EventHandle<SwapEvent<X, Y, LP>>,
-        oracle_updated_handle: Event::EventHandle<OracleUpdatedEvent<X, Y, LP>>
+        pool_created_handle: event::EventHandle<PoolCreatedEvent<X, Y, LP>>,
+        liquidity_added_handle: event::EventHandle<LiquidityAddedEvent<X, Y, LP>>,
+        liquidity_removed_handle: event::EventHandle<LiquidityRemovedEvent<X, Y, LP>>,
+        swap_handle: event::EventHandle<SwapEvent<X, Y, LP>>,
+        oracle_updated_handle: event::EventHandle<OracleUpdatedEvent<X, Y, LP>>
     }
 
     struct PoolCreatedEvent<phantom X, phantom Y, phantom LP> has drop, store {}

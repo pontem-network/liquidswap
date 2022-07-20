@@ -1,10 +1,10 @@
 /// Implements stable curve math.
-module MultiSwap::StableCurve {
+module liquid_swap::stable_curve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
     // Look detailed at all math here, please.
     // Also look at all places in all contracts where the functions called and check places too and arguments.
-    use U256::U256::{Self, U256};
+    use u256::u256::{Self, U256};
 
     /// We take 10^8 as we expect most of the coins to have 6-8 decimals.
     const ONE_E_8: u128 = 100000000;
@@ -15,42 +15,42 @@ module MultiSwap::StableCurve {
     /// * `y_coin` - reserves of coin Y.
     /// * `y_scale` - 10 pow Y coin decimals amount.
     public fun lp_value(x_coin: u128, x_scale: u64, y_coin: u128, y_scale: u64): U256 {
-        let x_u256 = U256::from_u128(x_coin);
-        let y_u256 = U256::from_u128(y_coin);
-        let u2561e8 = U256::from_u128(ONE_E_8);
+        let x_u256 = u256::from_u128(x_coin);
+        let y_u256 = u256::from_u128(y_coin);
+        let u2561e8 = u256::from_u128(ONE_E_8);
 
-        let x_scale_u256 = U256::from_u64(x_scale);
-        let y_scale_u256 = U256::from_u64(y_scale);
+        let x_scale_u256 = u256::from_u64(x_scale);
+        let y_scale_u256 = u256::from_u64(y_scale);
 
-        let _x = U256::div(
-            U256::mul(x_u256, u2561e8),
+        let _x = u256::div(
+            u256::mul(x_u256, u2561e8),
             x_scale_u256,
         );
 
-        let _y = U256::div(
-            U256::mul(y_u256, u2561e8),
+        let _y = u256::div(
+            u256::mul(y_u256, u2561e8),
             y_scale_u256,
         );
 
-        let _a = U256::div(
-            U256::mul(_x, _y),
+        let _a = u256::div(
+            u256::mul(_x, _y),
             u2561e8,
         );
 
         // ((_x * _x) / 1e18 + (_y * _y) / 1e18)
-        let _b = U256::add(
-            U256::div(
-                U256::mul(_x, _x),
+        let _b = u256::add(
+            u256::div(
+                u256::mul(_x, _x),
                 u2561e8,
             ),
-            U256::div(
-                U256::mul(_y, _y),
+            u256::div(
+                u256::mul(_y, _y),
                 u2561e8,
             )
         );
 
-        U256::div(
-            U256::mul(_a, _b),
+        u256::div(
+            u256::mul(_a, _b),
             u2561e8,
         )
     }
@@ -83,56 +83,57 @@ module MultiSwap::StableCurve {
     /// To get `coin_in` or `coin_out` using differentiate both sides.
     /// More detailed report - https://github.com/pontem-network/multi-swap/pull/19 (see my comment contains pdf).
     public fun get_dy(coin_dx: u128, scale_x: u64, scale_y: u64, reserve_x: u128, reserve_y: u128): u128 {
-        let dx_u256 = U256::from_u128(coin_dx);
-        let x_u256 = U256::from_u128(reserve_x);
-        let y_u256 = U256::from_u128(reserve_y);
-        let u2561e8 = U256::from_u128(ONE_E_8);
-        let three_u256 = U256::from_u128(3);
+        let dx_u256 = u256::from_u128(coin_dx);
+        let x_u256 = u256::from_u128(reserve_x);
+        let y_u256 = u256::from_u128(reserve_y);
+        let u2561e8 = u256::from_u128(ONE_E_8);
+        let three_u256 = u256::from_u128(3);
 
-        let x_scale_u256 = U256::from_u64(scale_x);
-        let y_scale_u256 = U256::from_u64(scale_y);
+        let x_scale_u256 = u256::from_u64(scale_x);
+        let y_scale_u256 = u256::from_u64(scale_y);
 
-        let _x = U256::div(
-            U256::mul(x_u256, u2561e8),
+        let _x = u256::div(
+            u256::mul(x_u256, u2561e8),
             x_scale_u256,
         );
 
-        let _y = U256::div(
-            U256::mul(y_u256, u2561e8),
+
+        let _y = u256::div(
+            u256::mul(y_u256, u2561e8),
             y_scale_u256,
         );
 
-        let _dx = U256::div(
-            U256::mul(dx_u256, u2561e8),
+        let _dx = u256::div(
+            u256::mul(dx_u256, u2561e8),
             x_scale_u256,
         );
 
         // dy = -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8)
-        let _dy = U256::div(
-            U256::mul(
+        let _dy = u256::div(
+            u256::mul(
                 _dx, // dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)
-                U256::div( //  y * (3 * (x * x) / 1e18 + y * y / 1e8) / 1e8
-                    U256::mul( // y * (3 * (x * x) / 1e18 + y * y / 1e8)
+                u256::div( //  y * (3 * (x * x) / 1e18 + y * y / 1e8) / 1e8
+                    u256::mul( // y * (3 * (x * x) / 1e18 + y * y / 1e8)
                         _y,
-                        U256::add( // 3 * (x * x) / 1e18 + y * y / 1e8
-                            U256::div(U256::mul(_y, _y), u2561e8), // y * y / 1e8
-                            U256::mul( // 3 * (x * x) / 1e18
+                        u256::add( // 3 * (x * x) / 1e18 + y * y / 1e8
+                            u256::div(u256::mul(_y, _y), u2561e8), // y * y / 1e8
+                            u256::mul( // 3 * (x * x) / 1e18
                                 three_u256,
-                                U256::div(U256::mul(_x, _x), u2561e8) // x * x / 1e8
+                                u256::div(u256::mul(_x, _x), u2561e8) // x * x / 1e8
                             )
                         )
                     ),
                     u2561e8
                 ),
             ),
-            U256::div(
-                U256::mul(
+            u256::div(
+                u256::mul(
                     _x, // x * ((x * x) / 1e8 + (y * y) / 1e8)
-                    U256::add( // x * x / 1e8 +  3 * y * y / 1e8
-                        U256::div(U256::mul(_x, _x), u2561e8), // x * x / 1e8
-                        U256::mul(
+                    u256::add( // x * x / 1e8 +  3 * y * y / 1e8
+                        u256::div(u256::mul(_x, _x), u2561e8), // x * x / 1e8
+                        u256::mul(
                             three_u256, // 3 * y * y / 1e8
-                            U256::div(U256::mul(_y, _y), u2561e8) // y * y / 1e8
+                            u256::div(u256::mul(_y, _y), u2561e8) // y * y / 1e8
                         )
                     )
                 ),
@@ -140,12 +141,12 @@ module MultiSwap::StableCurve {
             )
         );
 
-        let dy = U256::div(
-            U256::mul(_dy, y_scale_u256),
+        let dy = u256::div(
+            u256::mul(_dy, y_scale_u256),
             u2561e8,
         );
 
-        U256::as_u128(dy)
+        u256::as_u128(dy)
     }
 
     #[test]
@@ -205,6 +206,7 @@ module MultiSwap::StableCurve {
             25582858050757,
              2558285805075701
         );
+
         assert!(in == 251305800000, 0);
     }
 
@@ -213,7 +215,7 @@ module MultiSwap::StableCurve {
         // 0.3 ^ 3 * 0.5 + 0.5 ^ 3 * 0.3 = 0.051 (12 decimals)
         let lp_value = lp_value(300000, 1000000, 500000, 1000000);
         assert!(
-            U256::as_u128(lp_value) == 5100000,
+            u256::as_u128(lp_value) == 5100000,
             0
         );
 
@@ -224,6 +226,6 @@ module MultiSwap::StableCurve {
             1000000000000
         );
 
-        assert!(U256::as_u128(lp_value) == 312508781701599715772530613362069248234, 1);
+        assert!(u256::as_u128(lp_value) == 312508781701599715772530613362069248234, 1);
     }
 }

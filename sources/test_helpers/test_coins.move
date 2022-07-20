@@ -1,9 +1,9 @@
 #[test_only]
-module TestCoinAdmin::TestCoins {
-    use Std::ASCII::string;
-    use Std::Signer;
+module test_coin_admin::test_coins {
+    use std::string::utf8;
+    use std::signer;
 
-    use AptosFramework::Coin::{Self, Coin, MintCapability, BurnCapability};
+    use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability};
 
     struct BTC {}
 
@@ -18,27 +18,28 @@ module TestCoinAdmin::TestCoins {
 
     public fun register_coins(coin_admin: &signer) {
         let (usdt_mint_cap, usdt_burn_cap) =
-            Coin::initialize<USDT>(
+            coin::initialize<USDT>(
                 coin_admin,
-                string(b"USDT"),
-                string(b"USDT"),
+                utf8(b"USDT"),
+                utf8(b"USDT"),
                 6,
                 true
             );
 
         let (btc_mint_cap, btc_burn_cap) =
-            Coin::initialize<BTC>(
-                coin_admin, string(b"BTC"),
-                string(b"BTC"),
+            coin::initialize<BTC>(
+                coin_admin,
+                utf8(b"BTC"),
+                utf8(b"BTC"),
                 8,
                 true
             );
 
         let (usdc_mint_cap, usdc_burn_cap) =
-            Coin::initialize<USDC>(
+            coin::initialize<USDC>(
                 coin_admin,
-                string(b"USDC"),
-                string(b"USDC"),
+                utf8(b"USDC"),
+                utf8(b"USDC"),
                 4,
                 true,
             );
@@ -60,12 +61,16 @@ module TestCoinAdmin::TestCoins {
     }
 
     public fun mint<CoinType>(coin_admin: &signer, amount: u64): Coin<CoinType> acquires Capabilities {
-        let caps = borrow_global<Capabilities<CoinType>>(Signer::address_of(coin_admin));
-        Coin::mint(amount, &caps.mint_cap)
+        let caps = borrow_global<Capabilities<CoinType>>(signer::address_of(coin_admin));
+        coin::mint(amount, &caps.mint_cap)
     }
 
     public fun burn<CoinType>(coin_admin: &signer, coins: Coin<CoinType>) acquires Capabilities {
-        let caps = borrow_global<Capabilities<CoinType>>(Signer::address_of(coin_admin));
-        Coin::burn(coins, &caps.burn_cap);
+        if (coin::value(&coins) == 0) {
+            coin::destroy_zero(coins);
+        } else {
+            let caps = borrow_global<Capabilities<CoinType>>(signer::address_of(coin_admin));
+            coin::burn(coins, &caps.burn_cap);
+        };
     }
 }

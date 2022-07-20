@@ -24,7 +24,7 @@ module liquid_swap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         // 0.3% fee
-        router::register<BTC, USDT, LP>(&pool_owner, 2);
+        router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000);

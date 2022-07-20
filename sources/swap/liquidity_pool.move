@@ -18,6 +18,7 @@ module liquid_swap::liquidity_pool {
     use liquid_swap::stable_curve;
 
     // Error codes.
+
     /// When coins used to create pair have wrong ordering.
     const ERR_WRONG_PAIR_ORDERING: u64 = 100;
 
@@ -83,8 +84,8 @@ module liquid_swap::liquidity_pool {
 
     /// Register liquidity pool `X`/`Y`.
     /// Parameters:
-    /// * `lp_name` - lp coin name.
-    /// * `lp_symbol` - lp coin symbol.
+    /// * `lp_name` - LP coin name.
+    /// * `lp_symbol` - LP coin symbol.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, LP>(
         owner: &signer,
@@ -154,7 +155,7 @@ module liquid_swap::liquidity_pool {
     /// * `pool_addr` - pool owner address.
     /// * `coin_x` - coin X to add to liquidity reserves.
     /// * `coin_y` - coin Y to add to liquidity reserves.
-    /// Returns LP coins - `Coin<LP>`.
+    /// Returns LP coins: `Coin<LP>`.
     public fun mint<X, Y, LP>(
         pool_addr: address,
         coin_x: Coin<X>,
@@ -208,7 +209,7 @@ module liquid_swap::liquidity_pool {
     /// Burn liquidity coins (LP) and get back X and Y coins from reserves.
     /// * `pool_addr` - pool owner address.
     /// * `lp_coins` - LP coins to burn.
-    /// Returns both X and Y coin - `(Coin<X>, Coin<Y>)`.
+    /// Returns both X and Y coins - `(Coin<X>, Coin<Y>)`.
     public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);

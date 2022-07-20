@@ -30,17 +30,17 @@ module liquid_swap::router {
 
     // Constants.
 
-    /// Stable curve.
+    /// Stable curve (like Curve).
     const STABLE_CURVE: u8 = 1;
 
-    /// Uncorellated curve, e.g. like Uniswap.
+    /// Uncorellated curve (like Uniswap).
     const UNCORRELATED_CURVE: u8 = 2;
 
     // Public functions.
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
-    public fun register<X, Y, LP>(account: &signer, curve_type: u8) {
+    public fun register_pool<X, Y, LP>(account: &signer, curve_type: u8) {
         if (coin_helper::is_sorted<X, Y>()) {
             let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
             liquidity_pool::register<X, Y, LP>(account, lp_name, lp_symbol, curve_type);
@@ -56,8 +56,8 @@ module liquid_swap::router {
     /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
     /// * `coin_y` - coin Y to add as liquidity.
     /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
-    /// Returns `Coin<LP>`.
-    public fun mint<X, Y, LP>(
+    /// Returns reminders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP>)`.
+    public fun add_liquidity<X, Y, LP>(
         pool_addr: address,
         coin_x: Coin<X>,
         min_coin_x_val: u64,
@@ -88,8 +88,8 @@ module liquid_swap::router {
     /// * `lp_coins` - `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of `X` coins must be out.
     /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
-    /// Returns both `Coin<X>` and `Coin<Y>`.
-    public fun burn<X, Y, LP>(
+    /// Returns both `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
+    public fun remove_liquidity<X, Y, LP>(
         pool_addr: address,
         lp_coins: Coin<LP>,
         min_x_out_val: u64,
@@ -147,7 +147,7 @@ module liquid_swap::router {
     /// * `pool_addr` - pool owner address.
     /// * `coin_max_in` - maximum amount of coin X to swap to get `coin_out_val` of coins Y.
     /// * `coin_out_val` - exact amount of coin Y to get.
-    /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`.
+    /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
     public fun swap_coin_for_exact_coin<X, Y, LP>(
         pool_addr: address,
         coin_max_in: Coin<X>,
@@ -176,7 +176,7 @@ module liquid_swap::router {
 
     // Getters.
 
-    /// Get decimals scales, works only for stable curve.
+    /// Get decimals scales for stable curve, for uncorrelated curve would return zeros.
     /// * `pool_addr` - pool owner address.
     /// Returns `X` and `Y` coins decimals scales.
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) {
@@ -200,9 +200,9 @@ module liquid_swap::router {
         }
     }
 
-    /// Get pool curve type (stable/unstable).
+    /// Get pool curve type (stable/uncorrelated).
     /// * `pool_addr` - pool owner address.
-    /// Returns 1 = stable or 2 = uncorrelated (uniswap like).
+    /// Returns 1 = stable or 2 = uncorrelated.
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 {
         if (coin_helper::is_sorted<X, Y>()) {
             liquidity_pool::get_curve_type<X, Y, LP>(pool_addr)
@@ -266,6 +266,20 @@ module liquid_swap::router {
                 return (x_returned, y_desired)
             }
         }
+    }
+
+    /// Return amount of liquidity (LP) need for `coin_in`.
+    /// * `coin_in` - amount to swap.
+    /// * `reserve_in` - reserves of coin to swap.
+    /// * `reserve_out` - reserves of coin to get.
+    public fun convert_with_current_price(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
+        assert!(coin_in > 0, ERR_WRONG_AMOUNT);
+        assert!(reserve_in > 0 && reserve_out > 0, ERR_WRONG_RESERVE);
+
+        // exchange_price = reserve_out / reserve_in_size
+        // amount_returned = coin_in_val * exchange_price
+        let res = math::mul_div(coin_in, reserve_out, reserve_in);
+        (res as u64)
     }
 
     /// Convert `LP` coins to `X` and `Y` coins, useful to calculate amount the user recieve after removing liquidity.
@@ -449,25 +463,6 @@ module liquid_swap::router {
         } else {
             abort ERR_INVALID_CURVE
         }
-    }
-
-    /// Return amount of liquidity need to for `amount_in`.
-    /// * `coin_in` - amount to swap.
-    /// * `reserve_in` - reserves of coin to swap.
-    /// * `reserve_out` - reserves of coin to get.
-    fun convert_with_current_price(coin_in: u64, reserve_in: u64, reserve_out: u64): u64 {
-        assert!(coin_in > 0, ERR_WRONG_AMOUNT);
-        assert!(reserve_in > 0 && reserve_out > 0, ERR_WRONG_RESERVE);
-
-        // exchange_price = reserve_out / reserve_in_size
-        // amount_returned = coin_in_val * exchange_price
-        let res = math::mul_div(coin_in, reserve_out, reserve_in);
-        (res as u64)
-    }
-
-    #[test_only]
-    public fun convert_with_current_price_for_test(coin_in: u64, reserve_in: u64, reserve_out: u64) : u64 {
-        convert_with_current_price(coin_in, reserve_in, reserve_out)
     }
 
     #[test_only]

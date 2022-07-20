@@ -16,7 +16,7 @@ module liquid_swap::router_tests {
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64) {
-        router::register<BTC, USDT, LP>(pool_owner, 2);
+        router::register_pool<BTC, USDT, LP>(pool_owner, 2);
 
         let pool_owner_addr = signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -30,7 +30,7 @@ module liquid_swap::router_tests {
     }
 
     fun register_stable_pool_with_liquidity(coin_admin: &signer, pool_owner: &signer, x_val: u64, y_val: u64) {
-        router::register<USDC, USDT, LP>(pool_owner, 1);
+        router::register_pool<USDC, USDT, LP>(pool_owner, 1);
 
         let pool_owner_addr = signer::address_of(pool_owner);
         if (x_val != 0 && y_val != 0) {
@@ -55,7 +55,7 @@ module liquid_swap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
-            router::mint<BTC, USDT, LP>(
+            router::add_liquidity<BTC, USDT, LP>(
                 pool_addr,
                 btc_coins,
                 101,
@@ -90,7 +90,7 @@ module liquid_swap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
 
         let (coin_x, coin_y, lp_coins) =
-            router::mint<BTC, USDT, LP>(pool_addr, btc_coins, 10, usdt_coins, 9000);
+            router::add_liquidity<BTC, USDT, LP>(pool_addr, btc_coins, 10, usdt_coins, 9000);
         // 101 - 90 = 11
         assert!(coin::value(&coin_x) == 11, 0);
         assert!(coin::value(&coin_y) == 0, 1);
@@ -117,7 +117,7 @@ module liquid_swap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) =
-            router::mint<USDT, BTC, LP>(pool_addr, usdt_coins, 9000, btc_coins, 10);
+            router::add_liquidity<USDT, BTC, LP>(pool_addr, usdt_coins, 9000, btc_coins, 10);
         // 101 - 90 = 11
         assert!(coin::value(&coin_x) == 11, 0);
         assert!(coin::value(&coin_y) == 0, 1);
@@ -148,7 +148,7 @@ module liquid_swap::router_tests {
             lp_coins_val
         );
         let (coin_x, coin_y) =
-            router::burn<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
+            router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
 
         let (usdt_reserve, btc_reserve) = router::get_reserves_size<USDT, BTC, LP>(pool_addr);
         assert!(usdt_reserve == 8080, 0);
@@ -308,7 +308,7 @@ module liquid_swap::router_tests {
 
         test_coins::register_coins(&coin_admin);
 
-        router::register<BTC, USDT, LP>(&pool_owner, 2);
+        router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
 
         assert!(router::pool_exists_at<BTC, USDT, LP>(signer::address_of(&pool_owner)), 0);
         assert!(router::pool_exists_at<USDT, BTC, LP>(signer::address_of(&pool_owner)), 1);
@@ -472,31 +472,31 @@ module liquid_swap::router_tests {
 
     #[test]
     fun test_convert_with_current_price() {
-        let a = router::convert_with_current_price_for_test(MAX_U64, MAX_U64, MAX_U64);
+        let a = router::convert_with_current_price(MAX_U64, MAX_U64, MAX_U64);
         assert!(a == MAX_U64, 0);
 
-        a = router::convert_with_current_price_for_test(100, 100, 20);
+        a = router::convert_with_current_price(100, 100, 20);
         assert!(a == 20, 1);
 
-        a = router::convert_with_current_price_for_test(256, 8, 2);
+        a = router::convert_with_current_price(256, 8, 2);
         assert!(a == 64, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 100)]
     fun test_fail_convert_with_current_price_coin_in_val() {
-        router::convert_with_current_price_for_test(0, 1, 1);
+        router::convert_with_current_price(0, 1, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 101)]
     fun test_fail_convert_with_current_price_reserve_in_size() {
-        router::convert_with_current_price_for_test(1, 0, 1);
+        router::convert_with_current_price(1, 0, 1);
     }
 
     #[test]
     #[expected_failure(abort_code = 101)]
     fun test_fail_convert_with_current_price_reserve_out_size() {
-        router::convert_with_current_price_for_test(1, 1, 0);
+        router::convert_with_current_price(1, 1, 0);
     }
 }

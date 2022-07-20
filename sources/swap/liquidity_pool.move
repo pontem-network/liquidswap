@@ -1,5 +1,5 @@
-/// Multi Swap liquidity pool.
-/// Stores liquidity pool pairs, implements mint/burn liquidity, swap of coins.
+/// LiquidSwap liquidity pool module.
+/// Implements mint/burn liquidity, swap of coins.
 module liquid_swap::liquidity_pool {
     use std::string::String;
     use std::event;
@@ -42,29 +42,31 @@ module liquid_swap::liquidity_pool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
+    /// When invalid curve passed as argument.
     const ERR_INVALID_CURVE: u64 = 110;
+
     // Constants.
 
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Current fee is 0.3%
+    /// Current fee is 0.03%
     const FEE_MULTIPLIER: u64 = 30;
-    /// Denominator to handle decimal points for fees
+
+    /// Denominator to handle decimal points for fees.
     const FEE_SCALE: u64 = 10000;
 
     // Curve types.
 
-    /// Stable curve (similar to Curve).
+    /// Stable curve (Curve like).
     const STABLE_CURVE: u8 = 1;
 
-    /// Uncorrelated (Uniswap like) curve.
+    /// Uncorrelated curve (Uniswap like).
     const UNCORRELATED_CURVE: u8 = 2;
 
     // Public functions.
 
     /// Liquidity pool with reserves.
-    /// LP coin should go outside of this module.
     struct LiquidityPool<phantom X, phantom Y, phantom LP> has key {
         coin_x_reserve: Coin<X>,
         coin_y_reserve: Coin<Y>,
@@ -73,6 +75,7 @@ module liquid_swap::liquidity_pool {
         last_price_y_cumulative: u128,
         lp_mint_cap: coin::MintCapability<LP>,
         lp_burn_cap: coin::BurnCapability<LP>,
+        // Scales are pow(10, token_decimals).
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
@@ -147,11 +150,11 @@ module liquid_swap::liquidity_pool {
         move_to(owner, events_store);
     }
 
-    /// Mint new liquidity.
+    /// Mint new liquidity coins.
     /// * `pool_addr` - pool owner address.
     /// * `coin_x` - coin X to add to liquidity reserves.
     /// * `coin_y` - coin Y to add to liquidity reserves.
-    /// Returns `Coin<LP>`.
+    /// Returns LP coins - `Coin<LP>`.
     public fun mint<X, Y, LP>(
         pool_addr: address,
         coin_x: Coin<X>,
@@ -205,7 +208,7 @@ module liquid_swap::liquidity_pool {
     /// Burn liquidity coins (LP) and get back X and Y coins from reserves.
     /// * `pool_addr` - pool owner address.
     /// * `lp_coins` - LP coins to burn.
-    /// Returns both `Coin<X>` and `Coin<Y>`.
+    /// Returns both X and Y coin - `(Coin<X>, Coin<Y>)`.
     public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
@@ -250,7 +253,7 @@ module liquid_swap::liquidity_pool {
     /// * `x_out` - expected amount of X coins to get out.
     /// * `y_in` - Y coins to swap.
     /// * `y_out` - expected amount of Y coins to get out.
-    /// Returns - both exchanged `X` and `Y` coins: `(Coin<X>, Coin<Y>)`.
+    /// Returns both exchanged X and Y coins: `(Coin<X>, Coin<Y>)`.
     public fun swap<X, Y, LP>(
         pool_addr: address,
         x_in: Coin<X>,
@@ -336,7 +339,7 @@ module liquid_swap::liquidity_pool {
         (x_swapped, y_swapped)
     }
 
-    /// Compute and very LP value after and before swap, in nutshell, _k function.
+    /// Compute and verify LP value after and before swap, in nutshell, _k function.
     /// * `x_scale` - 10 pow by X coin decimals.
     /// * `y_scale` - 10 pow by Y coin decimals.
     /// * `curve_type` - type of curve.
@@ -382,6 +385,7 @@ module liquid_swap::liquidity_pool {
 
     /// Update current cumulative prices.
     /// * `pool` - Liquidity pool to update prices.
+    /// * `pool_addr` - address of pool to get event emitter.
     /// * `x_reserve` - coin X reserves.
     /// * `y_reserve` - coin Y reserves.
     fun update_oracle<X, Y, LP>(
@@ -420,7 +424,7 @@ module liquid_swap::liquidity_pool {
 
     /// Get reserves of a pool.
     /// * `pool_addr` - pool owner address.
-    /// Returns both (`X`, `Y`) reserves.
+    /// Returns both (X, Y) reserves.
     public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64)
     acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
@@ -434,7 +438,7 @@ module liquid_swap::liquidity_pool {
     }
 
     /// Get current cumilative prices.
-    /// * pool_addr - pool owner address.
+    /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
     acquires LiquidityPool {
@@ -450,7 +454,7 @@ module liquid_swap::liquidity_pool {
     }
 
     /// Get curve type of the pool.
-    /// * pool_addr - pool owner address.
+    /// * `pool_addr` - pool owner address.
     /// Returns 1 = stable or 2 = uncorrelated (uniswap like).
     public fun get_curve_type<X, Y, LP>(pool_addr: address): u8 acquires LiquidityPool {
         assert!(
@@ -466,8 +470,9 @@ module liquid_swap::liquidity_pool {
     }
 
 
-    /// Returns decimals scales (X, Y) for stable curve.
+    /// Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
     /// For uncorrelated curve would return just zeros.
+    /// * `pool_addr` - pool owner address.
     public fun get_decimals_scales<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
         assert!(
             coin_helper::is_sorted<X, Y>(),

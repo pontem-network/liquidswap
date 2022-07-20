@@ -1,13 +1,13 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
-module MultiSwap::CoinHelper {
-    use Std::BCS;
-    use Std::ASCII::{Self, String, as_bytes};
-    use Std::Option;
-    use Std::Vector;
+module liquid_swap::coin_helper {
+    use std::bcs;
+    use std::string::{Self, String, bytes};
+    use std::option;
+    use std::vector;
 
-    use AptosFramework::Coin;
+    use aptos_framework::coin;
 
-    use MultiSwap::Compare;
+    use liquid_swap::compare;
 
     // Errors codes.
 
@@ -28,15 +28,15 @@ module MultiSwap::CoinHelper {
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
-        assert!(Coin::is_coin_initialized<CoinType>(), ERR_IS_NOT_COIN);
+        assert!(coin::is_coin_initialized<CoinType>(), ERR_IS_NOT_COIN);
     }
 
     /// Compare two coins, `X` and `Y`, using names.
     /// Caller should call this function to determine the order of A, B.
     public fun compare<X, Y>(): u8 {
-        let x_bytes = BCS::to_bytes<String>(&Coin::symbol<X>());
-        let y_bytes = BCS::to_bytes<String>(&Coin::symbol<Y>());
-        Compare::cmp_bcs_bytes(&x_bytes, &y_bytes)
+        let x_bytes = bcs::to_bytes<String>(&coin::symbol<X>());
+        let y_bytes = bcs::to_bytes<String>(&coin::symbol<Y>());
+        compare::cmp_bcs_bytes(&x_bytes, &y_bytes)
     }
 
     /// Check that coins generics `X`, `Y` are sorted in correct ordering.
@@ -50,17 +50,17 @@ module MultiSwap::CoinHelper {
     /// Get supply for `CoinType`.
     /// Would throw error if supply for `CoinType` doesn't exist.
     public fun supply<CoinType>(): u128 {
-        Option::extract(&mut Coin::supply<CoinType>())
+        option::extract(&mut coin::supply<CoinType>())
     }
 
     /// Generate LP coin name for pair `X`/`Y`.
     /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
     public fun generate_lp_name<X, Y>(): (String, String) {
         let symbol = b"LP-";
-        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<X>()));
-        Vector::push_back(&mut symbol, 0x2d);
-        Vector::append(&mut symbol, *as_bytes(&Coin::symbol<Y>()));
+        vector::append(&mut symbol, *bytes(&coin::symbol<X>()));
+        vector::push_back(&mut symbol, 0x2d);
+        vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
 
-        (ASCII::string(b"LiquidSwap LP"), ASCII::string(symbol))
+        (string::utf8(b"LiquidSwap LP"), string::utf8(symbol))
     }
 }

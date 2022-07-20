@@ -3,6 +3,7 @@ module liquid_swap::stable_curve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
     // Look detailed at all math here, please.
+    // We threoretically could go in cycle in get_dy, to get better accuracy, but it seems it would eat too much gas.
     // Also look at all places in all contracts where the functions called and check places too and arguments.
     use u256::u256::{Self, U256};
 

@@ -12,23 +12,23 @@ test_pool_owner = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "main"
+rev = "devnet"
 subdir = "aptos-move/framework/move-stdlib"
 
 [dependencies.MoveNursery]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "main"
+rev = "devnet"
 subdir = "aptos-move/framework/move-stdlib/nursery"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "main"
+rev = "devnet"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "0bb66488873d379ad52cda5abb97227e8df5fa3b"
+rev = "acbf73c2da93f95b09db88b7e52a238404fb1d3c"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "8e5077783ac44423e8c79804f05adf907f67884a"
+rev = "724cd701c0b135f10576fbcea72f66ff5295aa5d"

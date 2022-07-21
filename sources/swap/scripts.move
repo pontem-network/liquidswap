@@ -18,7 +18,6 @@ module liquid_swap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     public entry fun register_pool_and_add_liquidity<X, Y, LP>(
         account: signer,
         curve_type: u8,
@@ -26,7 +25,6 @@ module liquid_swap::scripts {
         coin_x_val_min: u64,
         coin_y_val: u64,
         coin_y_val_min: u64,
-        deadline: u64
     ) {
         let acc_addr = signer::address_of(&account);
         router::register_pool<X, Y, LP>(&account, curve_type);
@@ -38,7 +36,6 @@ module liquid_swap::scripts {
             coin_x_val_min,
             coin_y_val,
             coin_y_val_min,
-            deadline,
         );
     }
 
@@ -48,7 +45,6 @@ module liquid_swap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     public entry fun add_liquidity<X, Y, LP>(
         account: signer,
         pool_addr: address,
@@ -56,7 +52,6 @@ module liquid_swap::scripts {
         coin_x_val_min: u64,
         coin_y_val: u64,
         coin_y_val_min: u64,
-        deadline: u64
     ) {
         let coin_x = coin::withdraw<X>(&account, coin_x_val);
         let coin_y = coin::withdraw<Y>(&account, coin_y_val);
@@ -68,7 +63,6 @@ module liquid_swap::scripts {
                 coin_x_val_min,
                 coin_y,
                 coin_y_val_min,
-                deadline,
             );
 
         let account_addr = signer::address_of(&account);
@@ -87,14 +81,12 @@ module liquid_swap::scripts {
     /// * `lp_val` - amount of `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of X coins to get.
     /// * `min_y_out_val` - minimum amount of Y coins to get.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     public entry fun remove_liquidity<X, Y, LP>(
         account: signer,
         pool_addr: address,
         lp_val: u64,
         min_x_out_val: u64,
         min_y_out_val: u64,
-        deadline: u64,
     ) {
         let lp_coins = coin::withdraw<LP>(&account, lp_val);
 
@@ -103,7 +95,6 @@ module liquid_swap::scripts {
             lp_coins,
             min_x_out_val,
             min_y_out_val,
-            deadline,
         );
 
         let account_addr = signer::address_of(&account);
@@ -115,13 +106,11 @@ module liquid_swap::scripts {
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_val` - amount of coins `X` to swap.
     /// * `coin_out_min_val` - minimum expected amount of coins `Y` to get.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     public entry fun swap<X, Y, LP>(
         account: signer,
         pool_addr: address,
         coin_val: u64,
         coin_out_min_val: u64,
-        deadline: u64,
     ) {
         let coin_x = coin::withdraw<X>(&account, coin_val);
 
@@ -129,7 +118,6 @@ module liquid_swap::scripts {
             pool_addr,
             coin_x,
             coin_out_min_val,
-            deadline
         );
 
         let account_addr = signer::address_of(&account);
@@ -140,13 +128,11 @@ module liquid_swap::scripts {
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_val_max` - how much of coins `X` can be used to get `Y` coin.
     /// * `coin_out` - how much of coins `Y` should be returned.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     public entry fun swap_into<X, Y, LP>(
         account: signer,
         pool_addr: address,
         coin_val_max: u64,
         coin_out: u64,
-        deadline: u64,
     ) {
         let coin_x = coin::withdraw<X>(&account, coin_val_max);
 
@@ -154,7 +140,6 @@ module liquid_swap::scripts {
             pool_addr,
             coin_x,
             coin_out,
-            deadline,
         );
 
         let account_addr = signer::address_of(&account);

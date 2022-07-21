@@ -11,8 +11,6 @@ module liquid_swap::scripts_tests {
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_pool_owner::test_lp::LP;
 
-    const DEFAULT_DEADLINE: u64 = 1;
-
     fun register_pool_with_existing_liquidity(
         coin_admin: &signer,
         pool_owner: &signer,
@@ -73,7 +71,6 @@ module liquid_swap::scripts_tests {
             101,
             10100,
             10100,
-            DEFAULT_DEADLINE,
         );
 
         assert!(liquidity_pool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
@@ -107,7 +104,6 @@ module liquid_swap::scripts_tests {
             101,
             10100,
             10100,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::balance<BTC>(pool_owner_addr) == 0, 1);
@@ -132,7 +128,6 @@ module liquid_swap::scripts_tests {
                 101,
                 usdt_coins,
                 10100,
-                DEFAULT_DEADLINE,
             );
         coin::register_internal<BTC>(&pool_owner);
         coin::register_internal<USDT>(&pool_owner);
@@ -147,7 +142,6 @@ module liquid_swap::scripts_tests {
             10,
             98,
             10000,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::balance<LP>(pool_owner_addr) == 0, 1);
@@ -172,7 +166,6 @@ module liquid_swap::scripts_tests {
             pool_owner_addr,
             10,
             900,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::balance<BTC>(pool_owner_addr) == 0, 1);
@@ -196,7 +189,6 @@ module liquid_swap::scripts_tests {
             pool_owner_addr,
             10,
             700,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::balance<BTC>(pool_owner_addr) == 2, 1);

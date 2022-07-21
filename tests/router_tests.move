@@ -13,8 +13,6 @@ module liquid_swap::router_tests {
 
     const MAX_U64: u64 = 18446744073709551615;
 
-    const DEFAULT_DEADLINE: u64 = 1;
-
     fun register_pool_with_liquidity(coin_admin: &signer,
                                      pool_owner: &signer,
                                      x_val: u64, y_val: u64) {
@@ -63,7 +61,6 @@ module liquid_swap::router_tests {
                 101,
                 usdt_coins,
                 10100,
-                DEFAULT_DEADLINE,
             );
 
         assert!(coin::value(&coin_x) == 0, 0);
@@ -99,7 +96,6 @@ module liquid_swap::router_tests {
                 10,
                 usdt_coins,
                 9000,
-                DEFAULT_DEADLINE
             );
         // 101 - 90 = 11
         assert!(coin::value(&coin_x) == 11, 0);
@@ -133,7 +129,6 @@ module liquid_swap::router_tests {
                 9000,
                 btc_coins,
                 10,
-                DEFAULT_DEADLINE,
             );
         // 101 - 90 = 11
         assert!(coin::value(&coin_x) == 11, 0);
@@ -165,7 +160,7 @@ module liquid_swap::router_tests {
             lp_coins_val
         );
         let (coin_x, coin_y) =
-            router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out, DEFAULT_DEADLINE);
+            router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out);
 
         let (usdt_reserve, btc_reserve) = router::get_reserves_size<USDT, BTC, LP>(pool_addr);
         assert!(usdt_reserve == 8080, 0);
@@ -196,7 +191,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             btc_coins_to_swap,
             90,
-            DEFAULT_DEADLINE,
         );
         assert!(coin::value(&usdt_coins) == 98, 0);
 
@@ -218,7 +212,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             usdt_coins_to_swap,
             1,
-            DEFAULT_DEADLINE,
         );
         assert!(coin::value(&btc_coins) == 1, 0);
 
@@ -241,7 +234,6 @@ module liquid_swap::router_tests {
                 pool_owner_addr,
                 btc_coins_to_swap,
                 98,
-                DEFAULT_DEADLINE,
             );
 
         assert!(coin::value(&usdt_coins) == 98, 0);
@@ -267,7 +259,6 @@ module liquid_swap::router_tests {
                 pool_owner_addr,
                 usdt_coins_to_swap,
                 10,
-                DEFAULT_DEADLINE,
             );
 
         assert!(coin::value(&btc_coins) == 10, 0);
@@ -294,7 +285,6 @@ module liquid_swap::router_tests {
                 pool_owner_addr,
                 btc_coin_to_swap,
                 102,
-                DEFAULT_DEADLINE,
             );
 
         coin::register_internal<USDT>(&pool_owner);
@@ -318,7 +308,6 @@ module liquid_swap::router_tests {
                 pool_owner_addr,
                 btc_coins_to_swap,
                 0,
-                DEFAULT_DEADLINE,
             );
 
         coin::register_internal<USDT>(&pool_owner);
@@ -341,7 +330,6 @@ module liquid_swap::router_tests {
                 pool_owner_addr,
                 btc_coins_to_swap,
                 1,
-                DEFAULT_DEADLINE,
             );
         assert!(coin::value(&usdt_coins) == 6704, 0);
 
@@ -389,7 +377,6 @@ module liquid_swap::router_tests {
                 pool_addr,
                 btc_to_swap,
                 95,
-                2,
             );
         coin::deposit(pool_addr, usdts);
 
@@ -408,7 +395,6 @@ module liquid_swap::router_tests {
                 pool_addr,
                 btc_to_swap,
                 190,
-                6,
             );
         coin::deposit(pool_addr, usdts);
 
@@ -438,7 +424,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             usdc_to_swap,
             125426900,
-            DEFAULT_DEADLINE,
         );
         // Value 125426900 checked with coin_out func, yet can't run it, as getting timeout on test.
         assert!(coin::value(&usdt_swapped) == 125426900, 1);
@@ -465,7 +450,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             usdt_to_swap,
             1254269,
-            DEFAULT_DEADLINE,
         );
         assert!(coin::value(&usdc_swapped) == 1254269, 1);
         coin::register_internal<USDC>(&pool_owner);
@@ -491,7 +475,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             usdt_to_swap,
             usdc_to_get_val,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::value(&usdt_reminder) == 0, 1);
@@ -523,7 +506,6 @@ module liquid_swap::router_tests {
             pool_owner_addr,
             usdc_to_swap,
             usdt_to_get_val,
-            DEFAULT_DEADLINE,
         );
 
         assert!(coin::value(&usdc_reminder) == 0, 1);

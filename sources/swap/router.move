@@ -3,7 +3,6 @@ module liquid_swap::router {
     // !!! FOR AUDITOR!!!
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
-    use aptos_framework::timestamp;
 
     use liquid_swap::coin_helper::{Self, supply};
     use liquid_swap::liquidity_pool;
@@ -59,7 +58,6 @@ module liquid_swap::router {
     /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
     /// * `coin_y` - coin Y to add as liquidity.
     /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     /// Returns reminders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP>)`.
     public fun add_liquidity<X, Y, LP>(
         pool_addr: address,
@@ -67,10 +65,7 @@ module liquid_swap::router {
         min_coin_x_val: u64,
         coin_y: Coin<Y>,
         min_coin_y_val: u64,
-        deadline: u64,
     ): (Coin<X>, Coin<Y>, Coin<LP>) {
-        assert_deadline(deadline);
-
         let coin_x_val = coin::value(&coin_x);
         let coin_y_val = coin::value(&coin_y);
 
@@ -98,17 +93,13 @@ module liquid_swap::router {
     /// * `lp_coins` - `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of `X` coins must be out.
     /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     /// Returns both `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
     public fun remove_liquidity<X, Y, LP>(
         pool_addr: address,
         lp_coins: Coin<LP>,
         min_x_out_val: u64,
         min_y_out_val: u64,
-        deadline: u64,
     ): (Coin<X>, Coin<Y>) {
-        assert_deadline(deadline);
-
         let (x_out, y_out) = if (coin_helper::is_sorted<X, Y>()) {
             liquidity_pool::burn<X, Y, LP>(pool_addr, lp_coins)
         } else {
@@ -132,15 +123,12 @@ module liquid_swap::router {
     /// * `pool_addr` - pool owner address.
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_min_val` - minimum amount of coin Y to get out.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     /// Returns `Coin<Y>`.
     public fun swap_exact_coin_for_coin<X, Y, LP>(
         pool_addr: address,
         coin_in: Coin<X>,
         coin_out_min_val: u64,
-        deadline: u64,
     ): Coin<Y> {
-        assert_deadline(deadline);
         let coin_in_val = coin::value(&coin_in);
         let coin_out_val = get_amount_out<X, Y, LP>(pool_addr, coin_in_val);
 
@@ -164,15 +152,12 @@ module liquid_swap::router {
     /// * `pool_addr` - pool owner address.
     /// * `coin_max_in` - maximum amount of coin X to swap to get `coin_out_val` of coins Y.
     /// * `coin_out_val` - exact amount of coin Y to get.
-    /// * `deadline` - till which timestamp in seconds operation must be executed.
     /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
     public fun swap_coin_for_exact_coin<X, Y, LP>(
         pool_addr: address,
         coin_max_in: Coin<X>,
         coin_out_val: u64,
-        deadline: u64,
     ): (Coin<X>, Coin<Y>) {
-        assert_deadline(deadline);
         let coin_in_val_needed = get_amount_in<X, Y, LP>(pool_addr, coin_out_val);
 
         let coin_val_max = coin::value(&coin_max_in);
@@ -380,12 +365,6 @@ module liquid_swap::router {
         } else {
             liquidity_pool::mint<Y, X, LP>(pool_addr, coin_y, coin_x)
         }
-    }
-
-    /// Aborts if operation expired.
-    /// * `deadline` - till which time swap should be executed.
-    fun assert_deadline(deadline: u64) {
-        assert!(deadline >= timestamp::now_seconds(), ERR_OP_EXPIRED);
     }
 
     /// Get coin amount out by passing amount in (include fees). Pass all data manually.

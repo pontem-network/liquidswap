@@ -1,10 +1,10 @@
 #[test_only]
-module liquid_swap::coin_helper_tests {
+module liquidswap::coin_helper_tests {
     use std::string::utf8;
 
     use aptos_framework::genesis;
 
-    use liquid_swap::coin_helper;
+    use liquidswap::coin_helper;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin)]

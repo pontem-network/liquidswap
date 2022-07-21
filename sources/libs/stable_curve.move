@@ -1,5 +1,5 @@
 /// Implements stable curve math.
-module liquid_swap::stable_curve {
+module liquidswap::stable_curve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
     // Look detailed at all math here, please.

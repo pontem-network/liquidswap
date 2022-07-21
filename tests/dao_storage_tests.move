@@ -1,13 +1,13 @@
 #[test_only]
-module liquid_swap::dao_storage_tests {
+module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
     use aptos_framework::genesis;
 
-    use liquid_swap::dao_storage;
-    use liquid_swap::liquidity_pool;
-    use liquid_swap::router;
+    use liquidswap::dao_storage;
+    use liquidswap::liquidity_pool;
+    use liquidswap::router;
     use test_coin_admin::test_coins;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_pool_owner::test_lp::LP;

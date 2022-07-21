@@ -1,6 +1,6 @@
 /// LiquidSwap liquidity pool module.
 /// Implements mint/burn liquidity, swap of coins.
-module liquid_swap::liquidity_pool {
+module liquidswap::liquidity_pool {
     use std::string::String;
     use std::event;
     use std::signer;
@@ -11,11 +11,11 @@ module liquid_swap::liquidity_pool {
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
 
-    use liquid_swap::coin_helper;
-    use liquid_swap::coin_helper::assert_is_coin;
-    use liquid_swap::dao_storage;
-    use liquid_swap::math;
-    use liquid_swap::stable_curve;
+    use liquidswap::coin_helper;
+    use liquidswap::coin_helper::assert_is_coin;
+    use liquidswap::dao_storage;
+    use liquidswap::math;
+    use liquidswap::stable_curve;
 
     // Error codes.
 

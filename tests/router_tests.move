@@ -1,13 +1,13 @@
 #[test_only]
-module liquid_swap::router_tests {
+module liquidswap::router_tests {
     use std::signer;
 
     use aptos_framework::coin;
     use aptos_framework::genesis;
     use aptos_framework::timestamp;
 
-    use liquid_swap::liquidity_pool;
-    use liquid_swap::router;
+    use liquidswap::liquidity_pool;
+    use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::LP;
 

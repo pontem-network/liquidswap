@@ -1,10 +1,10 @@
-module liquid_swap::dao_storage {
+module liquidswap::dao_storage {
     use std::event;
     use std::signer;
 
     use aptos_framework::coin::{Self, Coin};
 
-    friend liquid_swap::liquidity_pool;
+    friend liquidswap::liquidity_pool;
 
     const ERR_NOT_REGISTERED: u64 = 101;
     const ERR_NOT_ADMIN_ACCOUNT: u64 = 102;

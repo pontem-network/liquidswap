@@ -1,5 +1,5 @@
 /// Implementation of math functions needed for Multi Swap.
-module liquid_swap::math {
+module liquidswap::math {
     // Errors codes.
 
     /// When trying to divide by zero.

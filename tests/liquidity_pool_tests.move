@@ -1,12 +1,12 @@
 #[test_only]
-module liquid_swap::liquidity_pool_tests {
+module liquidswap::liquidity_pool_tests {
     use std::string::utf8;
     use std::signer;
 
     use aptos_framework::coin;
     use aptos_framework::genesis;
 
-    use liquid_swap::liquidity_pool;
+    use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_pool_owner::test_lp::{Self, LP};
 

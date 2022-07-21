@@ -1,13 +1,13 @@
 /// Router for Liquidity Pool, similar to Uniswap router.
-module liquid_swap::router {
+module liquidswap::router {
     // !!! FOR AUDITOR!!!
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
 
-    use liquid_swap::coin_helper::{Self, supply};
-    use liquid_swap::liquidity_pool;
-    use liquid_swap::math;
-    use liquid_swap::stable_curve;
+    use liquidswap::coin_helper::{Self, supply};
+    use liquidswap::liquidity_pool;
+    use liquidswap::math;
+    use liquidswap::stable_curve;
 
     // Errors codes.
 

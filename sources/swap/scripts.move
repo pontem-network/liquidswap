@@ -1,10 +1,10 @@
 /// The current module contains pre-deplopyed scripts for LiquidSwap.
-module liquid_swap::scripts {
+module liquidswap::scripts {
     use std::signer;
 
     use aptos_framework::coin;
 
-    use liquid_swap::router;
+    use liquidswap::router;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     /// * `curve_type` - curve type: 1 = stable (like Curve), 2 = uncorrelated (like Uniswap).

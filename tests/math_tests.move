@@ -1,6 +1,6 @@
 #[test_only]
-module liquid_swap::math_tests {
-    use liquid_swap::math;
+module liquidswap::math_tests {
+    use liquidswap::math;
 
     const MAX_u64: u64 = 18446744073709551615;
 

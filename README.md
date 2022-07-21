@@ -1,6 +1,6 @@
-# Multi Swap 
+# LiquidSwap
 
-**LiquidSwap** is AMM protocol for [Aptos](https://www.aptos.com/) project. 
+**LiquidSwap** is AMM protocol for [Aptos](https://www.aptos.com/) blockchain. 
 
 We support two curves:
     * Uncorrelated (like Uniswap).

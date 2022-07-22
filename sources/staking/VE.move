@@ -121,8 +121,8 @@ module MultiSwap::VE {
         let pool = borrow_global_mut<StakingPool>(@StakingPool);
 
         let now = Timestamp::now_seconds();
-        let unlock_ts = round_off_to_week_multiplier(now + lock_duration);
-        let lock_duration = unlock_ts - now;
+        let unlock_timestamp = round_off_to_week_multiplier(now + lock_duration);
+        let lock_duration = unlock_timestamp - now;
         assert!(lock_duration <= MAX_LOCK_DURATION, ERR_DURATION_MORE_THAN_MAX_TIME);
 
         pool.token_id_counter = pool.token_id_counter + 1;
@@ -134,14 +134,14 @@ module MultiSwap::VE {
         let u_power_drop_rate = coins_val / MAX_LOCK_DURATION;
         let u_voting_power = u_power_drop_rate * lock_duration;
 
+        update_internal(pool);
+
         let last_point = Table::borrow_mut(&mut pool.point_history, pool.current_epoch);
         last_point.power_drop_rate = last_point.power_drop_rate + u_power_drop_rate;
         last_point.voting_power = last_point.voting_power + u_voting_power;
 
-        update_internal(pool);
-
         let change_rate_at_unlock_ts =
-            Table::borrow_mut_with_default(&mut pool.change_rate_history, unlock_ts, 0);
+            Table::borrow_mut_with_default(&mut pool.change_rate_history, unlock_timestamp, 0);
         *change_rate_at_unlock_ts = *change_rate_at_unlock_ts + u_power_drop_rate;
 
         let start_epoch = 1;
@@ -155,7 +155,7 @@ module MultiSwap::VE {
         let ve_nft = VE_NFT {
             token_id: pool.token_id_counter,
             stake: coins,
-            unlock_timestamp: unlock_ts,
+            unlock_timestamp,
             epoch: start_epoch,
             point_history: user_point_history,
         };

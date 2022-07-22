@@ -26,5 +26,5 @@ jobs:
       - name: Build
         run: aptos move compile
 
-      #- name: Test
-      #  run: aptos move test
+      - name: Test
+        run: aptos move test

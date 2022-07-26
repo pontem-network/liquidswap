@@ -43,6 +43,9 @@ module liquidswap::liquidity_pool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
+    /// When both X and Y provided for flashloan are equal zero.
+    const ERR_EMPTY_COIN_LOAN: u64 = 108;
+
     /// When invalid curve passed as argument.
     const ERR_INVALID_CURVE: u64 = 110;
 
@@ -80,6 +83,13 @@ module liquidswap::liquidity_pool {
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
+    }
+
+    /// Flash loan resource
+    struct Flashloan<phantom X, phantom Y, phantom LP> {
+        pool_addr: address,
+        x_loan: u64,
+        y_loan: u64
     }
 
     /// Register liquidity pool `X`/`Y`.
@@ -141,6 +151,7 @@ module liquidswap::liquidity_pool {
             liquidity_added_handle: event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
             liquidity_removed_handle: event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
             swap_handle: event::new_event_handle<SwapEvent<X, Y, LP>>(owner),
+            loan_handle: event::new_event_handle<FlashloanEvent<X, Y, LP>>(owner),
             oracle_updated_handle: event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
         };
         event::emit_event(
@@ -501,12 +512,130 @@ module liquidswap::liquidity_pool {
         (FEE_MULTIPLIER, FEE_SCALE)
     }
 
+    /// Get flash loan coins.
+    /// In the most of situation only X or Y coin argument has value.
+    /// Because an user usually loans only one coin, yet function allow to loans both coin.
+    /// * `pool_addr` - pool owner address.
+    /// * `x_loan` - expected amount of X coins to loan.
+    /// * `y_loan` - expected amount of Y coins to loan.
+    /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y, LP)`.
+    public fun flashloan<X, Y, LP>(
+        pool_addr: address,
+        x_loan: u64,
+        y_loan: u64
+    ): (Coin<X>, Coin<Y>, Flashloan<X, Y, LP>) acquires LiquidityPool, EventsStore {
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert!(x_loan > 0 || y_loan > 0, ERR_EMPTY_COIN_LOAN);
+
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
+
+        // Withdraw expected amount from reserves.
+        let x_loaned = coin::extract(&mut pool.coin_x_reserve, x_loan);
+        let y_loaned = coin::extract(&mut pool.coin_y_reserve, y_loan);
+
+        let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
+        event::emit_event(
+            &mut events_store.loan_handle,
+            FlashloanEvent<X, Y, LP> {
+                x_loan,
+                y_loan,
+            });
+
+        // Return loaned amount.
+        (x_loaned, y_loaned, Flashloan<X, Y, LP> {
+            pool_addr,
+            x_loan,
+            y_loan,
+        })
+    }
+
+    /// Pay flash loan coins.
+    /// In the most of situation only X or Y coin argument has value.
+    /// Because an user usually loans only one coin, yet function allow to loans both coin.
+    /// * `x_in` - X coins to pay.
+    /// * `y_in` - Y coins to pay.
+    /// * `loan` - data about flashloan.
+    /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y, LP)`.
+    public fun pay_flashloan<X, Y, LP>(
+        x_in: Coin<X>,
+        y_in: Coin<Y>,
+        loan: Flashloan<X, Y, LP>
+    ) acquires LiquidityPool, EventsStore {
+        let Flashloan {pool_addr, x_loan, y_loan} = loan;
+
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+
+        let x_in_val = coin::value(&x_in);
+        let y_in_val = coin::value(&y_in);
+
+        assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
+
+        let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, LP>(pool_addr);
+
+        // Reserve sizes before loan out
+        x_reserve_size = x_reserve_size + x_loan;
+        y_reserve_size = y_reserve_size + y_loan;
+
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
+
+        // Deposit new coins to liquidity pool.
+        coin::merge(&mut pool.coin_x_reserve, x_in);
+        coin::merge(&mut pool.coin_y_reserve, y_in);
+
+        // Get new reserves.
+        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
+
+        // !!IMPORTANT!! TO !!!AUDITOR!!!
+        // Double check this part, as on previous lines we getting new reserves sizes,
+        // and on the next lines we are withdrawing part of funds to DAO Treasury from reserves, so reserves changed,
+        // but not updated in variable.
+        //
+        // So the Curve Math (compute_and_verify_lp_value) has really no idea we withdrew something already,
+        // means it still thinks we have that DAO Treasury percent in reserves, what seems doesn't break any logic
+        // and don't affect persons who swap tokens but affect LP providers. At least logic it was initially
+        // planned so.
+
+        // Split 33% of fee multiplier of provided coins to the DAOStorage
+        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
+        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
+        let dao_x_fee_val = (x_in_val * dao_fee_multiplier) / FEE_SCALE;
+        let dao_y_fee_val = (y_in_val * dao_fee_multiplier) / FEE_SCALE;
+
+        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
+        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
+        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
+
+        // Confirm that lp_value for the pool hasn't been reduced.
+        // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
+        // and make sure lp_value doesn't decrease:
+        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
+        // (all of it scaled to 1000 to be able to achieve this math in integers)
+        let x_res_new_after_fee = math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
+                                  - math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
+        let y_res_new_after_fee = math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
+                                  - math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+
+        compute_and_verify_lp_value(
+            pool.x_scale,
+            pool.y_scale,
+            pool.curve_type,
+            (x_reserve_size as u128),
+            (y_reserve_size as u128),
+            (x_res_new_after_fee as u128),
+            (y_res_new_after_fee as u128),
+        );
+
+        update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
+    }
+
     // Events
     struct EventsStore<phantom X, phantom Y, phantom LP> has key {
         pool_created_handle: event::EventHandle<PoolCreatedEvent<X, Y, LP>>,
         liquidity_added_handle: event::EventHandle<LiquidityAddedEvent<X, Y, LP>>,
         liquidity_removed_handle: event::EventHandle<LiquidityRemovedEvent<X, Y, LP>>,
         swap_handle: event::EventHandle<SwapEvent<X, Y, LP>>,
+        loan_handle: event::EventHandle<FlashloanEvent<X, Y, LP>>,
         oracle_updated_handle: event::EventHandle<OracleUpdatedEvent<X, Y, LP>>
     }
 
@@ -529,6 +658,11 @@ module liquidswap::liquidity_pool {
         x_out: u64,
         y_in: u64,
         y_out: u64,
+    }
+
+    struct FlashloanEvent<phantom X, phantom Y, phantom LP> has drop, store {
+        x_loan: u64,
+        y_loan: u64,
     }
 
     struct OracleUpdatedEvent<phantom X, phantom Y, phantom LP> has drop, store {

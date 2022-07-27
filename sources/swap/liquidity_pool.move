@@ -46,6 +46,9 @@ module liquidswap::liquidity_pool {
     /// When both X and Y provided for flashloan are equal zero.
     const ERR_EMPTY_COIN_LOAN: u64 = 108;
 
+    /// When pool is locked.
+    const ERR_POOL_IS_LOCKED: u64 = 109;
+
     /// When invalid curve passed as argument.
     const ERR_INVALID_CURVE: u64 = 110;
 
@@ -83,6 +86,7 @@ module liquidswap::liquidity_pool {
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
+        locked: bool,
     }
 
     /// Flash loan resource
@@ -90,6 +94,14 @@ module liquidswap::liquidity_pool {
         pool_addr: address,
         x_loan: u64,
         y_loan: u64
+    }
+
+    /// Check if pool is locked.
+    public fun assert_pool_locked<X, Y, LP>(pool_addr: address) acquires LiquidityPool {
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+
+        let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
+        assert!(pool.locked == false, ERR_POOL_IS_LOCKED);
     }
 
     /// Register liquidity pool `X`/`Y`.
@@ -141,6 +153,7 @@ module liquidswap::liquidity_pool {
             x_scale,
             y_scale,
             curve_type,
+            locked: false,
         };
         move_to(owner, pool);
 
@@ -172,7 +185,7 @@ module liquidswap::liquidity_pool {
         coin_x: Coin<X>,
         coin_y: Coin<Y>
     ): Coin<LP> acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_locked<X, Y, LP>(pool_addr);
 
         let lp_coins_total = coin_helper::supply<LP>();
 
@@ -223,7 +236,7 @@ module liquidswap::liquidity_pool {
     /// Returns both X and Y coins - `(Coin<X>, Coin<Y>)`.
     public fun burn<X, Y, LP>(pool_addr: address, lp_coins: Coin<LP>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_locked<X, Y, LP>(pool_addr);
 
         let burned_lp_coins_val = coin::value(&lp_coins);
 
@@ -273,7 +286,7 @@ module liquidswap::liquidity_pool {
         y_in: Coin<Y>,
         y_out: u64
     ): (Coin<X>, Coin<Y>) acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_locked<X, Y, LP>(pool_addr);
 
         let x_in_val = coin::value(&x_in);
         let y_in_val = coin::value(&y_in);
@@ -533,6 +546,9 @@ module liquidswap::liquidity_pool {
         let x_loaned = coin::extract(&mut pool.coin_x_reserve, x_loan);
         let y_loaned = coin::extract(&mut pool.coin_y_reserve, y_loan);
 
+        // The pool will be locked after the loan until payment.
+        pool.locked = true;
+
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
             &mut events_store.loan_handle,
@@ -627,6 +643,9 @@ module liquidswap::liquidity_pool {
         );
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
+
+        // The pool will be unlocked after payment.
+        pool.locked = false;
     }
 
     // Events

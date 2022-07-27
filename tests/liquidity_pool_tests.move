@@ -301,4 +301,134 @@ module liquidswap::liquidity_pool_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
     }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 109)]
+    fun test_fail_if_mint_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<BTC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-BTC-USDT"),
+            2
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        coin::register_internal<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        // mint when pool is locked
+        let btc_coins_mint = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins_mint = test_coins::mint<USDT>(&coin_admin, 100100);
+        let lp_coins_mint =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins_mint, usdt_coins_mint);
+        coin::deposit(pool_owner_addr, lp_coins_mint);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 109)]
+    fun test_fail_if_swap_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<BTC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-BTC-USDT"),
+            2
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        coin::register_internal<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        // swap when pool is locked
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        let (zero_swap, usdt_coins_swap) =
+            liquidity_pool::swap<BTC, USDT, LP>(
+                pool_owner_addr,
+                btc_coins_to_exchange, 0,
+                coin::zero<USDT>(), 140000000
+            );
+        coin::destroy_zero(zero_swap);
+        test_coins::burn(&coin_admin, usdt_coins_swap);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 109)]
+    fun test_fail_if_burn_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<BTC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-BTC-USDT"),
+            2
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        coin::register_internal<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        // burn when pool is locked
+        let lp_coins = coin::withdraw<LP>(&pool_owner, 1);
+        let (btc_return, usdt_return) =
+            liquidity_pool::burn<BTC, USDT, LP>(pool_owner_addr, lp_coins);
+        test_coins::burn(&coin_admin, btc_return);
+        test_coins::burn(&coin_admin, usdt_return);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
 }

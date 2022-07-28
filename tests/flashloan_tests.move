@@ -109,11 +109,9 @@ module liquidswap::flashloan_tests {
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1);
-        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+        liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]

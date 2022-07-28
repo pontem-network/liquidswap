@@ -12,23 +12,23 @@ test_pool_owner = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a3143756d498821f4f51a5970c7ea35d483938b3"
+rev = "a1dc2e66e49ded056c10318f476e0096d0d17a6f"
 subdir = "aptos-move/framework/move-stdlib"
 
-[dependencies.MoveNursery]
+[dependencies.AptosStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a3143756d498821f4f51a5970c7ea35d483938b3"
-subdir = "aptos-move/framework/move-stdlib/nursery"
+rev = "a1dc2e66e49ded056c10318f476e0096d0d17a6f"
+subdir = "aptos-move/framework/aptos-stdlib"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a3143756d498821f4f51a5970c7ea35d483938b3"
+rev = "a1dc2e66e49ded056c10318f476e0096d0d17a6f"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.3.0"
+rev = "3a84c2ec6c2cccf494858510890a7735104b14ab"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.3.0"
+rev = "70e913336ffd4973569e28d50b4536bbf23f57c2"

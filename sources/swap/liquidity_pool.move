@@ -2,11 +2,12 @@
 /// Implements mint/burn liquidity, swap of coins.
 module liquidswap::liquidity_pool {
     use std::string::String;
-    use std::event;
     use std::signer;
 
     use uq64x64::uq64x64;
     use u256::u256;
+
+    use aptos_std::event;
 
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
@@ -44,7 +45,7 @@ module liquidswap::liquidity_pool {
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
     /// When invalid curve passed as argument.
-    const ERR_INVALID_CURVE: u64 = 110;
+    const ERR_INVALID_CURVE: u64 = 108;
 
     // Constants.
 

@@ -90,6 +90,9 @@ module liquidswap::liquidity_pool {
     }
 
     /// Flash loan resource
+    /// There is no way in Move to pass calldata and make dynamic calls, but a resource can be used for this purpose.
+    /// To make the execution into a single transaction, the flash loan function must return a resource
+    /// that cannot be copied, cannot be saved, cannot be dropped, or cloned.
     struct Flashloan<phantom X, phantom Y, phantom LP> {
         pool_addr: address,
         x_loan: u64,
@@ -97,11 +100,14 @@ module liquidswap::liquidity_pool {
     }
 
     /// Check if pool is locked.
-    public fun assert_pool_locked<X, Y, LP>(pool_addr: address) acquires LiquidityPool {
+    public fun is_pool_locked<X, Y, LP>(pool_addr: address): bool acquires LiquidityPool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
-
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
-        assert!(pool.locked == false, ERR_POOL_IS_LOCKED);
+        pool.locked
+    }
+
+    fun assert_pool_locked<X, Y, LP>(pool_addr: address) acquires LiquidityPool {
+        assert!(is_pool_locked<X, Y, LP>(pool_addr) == false, ERR_POOL_IS_LOCKED);
     }
 
     /// Register liquidity pool `X`/`Y`.
@@ -537,7 +543,7 @@ module liquidswap::liquidity_pool {
         x_loan: u64,
         y_loan: u64
     ): (Coin<X>, Coin<Y>, Flashloan<X, Y, LP>) acquires LiquidityPool, EventsStore {
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_locked<X, Y, LP>(pool_addr);
         assert!(x_loan > 0 || y_loan > 0, ERR_EMPTY_COIN_LOAN);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
@@ -603,6 +609,7 @@ module liquidswap::liquidity_pool {
         let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
 
         // !!IMPORTANT!! TO !!!AUDITOR!!!
+        // This is the same logic as in swap.
         // Double check this part, as on previous lines we getting new reserves sizes,
         // and on the next lines we are withdrawing part of funds to DAO Treasury from reserves, so reserves changed,
         // but not updated in variable.

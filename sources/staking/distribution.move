@@ -9,6 +9,13 @@ module liquidswap::distribution {
     use liquidswap::math;
     use liquidswap::liquid::LAMM;
 
+    #[test_only]
+    use aptos_framework::coin::register_internal;
+    #[test_only]
+    use aptos_framework::genesis;
+    #[test_only]
+    use liquidswap::liquid;
+
     friend liquidswap::minter;
 
     const ERR_CONFIG_EXISTS: u64 = 100;
@@ -310,5 +317,70 @@ module liquidswap::distribution {
         };
 
         min
+    }
+
+    // Tests.
+
+    #[test_only]
+    struct NFTs has key {
+        nfts: Table<u64, ve::VE_NFT>,
+    }
+
+    #[test_only]
+    fun initialize_test(core: &signer, staking_admin: &signer, multi_swap: &signer, staker: &signer) {
+        genesis::setup(core);
+
+        liquid::initialize(multi_swap);
+        ve::initialize(staking_admin);
+
+        let to_mint_val = 20000000000;
+        let staker_addr = signer::address_of(staker);
+        register_internal<LAMM>(staker);
+        liquid::mint_internal(multi_swap, staker_addr, to_mint_val);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool)]
+    fun test_initialize(core: signer, staking_admin: signer) {
+        genesis::setup(&core);
+
+        initialize(&staking_admin);
+        assert!(exists<DistConfig>(signer::address_of(&staking_admin)), 0);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool)]
+    #[expected_failure(abort_code = 100)]
+    fun test_initialize_fail_if_config_exists(core: signer, staking_admin: signer) {
+        genesis::setup(&core);
+
+        initialize(&staking_admin);
+        initialize(&staking_admin);
+    }
+
+    #[test(core = @core_resources, staking_admin = @test_staker)]
+    #[expected_failure(abort_code = 101)]
+    fun test_initialize_fail_if_wrong_initializer(core: signer, staking_admin: signer) {
+        genesis::setup(&core);
+
+        initialize(&staking_admin);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    fun test_claim(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &multi_swap, &staker);
+
+        let to_stake_val = 2000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        // Let's move time to 2 week.
+        let now = timestamp::now_seconds() + WEEK * 2;
+        timestamp::update_global_time_for_test(now * 1000000);
+
+        claim(&mut nft);
+
+        let  unstaked = ve::unstake(nft, false);
+        coin::deposit(signer::address_of(&staker), unstaked);
     }
 }

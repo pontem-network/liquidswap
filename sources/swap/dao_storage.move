@@ -1,6 +1,7 @@
 module liquidswap::dao_storage {
-    use std::event;
     use std::signer;
+
+    use aptos_std::event;
 
     use aptos_framework::coin::{Self, Coin};
 

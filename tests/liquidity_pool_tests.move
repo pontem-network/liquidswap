@@ -55,12 +55,12 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 7)]
+    #[expected_failure(abort_code = 524289)]
     fun test_fail_if_coin_lp_registered_as_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
         test_coins::register_coins(&coin_admin);
-        test_lp::register_lp_for_fails(&coin_admin);
+        test_lp::register_lp_for_fails(&pool_owner);
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,

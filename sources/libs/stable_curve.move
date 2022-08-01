@@ -77,7 +77,7 @@ module liquidswap::stable_curve {
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get in exchange.
     public fun coin_in(coin_out: u128, scale_out: u64, scale_in: u64, reserve_out: u128, reserve_in: u128): u128 {
-        get_dy(coin_out, scale_out, scale_in, reserve_out, reserve_in)
+        get_dy(coin_out, scale_out, scale_in, reserve_out, reserve_in) + 1  //Round up here
     }
 
     /// Implementx -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8).
@@ -195,7 +195,7 @@ module liquidswap::stable_curve {
             2558285805075701,
             25582858050757
         );
-        assert!(in == 2513057999, 0);
+        assert!(in == 2513058000, 0);
     }
 
     #[test]
@@ -208,7 +208,7 @@ module liquidswap::stable_curve {
              2558285805075701
         );
 
-        assert!(in == 251305800000, 0);
+        assert!(in == 251305800001, 0);
     }
 
     #[test]

@@ -606,13 +606,12 @@ module liquidswap::router_tests {
 
         let usdc_to_get_val = 1254269;
         let usdt_to_swap_val = router::get_amount_in<USDT, USDC, LP>(pool_owner_addr, usdc_to_get_val);
-        let tmp = router::get_amount_out<USDT, USDC, LP>(pool_owner_addr, 125804400);
 
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, 125804400);
+        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
         let (usdt_reminder, usdc_swapped) = router::swap_coin_for_exact_coin<USDT, USDC, LP>(
             pool_owner_addr,
             usdt_to_swap,
-            1258044,
+            usdc_to_get_val,
         );
 
         assert!(coin::value(&usdt_reminder) == 0, 1);

@@ -457,7 +457,7 @@ module liquidswap::router {
                 ) as u64),
                 fee_scale,
                 fee_multiplier
-            )
+            ) + 1   // Rounded up here!!!
         } else if (curve_type == UNCORRELATED_CURVE) {
             // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;

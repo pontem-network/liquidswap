@@ -446,18 +446,16 @@ module liquidswap::router {
 
         if (curve_type == STABLE_CURVE) {
             // !!!FOR AUDITOR!!!
-            // Check it two times.
-            math::mul_div(
-                (stable_curve::coin_in(
-                    (coin_out as u128),
-                    scale_out,
-                    scale_in,
-                    (reserve_out as u128),
-                    (reserve_in as u128),
-                ) as u64),
-                fee_scale,
-                fee_multiplier
-            ) + 1   // Rounded up here!!!
+            // Double check it.
+            let coin_in = (stable_curve::coin_in(
+                (coin_out as u128),
+                scale_out,
+                scale_in,
+                (reserve_out as u128),
+                (reserve_in as u128),
+                ) as u64) + 1;
+
+            (coin_in * fee_scale / fee_multiplier) + 1
         } else if (curve_type == UNCORRELATED_CURVE) {
             // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;

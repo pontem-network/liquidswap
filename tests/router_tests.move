@@ -736,6 +736,79 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_out(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+        test_coins::register_coins(&coin_admin);
+        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 20000000000, 1000000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+        let amount_in = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, 67279092);
+        debug::print(&amount_in);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap_vise_vera_1(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+        test_coins::register_coins(&coin_admin);
+        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        assert!(router::get_curve_type<USDC, USDT, LP>(pool_owner_addr) == 1, 0);
+
+        let usdt_to_get_val = 672790928312;
+        let usdc_to_swap_val = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, usdt_to_get_val);
+        debug::print(&usdc_to_swap_val);
+
+        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let (usdc_reminder, usdt_swapped) = router::swap_coin_for_exact_coin<USDC, USDT, LP>(
+            pool_owner_addr,
+            usdc_to_swap,
+            usdt_to_get_val,
+        );
+
+        assert!(coin::value(&usdc_reminder) == 0, 1);
+        assert!(coin::value(&usdt_swapped) == usdt_to_get_val, 2);
+
+        coin::register_internal<USDC>(&pool_owner);
+        coin::register_internal<USDT>(&pool_owner);
+
+        coin::deposit(pool_owner_addr, usdc_reminder);
+        coin::deposit(pool_owner_addr, usdt_swapped);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap_vise_vera_2(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+        test_coins::register_coins(&coin_admin);
+        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        assert!(router::get_curve_type<USDC, USDT, LP>(pool_owner_addr) == 1, 0);
+
+        let usdt_to_get_val = 672790928;
+        let usdc_to_swap_val = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, usdt_to_get_val);
+        debug::print(&usdc_to_swap_val);
+
+        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let (usdc_reminder, usdt_swapped) = router::swap_coin_for_exact_coin<USDC, USDT, LP>(
+            pool_owner_addr,
+            usdc_to_swap,
+            usdt_to_get_val,
+        );
+
+        assert!(coin::value(&usdc_reminder) == 0, 1);
+        assert!(coin::value(&usdt_swapped) == usdt_to_get_val, 2);
+
+        coin::register_internal<USDC>(&pool_owner);
+        coin::register_internal<USDT>(&pool_owner);
+
+        coin::deposit(pool_owner_addr, usdc_reminder);
+        coin::deposit(pool_owner_addr, usdt_swapped);
+    }
+
     #[test]
     fun test_convert_with_current_price() {
         let a = router::convert_with_current_price(MAX_U64, MAX_U64, MAX_U64);

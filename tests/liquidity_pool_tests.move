@@ -575,6 +575,84 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coins_with_stable_curve_type_1(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<USDC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-USDC-USDT"),
+            1
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+
+        let lp_coins =
+            liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
+        coin::register_internal<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 7078017525);
+        let (zero, usdt_coins) =
+            liquidity_pool::swap<USDC, USDT, LP>(
+                pool_owner_addr,
+                usdc_coins_to_exchange, 0,
+                coin::zero<USDT>(), 672790928315
+            );
+        assert!(coin::value(&usdt_coins) == 672790928315, 1);
+
+         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
+         assert!(x_res == 22070939508, 2);
+         assert!(y_res == 827209071685, 2);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coins_with_stable_curve_type_2(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<USDC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-USDC-USDT"),
+            1
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+
+        let lp_coins =
+            liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
+        coin::register_internal<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 6748155);
+        let (zero, usdt_coins) =
+            liquidity_pool::swap<USDC, USDT, LP>(
+                pool_owner_addr,
+                usdc_coins_to_exchange, 0,
+                coin::zero<USDT>(), 672790928
+            );
+        assert!(coin::value(&usdt_coins) == 672790928, 1);
+
+         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
+         assert!(x_res == 15006741407, 2);
+         assert!(y_res == 1499327209072, 2);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_swap_coins_with_stable_curve_type_1_unit(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 

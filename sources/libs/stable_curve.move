@@ -3,7 +3,7 @@ module liquidswap::stable_curve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
     // Some of the functions just migrated from Solidly (BaseV1-core).
-    // Some we implemented outself, like coin_in, dx.
+    // Some we implemented outself, like coin_in.
     // Also look at all places in all contracts where the functions called and check places too and arguments.
     use u256::u256::{Self, U256};
 
@@ -142,7 +142,7 @@ module liquidswap::stable_curve {
 
         let total_reserve = u256::sub(reserve_out_u256, amountOut);
         let x = u256::sub(
-            get_x(total_reserve, xy, reserve_in_u256),
+            get_y(total_reserve, xy, reserve_in_u256),
             reserve_in_u256,
         );
         let r = u256::div(
@@ -154,61 +154,6 @@ module liquidswap::stable_curve {
         );
 
         u256::as_u128(r)
-    }
-
-    /// Trying to find suitable `x` value.
-    /// * `y0` - total reserve y (include sub `coin_out`) with transformed decimals.
-    /// * `xy` - lp value (see `lp_value` func).
-    /// * `x` - reserves in with transformed decimals.
-    fun get_x(y0: U256, xy: U256, x: U256): U256 {
-        let i = 0;
-        let u2561e8 = u256::from_u128(ONE_E_8);
-        let one_u256 = u256::from_u128(1);
-
-        while (i < 255) {
-            let x_prev = x;
-            let k = f(x, y0);
-
-            let cmp = u256::compare(&k, &xy);
-            if (cmp == 1) {
-                let dx = u256::div(
-                    u256::mul(
-                        u256::sub(xy, k),
-                        u2561e8,
-                    ),
-                    dx(y0, x),
-                );
-                x = u256::add(x, dx);
-            } else {
-                let dx = u256::div(
-                    u256::mul(
-                        u256::sub(k, xy),
-                        u2561e8,
-                    ),
-                    dx(y0, x),
-                );
-                x = u256::sub(x, dx);
-            };
-
-            cmp = u256::compare(&x, &x_prev);
-            if (cmp == 2) {
-                let diff = u256::sub(x, x_prev);
-                cmp = u256::compare(&diff, &one_u256);
-                if (cmp == 0 || cmp == 1) {
-                    return x
-                };
-            } else {
-                let diff = u256::sub(x_prev, x);
-                cmp = u256::compare(&diff, &one_u256);
-                if (cmp == 0 || cmp == 1) {
-                    return x
-                };
-            };
-
-            i = i + 1;
-        };
-
-        x
     }
 
     /// Trying to find suitable `y` value.
@@ -298,34 +243,6 @@ module liquidswap::stable_curve {
 
         // a + b
         u256::add(a, b)
-    }
-
-    /// Implements 3 * y0 * x^2 + y0^3 = 3 * y0 * (x * x / 1e8) / 1e8 + (y0 * y0 / 1e8 * y0) / 1e8
-    fun dx(y0_u256: U256, x_u256: U256): U256 {
-        let three_u256 = u256::from_u128(3);
-        let u2561e8 = u256::from_u128(ONE_E_8);
-
-        //  3 * y0 * x^2
-        let y3 = u256::mul(three_u256, y0_u256);
-        let xx = u256::div(
-            u256::mul(x_u256, x_u256),
-            u2561e8,
-        );
-        let yxx3 = u256::div(
-            u256::mul(y3, xx),
-            u2561e8,
-        );
-        // y0 * y0 / 1e8 * y0 / 1e8
-        let yy = u256::div(
-            u256::mul(y0_u256, y0_u256),
-            u2561e8,
-        );
-        let yyy = u256::div(
-            u256::mul(yy, y0_u256),
-            u2561e8,
-        );
-
-        u256::add(yxx3, yyy)
     }
 
     /// Implements 3 * x0 * y^2 + x0^3 = 3 * x0 * (y * y / 1e8) / 1e8 + (x0 * x0 / 1e8 * x0) / 1e8
@@ -441,21 +358,6 @@ module liquidswap::stable_curve {
         let z = d(x0, y);
         let r = u256::as_u128(z);
         assert!(r == 0, 2);
-    }
-
-    #[test]
-    fun test_dx() {
-        // 3 * y0 * x^2 + y0^3
-        let x = u256::from_u128(5321542222);
-        let y0 = u256::from_u128(108590000002874000);
-
-        let r = dx(y0, x);
-        assert!(128047026988067802242015266600149752 == u256::as_u128(r), 0);
-
-        let x = u256::from_u128(10240000);
-        let y0 = u256::from_u128(25600000);
-        let r = dx(y0, x);
-        assert!(2483027 == u256::as_u128(r), 1);
     }
 
     #[test]

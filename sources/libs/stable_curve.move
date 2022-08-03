@@ -166,42 +166,35 @@ module liquidswap::stable_curve {
         let one_u256 = u256::from_u128(1);
 
         while (i < 255) {
-            let y_prev = y;
             let k = f(x0, y);
 
+            let _dy = u256::zero();
             let cmp = u256::compare(&k, &xy);
             if (cmp == 1) {
-                let dy = u256::div(
-                    u256::mul(
-                        u256::sub(xy, k),
-                        u2561e8,
+                _dy = u256::add(
+                    u256::div(
+                        u256::mul(
+                            u256::sub(xy, k),
+                            u2561e8,
+                        ),
+                        d(x0, y),
                     ),
-                    d(x0, y),
+                    one_u256    // Round up
                 );
-                y = u256::add(y, dy);
+                y = u256::add(y, _dy);
             } else {
-                let dy = u256::div(
+                _dy = u256::div(
                     u256::mul(
                         u256::sub(k, xy),
                         u2561e8,
                     ),
                     d(x0, y),
                 );
-                y = u256::sub(y, dy);
+                y = u256::sub(y, _dy);
             };
-            cmp = u256::compare(&y, &y_prev);
-            if (cmp == 2) {
-                let diff = u256::sub(y, y_prev);
-                cmp = u256::compare(&diff, &one_u256);
-                if (cmp == 0 || cmp == 1) {
-                    return y
-                };
-            } else {
-                let diff = u256::sub(y_prev, y);
-                cmp = u256::compare(&diff, &one_u256);
-                if (cmp == 0 || cmp == 1) {
-                    return y
-                };
+            cmp = u256::compare(&_dy, &one_u256);
+            if (cmp == 0 || cmp == 1) {
+                return y
             };
 
             i = i + 1;

@@ -298,7 +298,6 @@ module liquidswap::liquidity_pool_tests {
         test_coins::burn(&coin_admin, btc_coins);
     }
 
-
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_swap_coins_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);

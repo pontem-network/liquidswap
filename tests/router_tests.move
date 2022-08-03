@@ -861,7 +861,7 @@ module liquidswap::router_tests {
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<BTC, USDT, LP>(pool_owner_addr, 1);
-        assert!(amount_out == 0, 0);
+        assert!(amount_out == 259, 0);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]

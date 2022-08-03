@@ -790,7 +790,6 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    // Doesn't work correctly, need fix.
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_stable_curve_exact_swap(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
@@ -808,7 +807,7 @@ module liquidswap::router_tests {
         let (usdt_reminder, usdc_swapped) = router::swap_coin_for_exact_coin<USDT, USDC, LP>(
             pool_owner_addr,
             usdt_to_swap,
-            1258044,
+            usdc_to_get_val,
         );
 
         assert!(coin::value(&usdt_reminder) == 0, 1);
@@ -821,7 +820,6 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    // Doesn't work correctly need fix.
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_stable_curve_exact_swap_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);

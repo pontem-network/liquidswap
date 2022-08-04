@@ -227,6 +227,52 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 105)]
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_x(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+        test_coins::register_coins(&coin_admin);
+
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+
+        let lp_coins_val = 2u64;
+        let pool_addr = signer::address_of(&pool_owner);
+        let lp_coins_to_burn = coin::withdraw<LP>(&pool_owner, lp_coins_val);
+
+        let (x_out, y_out) = router::get_reserves_for_lp_coins<BTC, USDT, LP>(
+            pool_addr,
+            lp_coins_val
+        );
+        let (coin_x, coin_y) =
+            router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out * 2, y_out);
+
+        coin::deposit(pool_addr, coin_x);
+        coin::deposit(pool_addr, coin_y);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 105)]
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_y(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+        test_coins::register_coins(&coin_admin);
+
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+
+        let lp_coins_val = 2u64;
+        let pool_addr = signer::address_of(&pool_owner);
+        let lp_coins_to_burn = coin::withdraw<LP>(&pool_owner, lp_coins_val);
+
+        let (x_out, y_out) = router::get_reserves_for_lp_coins<BTC, USDT, LP>(
+            pool_addr,
+            lp_coins_val
+        );
+        let (coin_x, coin_y) =
+            router::remove_liquidity<BTC, USDT, LP>(pool_addr, lp_coins_to_burn, x_out, y_out * 2);
+
+        coin::deposit(pool_addr, coin_x);
+        coin::deposit(pool_addr, coin_y);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_swap_exact_coin_for_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -316,6 +362,29 @@ module liquidswap::router_tests {
         assert!(coin::value(&btc_coins) == 1, 0);
 
         test_coins::burn(&coin_admin, btc_coins);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 105)]
+    fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        test_coins::register_coins(&coin_admin);
+
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+        let btc_coins_swap_val = 1;
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
+        let usdt_amount_out = router::get_amount_out<BTC, USDT, LP>(pool_owner_addr, btc_coins_swap_val);
+
+        let usdt_coins = router::swap_exact_coin_for_coin<BTC, USDT, LP>(
+            pool_owner_addr,
+            btc_coins_to_swap,
+            usdt_amount_out * 2,
+        );
+
+        test_coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
@@ -1052,28 +1121,31 @@ module liquidswap::router_tests {
     fun test_get_curve_type_stables(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
+
         register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         assert!(router::get_curve_type<USDC, USDT, LP>(pool_owner_address) == 1, 0);
-        assert!(router::get_curve_type<USDT, USDC, LP>(pool_owner_address) == 1, 0);
+        assert!(router::get_curve_type<USDT, USDC, LP>(pool_owner_address) == 1, 1);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_curve_type_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
+
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         assert!(router::get_curve_type<BTC, USDT, LP>(pool_owner_address) == 2, 0);
-        assert!(router::get_curve_type<USDT, BTC, LP>(pool_owner_address) == 2, 0);
+        assert!(router::get_curve_type<USDT, BTC, LP>(pool_owner_address) == 2, 1);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_decimals_scales_stables(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
+
         register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
@@ -1082,24 +1154,20 @@ module liquidswap::router_tests {
         // USDC 4 decimals
         assert!(x == 10000, 0);
         // USDT 6 decimals
-        assert!(y == 1000000, 0);
+        assert!(y == 1000000, 1);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_decimals_scales_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
+
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         let (x, y) = router::get_decimals_scales<BTC, USDT, LP>(pool_owner_address);
 
         assert!(x == 0, 0);
-        assert!(y == 0, 0);
+        assert!(y == 0, 1);
     }
-
-//    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-//    fun test_get_cumulative_prices(core: signer, coin_admin: signer, pool_owner: signer) {
-//
-//    }
 }

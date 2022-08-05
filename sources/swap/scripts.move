@@ -3,6 +3,7 @@ module liquidswap::scripts {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
 
     use liquidswap::router;
 
@@ -68,7 +69,7 @@ module liquidswap::scripts {
         let account_addr = signer::address_of(&account);
 
         if (!coin::is_account_registered<LP>(account_addr)) {
-            coin::register_internal<LP>(&account);
+            coins::register_internal<LP>(&account);
         };
 
         coin::deposit(account_addr, coin_x_remainder);

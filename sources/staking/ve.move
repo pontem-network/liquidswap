@@ -496,10 +496,10 @@ module liquidswap::ve {
         assert!(new_bias == 25, 1);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap)]
-    fun test_initialize(core: signer, staking_admin: signer, multi_swap: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
+    fun test_initialize(core: signer, staking_admin: signer, admin: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
 
@@ -519,33 +519,33 @@ module liquidswap::ve {
         assert!(get_current_epoch() == 0, 7);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
     #[expected_failure(abort_code = 100)]
-    fun test_initialize_fail(core: signer, staking_admin: signer, multi_swap: signer) {
+    fun test_initialize_fail(core: signer, staking_admin: signer, admin: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
         initialize(&staking_admin);
     }
 
-    #[test(core = @core_resources, multi_swap = @liquidswap)]
+    #[test(core = @core_resources, admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_initialize_wrong_account(core: signer, multi_swap: signer) {
+    fun test_initialize_wrong_account(core: signer, admin: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
 
-        initialize(&multi_swap);
+        initialize(&admin);
     }
 
-    #[test(core = @core_resources, multi_swap = @liquidswap, staker = @test_staker)]
-    public fun test_nft_getters(core: signer, multi_swap: signer, staker: signer) {
+    #[test(core = @core_resources, admin = @liquidswap, staker = @test_staker)]
+    public fun test_nft_getters(core: signer, admin: signer, staker: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -610,15 +610,15 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_stake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 2000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -678,16 +678,16 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 102)]
-    fun test_stake_fails(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    fun test_stake_fails(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -702,10 +702,10 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_update(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         update();
@@ -733,7 +733,7 @@ module liquidswap::ve {
         // Let's stake and see how history changed.
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -826,10 +826,10 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_supply(core: signer, staking_admin: signer, multi_swap: signer, staker: signer)  acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_supply(core: signer, staking_admin: signer, admin: signer, staker: signer)  acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let supply = supply();
@@ -837,7 +837,7 @@ module liquidswap::ve {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -879,15 +879,15 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_update_stake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let now = timestamp::now_seconds();
         let to_stake_val = 1000000000;
@@ -961,15 +961,15 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_unstake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_unstake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1000,21 +1000,21 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 104)]
     fun test_unstake_fail_early(
         core: signer,
         staking_admin: signer,
-        multi_swap: signer,
+        admin: signer,
         staker: signer
     ) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1026,21 +1026,21 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 105)]
     fun test_unstake_fail_has_rewards(
         core: signer,
         staking_admin: signer,
-        multi_swap: signer,
+        admin: signer,
         staker: signer
     ) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1056,11 +1056,11 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun end_to_end(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun end_to_end(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
 
-        liquid::initialize(&multi_swap);
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
 
@@ -1074,7 +1074,7 @@ module liquidswap::ve {
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);

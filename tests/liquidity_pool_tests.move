@@ -4,15 +4,21 @@ module liquidswap::liquidity_pool_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
+
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::{Self, LP};
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
         let pool_owner_addr = signer::address_of(&pool_owner);
@@ -40,6 +46,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_fail_if_coin_generics_provided_in_the_wrong_order(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
         let pool_owner_addr = signer::address_of(&pool_owner);
         liquidity_pool::register<BTC, USDT, LP>(
@@ -59,6 +68,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_fail_if_coin_lp_registered_as_coin(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
         test_lp::register_lp_for_fails(&pool_owner);
 
@@ -73,6 +85,9 @@ module liquidswap::liquidity_pool_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_add_liquidity_and_then_burn_it(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
 
@@ -114,6 +129,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_add_liquidity_zero(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -141,7 +159,7 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 100100, 3);
         assert!(y_res == 100100, 4);
 
-        coin::register_internal<LP>(&coin_admin);
+        coins::register_internal<LP>(&coin_admin);
         coin::deposit(signer::address_of(&coin_admin), lp_coins);
         coin::deposit(signer::address_of(&coin_admin), lp_coins_zero);
     }
@@ -149,6 +167,9 @@ module liquidswap::liquidity_pool_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_swap_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
 
@@ -166,7 +187,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -190,6 +211,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_1(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -206,7 +230,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -231,6 +255,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_1_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -247,7 +274,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -268,6 +295,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_zero_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -284,7 +314,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (btc_coins, usdt_coins) =
@@ -302,6 +332,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -318,7 +351,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -343,6 +376,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_vice_versa_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -359,7 +395,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -379,6 +415,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_two_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -395,7 +434,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -423,6 +462,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_two_coins_failure(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -439,7 +481,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -467,6 +509,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_cannot_swap_coins_and_reduce_value_of_pool(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -483,7 +528,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         // 1 minus fee for 1
@@ -502,6 +547,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -518,6 +566,9 @@ module liquidswap::liquidity_pool_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_fees_config(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
 
@@ -538,6 +589,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -553,7 +607,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
@@ -577,6 +631,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_1(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -592,7 +649,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 7078017525);
@@ -616,6 +673,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_2(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -631,7 +691,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 152);
@@ -655,6 +715,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_3(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -670,7 +733,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 6748155);
@@ -694,6 +757,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_1_unit(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -709,7 +775,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
@@ -734,6 +800,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_1_unit_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -749,7 +818,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
@@ -774,6 +843,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_fails(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -789,7 +861,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
@@ -813,6 +885,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -828,7 +903,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
@@ -852,6 +927,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_two_coins_with_stable_curve(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -867,7 +945,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
@@ -896,6 +974,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_two_coins_with_stable_curve_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -911,7 +992,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
@@ -939,6 +1020,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_vice_versa_1(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -954,7 +1038,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 125804400);
@@ -975,6 +1059,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_swap_coins_with_stable_curve_type_vice_versa_fail(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<USDC, USDT, LP>(
@@ -990,7 +1077,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);

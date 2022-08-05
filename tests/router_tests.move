@@ -163,6 +163,9 @@ module liquidswap::router_tests {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
@@ -186,8 +189,11 @@ module liquidswap::router_tests {
     #[expected_failure(abort_code = 103)]
     fun test_add_liquidity_to_fail_with_insufficient_x_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
-        test_coins::register_coins(&coin_admin);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
         register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
@@ -247,6 +253,10 @@ module liquidswap::router_tests {
     #[expected_failure(abort_code = 105)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_x(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
@@ -270,6 +280,10 @@ module liquidswap::router_tests {
     #[expected_failure(abort_code = 105)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_y(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
@@ -397,6 +411,9 @@ module liquidswap::router_tests {
     #[expected_failure(abort_code = 105)]
     fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
 
@@ -1277,6 +1294,10 @@ module liquidswap::router_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_curve_type_stables(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
@@ -1289,6 +1310,10 @@ module liquidswap::router_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_curve_type_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
@@ -1301,6 +1326,10 @@ module liquidswap::router_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_decimals_scales_stables(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
@@ -1317,6 +1346,10 @@ module liquidswap::router_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_get_decimals_scales_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);

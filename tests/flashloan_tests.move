@@ -8,9 +8,10 @@ module liquidswap::flashloan_tests {
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
+
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_pool_owner::test_lp::{LP};
-    use liquidswap::test_account::create_account;
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_flashloan_coins(core: signer, coin_admin: signer, pool_owner: signer) {

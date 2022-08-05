@@ -8,9 +8,10 @@ module liquidswap::liquidity_pool_tests {
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
+
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::{Self, LP};
-    use liquidswap::test_account::create_account;
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_create_empty_pool_without_any_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {

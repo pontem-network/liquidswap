@@ -9,10 +9,11 @@ module liquidswap::dao_storage_tests {
     use liquidswap::dao_storage;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
+
     use test_coin_admin::test_coins;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_pool_owner::test_lp::LP;
-    use liquidswap::test_account::create_account;
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
     fun test_split_third_of_fees_into_dao_storage_account(

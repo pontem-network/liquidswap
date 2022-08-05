@@ -5,8 +5,8 @@ module liquidswap::coin_helper_tests {
     use aptos_framework::genesis;
 
     use liquidswap::coin_helper;
-    use liquidswap::test_account::create_account;
 
+    use test_helpers::test_account::create_account;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin)]

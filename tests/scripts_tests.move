@@ -9,9 +9,10 @@ module liquidswap::scripts_tests {
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use liquidswap::scripts;
+
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_pool_owner::test_lp::LP;
-    use liquidswap::test_account::create_account;
+    use test_helpers::test_account::create_account;
 
     fun register_pool_with_existing_liquidity(
         coin_admin: &signer,

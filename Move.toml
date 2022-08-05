@@ -9,6 +9,7 @@ dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 # Addresses for tests.
 test_coin_admin = "0x11"
 test_pool_owner = "0x12"
+test_helpers = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

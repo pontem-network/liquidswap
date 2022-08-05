@@ -32,7 +32,7 @@ module liquidswap::router {
 
     // Constants.
 
-    /// Stable curve (like Curve).
+    /// Stable curve (like Solidly).
     const STABLE_CURVE: u8 = 1;
 
     /// Uncorellated curve (like Uniswap).

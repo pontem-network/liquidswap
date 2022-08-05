@@ -3,14 +3,17 @@ module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::dao_storage;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
+
     use test_coin_admin::test_coins;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_pool_owner::test_lp::LP;
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
     fun test_split_third_of_fees_into_dao_storage_account(
@@ -20,6 +23,10 @@ module liquidswap::dao_storage_tests {
         dao_admin_acc: signer,
     ) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+        create_account(&dao_admin_acc);
 
         test_coins::register_coins(&coin_admin);
 
@@ -32,7 +39,7 @@ module liquidswap::dao_storage_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);

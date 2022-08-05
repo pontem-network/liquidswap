@@ -4,15 +4,21 @@ module liquidswap::flashloan_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
+
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_pool_owner::test_lp::{LP};
+    use test_helpers::test_account::create_account;
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_flashloan_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
 
         test_coins::register_coins(&coin_admin);
 
@@ -30,7 +36,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -53,6 +59,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_pay_less_flashloaned_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -69,7 +78,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -87,6 +96,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_pay_equal_flashloaned_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -103,7 +115,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -119,6 +131,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_mint_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -135,7 +150,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -161,6 +176,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_swap_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -177,7 +195,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -207,6 +225,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_burn_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -223,7 +244,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -249,6 +270,9 @@ module liquidswap::flashloan_tests {
     fun test_fail_if_flashloan_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -265,7 +289,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coin::register_internal<LP>(&pool_owner);
+        coins::register_internal<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =

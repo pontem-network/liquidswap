@@ -137,14 +137,7 @@ module liquidswap::router {
             ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM,
         );
 
-        let (zero, coin_out);
-        if (coin_helper::is_sorted<X, Y>()) {
-            (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
-        } else {
-            (coin_out, zero) = liquidity_pool::swap<Y, X, LP>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
-        };
-        coin::destroy_zero(zero);
-
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, LP>(pool_addr, coin_in, coin_out_val);
         coin_out
     }
 
@@ -167,19 +160,13 @@ module liquidswap::router {
         );
 
         let coin_in = coin::extract(&mut coin_max_in, coin_in_val_needed);
-
-        let (zero, coin_out);
-        if (coin_helper::is_sorted<X, Y>()) {
-            (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
-        } else {
-            (coin_out, zero) = liquidity_pool::swap<Y, X, LP>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
-        };
-        coin::destroy_zero(zero);
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, LP>(pool_addr, coin_in, coin_out_val);
 
         (coin_max_in, coin_out)
     }
 
-    /// Swap coin `X` for coin `Y` without checking.
+    /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
+    /// So use the following function only on your own risk.
     /// * `pool_addr` - pool owner address.
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_val` - amount of coin Y to get out.

@@ -66,7 +66,7 @@ module liquidswap::liquidity_pool {
 
     // Curve types.
 
-    /// Stable curve (Curve like).
+    /// Stable curve (like Solidly).
     const STABLE_CURVE: u8 = 1;
 
     /// Uncorrelated curve (Uniswap like).

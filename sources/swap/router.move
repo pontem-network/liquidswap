@@ -32,7 +32,7 @@ module liquidswap::router {
 
     // Constants.
 
-    /// Stable curve (like Curve).
+    /// Stable curve (like Solidly).
     const STABLE_CURVE: u8 = 1;
 
     /// Uncorellated curve (like Uniswap).
@@ -137,14 +137,7 @@ module liquidswap::router {
             ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM,
         );
 
-        let (zero, coin_out);
-        if (coin_helper::is_sorted<X, Y>()) {
-            (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
-        } else {
-            (coin_out, zero) = liquidity_pool::swap<Y, X, LP>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
-        };
-        coin::destroy_zero(zero);
-
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, LP>(pool_addr, coin_in, coin_out_val);
         coin_out
     }
 
@@ -167,7 +160,22 @@ module liquidswap::router {
         );
 
         let coin_in = coin::extract(&mut coin_max_in, coin_in_val_needed);
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, LP>(pool_addr, coin_in, coin_out_val);
 
+        (coin_max_in, coin_out)
+    }
+
+    /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
+    /// So use the following function only on your own risk.
+    /// * `pool_addr` - pool owner address.
+    /// * `coin_in` - coin X to swap.
+    /// * `coin_out_val` - amount of coin Y to get out.
+    /// Returns `Coin<Y>`.
+    public fun swap_coin_for_coin_unchecked<X, Y, LP>(
+        pool_addr: address,
+        coin_in: Coin<X>,
+        coin_out_val: u64,
+    ): Coin<Y> {
         let (zero, coin_out);
         if (coin_helper::is_sorted<X, Y>()) {
             (zero, coin_out) = liquidity_pool::swap<X, Y, LP>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
@@ -176,7 +184,7 @@ module liquidswap::router {
         };
         coin::destroy_zero(zero);
 
-        (coin_max_in, coin_out)
+        coin_out
     }
 
     // Getters.
@@ -446,14 +454,16 @@ module liquidswap::router {
 
         if (curve_type == STABLE_CURVE) {
             // !!!FOR AUDITOR!!!
-            // Check it two times.
-            (stable_curve::coin_in(
+            // Double check it.
+            let coin_in = (stable_curve::coin_in(
                 (coin_out as u128),
                 scale_out,
                 scale_in,
                 (reserve_out as u128),
                 (reserve_in as u128),
-            ) as u64)
+                ) as u64) + 1;
+
+            (coin_in * fee_scale / fee_multiplier) + 1
         } else if (curve_type == UNCORRELATED_CURVE) {
             // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;

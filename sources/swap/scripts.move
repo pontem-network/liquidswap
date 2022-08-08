@@ -3,17 +3,18 @@ module liquidswap::scripts {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
 
     use liquidswap::router;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
-    /// * `curve_type` - curve type: 1 = stable (like Curve), 2 = uncorrelated (like Uniswap).
+    /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
     public entry fun register_pool<X, Y, LP>(account: signer, curve_type: u8) {
         router::register_pool<X, Y, LP>(&account, curve_type);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
-    /// * `curve_type` - curve type: 1 = stable (like Curve), 2 = uncorrelated (like Uniswap).
+    /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
@@ -68,7 +69,7 @@ module liquidswap::scripts {
         let account_addr = signer::address_of(&account);
 
         if (!coin::is_account_registered<LP>(account_addr)) {
-            coin::register_internal<LP>(&account);
+            coins::register_internal<LP>(&account);
         };
 
         coin::deposit(account_addr, coin_x_remainder);

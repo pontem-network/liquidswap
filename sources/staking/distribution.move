@@ -3,20 +3,22 @@ module liquidswap::distribution {
 
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
-    use aptos_framework::table::{Self, Table};
+    use aptos_std::iterable_table::{Self, IterableTable};
 
     use liquidswap::ve;
     use liquidswap::math;
     use liquidswap::liquid::LAMM;
 
     #[test_only]
-    use aptos_framework::coin::register_internal;
+    use aptos_framework::coins::register_internal;
     #[test_only]
     use aptos_framework::genesis;
     #[test_only]
     use liquidswap::liquid;
     #[test_only]
     use liquidswap::minter;
+    #[test_only]
+    use test_helpers::test_account::create_account;
 
     const ERR_CONFIG_EXISTS: u64 = 100;
     const ERR_WRONG_INITIALIZER: u64 = 101;
@@ -28,10 +30,10 @@ module liquidswap::distribution {
         last_deposit_time: u64,
         time_cursor: u64,
         rewards: Coin<LAMM>,
-        tokens_per_week: Table<u64, u64>,
-        nft_epoch_of: Table<u64, u64>,
-        time_cursor_of: Table<u64, u64>,
-        ve_supply: Table<u64, u64>,
+        tokens_per_week: IterableTable<u64, u64>,
+        nft_epoch_of: IterableTable<u64, u64>,
+        time_cursor_of: IterableTable<u64, u64>,
+        ve_supply: IterableTable<u64, u64>,
     }
 
     public fun initialize(account: &signer) {
@@ -45,10 +47,10 @@ module liquidswap::distribution {
             last_deposit_time: t,
             time_cursor: t,
             rewards: coin::zero(),
-            tokens_per_week: table::new(),
-            time_cursor_of: table::new(),
-            nft_epoch_of: table::new(),
-            ve_supply: table::new(),
+            tokens_per_week: iterable_table::new(),
+            time_cursor_of: iterable_table::new(),
+            nft_epoch_of: iterable_table::new(),
+            ve_supply: iterable_table::new(),
         });
     }
 
@@ -103,19 +105,19 @@ module liquidswap::distribution {
             let next_week = this_week + WEEK;
             if (now < next_week) {
                 if (since_last == 0 && now == t) {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = iterable_table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + deposit_value;
                 } else {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = iterable_table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + (deposit_value * (now - t) / since_last);
                 };
                 break
             } else {
                 if (since_last == 0 && next_week == t) {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = iterable_table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + deposit_value;
                 } else {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = iterable_table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + (deposit_value * (next_week - t) / since_last);
                 };
             };
@@ -146,7 +148,7 @@ module liquidswap::distribution {
                     dt = t - ts;
                 };
 
-                let supply = table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
+                let supply = iterable_table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
                 *supply = ve::calc_voting_power(&point, dt);
             };
 
@@ -256,39 +258,39 @@ module liquidswap::distribution {
             _nft_epoch - 1
         };
 
-        *(table::borrow_mut_with_default(&mut config.nft_epoch_of, token_id, 0)) = _nft_epoch;
-        *(table::borrow_mut_with_default(&mut config.time_cursor_of, token_id, 0)) = week_cursor;
+        *(iterable_table::borrow_mut_with_default(&mut config.nft_epoch_of, token_id, 0)) = _nft_epoch;
+        *(iterable_table::borrow_mut_with_default(&mut config.time_cursor_of, token_id, 0)) = week_cursor;
 
         to_distribute
     }
 
     fun get_tokens_per_week(config: &DistConfig, time: u64): u64 {
-        if (table::contains(&config.tokens_per_week, time)) {
-            *table::borrow(&config.tokens_per_week, time)
+        if (iterable_table::contains(&config.tokens_per_week, time)) {
+            *iterable_table::borrow(&config.tokens_per_week, time)
         } else {
             0
         }
     }
 
     fun get_ve_supply(config: &DistConfig, time: u64): u64 {
-        if (table::contains(&config.ve_supply, time)) {
-            *table::borrow(&config.ve_supply, time)
+        if (iterable_table::contains(&config.ve_supply, time)) {
+            *iterable_table::borrow(&config.ve_supply, time)
         } else {
             0
         }
     }
 
     fun get_time_cursor_of(config: &DistConfig, token_id: u64): u64 {
-        if (table::contains(&config.time_cursor_of, token_id)) {
-            *table::borrow(&config.time_cursor_of, token_id)
+        if (iterable_table::contains(&config.time_cursor_of, token_id)) {
+            *iterable_table::borrow(&config.time_cursor_of, token_id)
         } else {
             0
         }
     }
 
     fun get_user_epoch_of(config: &DistConfig, token_id: u64): u64 {
-        if (table::contains(&config.nft_epoch_of, token_id)) {
-            *table::borrow(&config.nft_epoch_of, token_id)
+        if (iterable_table::contains(&config.nft_epoch_of, token_id)) {
+            *iterable_table::borrow(&config.nft_epoch_of, token_id)
         } else {
             0
         }
@@ -323,12 +325,16 @@ module liquidswap::distribution {
 
     #[test_only]
     struct NFTs has key {
-        nfts: Table<u64, ve::VE_NFT>,
+        nfts: IterableTable<u64, ve::VE_NFT>,
     }
 
     #[test_only]
     fun initialize_test(core: &signer, staking_admin: &signer, admin: &signer, staker: &signer) {
         genesis::setup(core);
+
+        create_account(staking_admin);
+        create_account(admin);
+        create_account(staker);
 
         liquid::initialize(admin);
         ve::initialize(staking_admin);

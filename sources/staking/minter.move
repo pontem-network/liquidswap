@@ -86,13 +86,15 @@ module liquidswap::minter {
     }
 
     #[test_only]
-    use aptos_framework::coin::register_internal;
+    use aptos_framework::coins::register_internal;
     #[test_only]
     use aptos_framework::genesis;
     #[test_only]
-    use aptos_framework::table::{Self, Table};
+    use aptos_std::iterable_table::{Self, IterableTable};
     #[test_only]
     use liquidswap::liquid;
+    #[test_only]
+    use test_helpers::test_account::create_account;
 
     #[test_only]
     public fun get_active_period(): u64 acquires MinterConfig {
@@ -106,12 +108,16 @@ module liquidswap::minter {
 
     #[test_only]
     struct NFTs has key {
-        nfts: Table<u64, ve::VE_NFT>,
+        nfts: IterableTable<u64, ve::VE_NFT>,
     }
 
     #[test_only]
     fun initialize_test(core: &signer, staking_admin: &signer, admin: &signer, staker: &signer) {
         genesis::setup(core);
+
+        create_account(staking_admin);
+        create_account(admin);
+        create_account(staker);
 
         liquid::initialize(admin);
         ve::initialize(staking_admin);
@@ -179,8 +185,8 @@ module liquidswap::minter {
         emission = calculate_emission(2000000000);
         assert!(emission == 16819936, 2);
 
-        let nfts = table::new<u64, ve::VE_NFT>();
-        table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = iterable_table::new<u64, ve::VE_NFT>();
+        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts
@@ -202,8 +208,8 @@ module liquidswap::minter {
         circulating_supply = circulating_supply();
         assert!(circulating_supply == 10061926400, 1); // It's not exactly 0 because of division round issues.
 
-        let nfts = table::new<u64, ve::VE_NFT>();
-        table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = iterable_table::new<u64, ve::VE_NFT>();
+        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts
@@ -242,8 +248,8 @@ module liquidswap::minter {
         coin::burn(rewards, &burn_cap);
         coin::destroy_burn_cap(burn_cap);
 
-        let nfts = table::new<u64, ve::VE_NFT>();
-        table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = iterable_table::new<u64, ve::VE_NFT>();
+        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts

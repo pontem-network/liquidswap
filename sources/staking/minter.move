@@ -2,10 +2,11 @@
 module liquidswap::minter {
     use std::signer;
 
-    use aptos_framework::coin::{Self, MintCapability, Coin};
+    use aptos_framework::coin::{Self, MintCapability};
     use aptos_framework::timestamp;
 
     use liquidswap::coin_helper;
+    use liquidswap::distribution;
     use liquidswap::liquid::LAMM;
     use liquidswap::math;
     use liquidswap::ve;
@@ -45,8 +46,8 @@ module liquidswap::minter {
         })
     }
 
-    /// Get rewards weekly.
-    public fun get_rewards(): Coin<LAMM> acquires MinterConfig {
+    /// Mint rewards weekly.
+    public fun mint_rewards() acquires MinterConfig {
         let config = borrow_global_mut<MinterConfig>(@staking_pool);
         let now = timestamp::now_seconds();
 
@@ -59,7 +60,7 @@ module liquidswap::minter {
         // we should move rewards to another contract to distribute.
         config.weekly_emission = weekly_emission;
 
-        rewards
+        distribution::checkpoint(rewards);
     }
 
     /// Get circulating supply (LAMM supply - VE supply).
@@ -97,12 +98,12 @@ module liquidswap::minter {
     use test_helpers::test_account::create_account;
 
     #[test_only]
-    public fun get_active_period(): u64 acquires MinterConfig {
+    fun get_active_period(): u64 acquires MinterConfig {
         borrow_global<MinterConfig>(@staking_pool).active_period
     }
 
     #[test_only]
-    public fun get_weekly_emission(): u64 acquires MinterConfig {
+    fun get_weekly_emission(): u64 acquires MinterConfig {
         borrow_global<MinterConfig>(@staking_pool).weekly_emission
     }
 
@@ -217,13 +218,14 @@ module liquidswap::minter {
     }
 
     #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_get_rewards(
+    fun test_mint_rewards(
         core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires MinterConfig {
         initialize_test(&core, &staking_admin, &admin, &staker);
+        distribution::initialize(&staking_admin);
 
         let mint_cap = liquid::get_mint_cap(&admin);
 
@@ -238,15 +240,12 @@ module liquidswap::minter {
         let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
         timestamp::update_global_time_for_test(new_time);
 
-        let rewards = get_rewards();
-        let rewards_value = coin::value(&rewards);
-        assert!(rewards_value == 990751148, 0);
-        assert!(get_weekly_emission() == 990751148, 1);
+        assert!(distribution::get_rewards_value() == 0, 0);
+        mint_rewards();
+        let rewards_value = distribution::get_rewards_value();
+        assert!(rewards_value == 990751148, 1);
+        assert!(get_weekly_emission() == 990751148, 2);
         assert!(get_active_period() == timestamp::now_seconds() / WEEK * WEEK, 3);
-
-        let burn_cap = liquid::get_burn_cap();
-        coin::burn(rewards, &burn_cap);
-        coin::destroy_burn_cap(burn_cap);
 
         let nfts = iterable_table::new<u64, ve::VE_NFT>();
         iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
@@ -258,23 +257,67 @@ module liquidswap::minter {
 
     #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 102)]
-    fun test_get_rewards_fail(
+    fun test_mint_rewards_fail(
         core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires MinterConfig {
         initialize_test(&core, &staking_admin, &admin, &staker);
+        distribution::initialize(&staking_admin);
 
         let mint_cap = liquid::get_mint_cap(&admin);
 
         let weekly_emission = 2000000000;
         initialize(&staking_admin, weekly_emission, mint_cap);
 
-        let rewards = get_rewards();
+        mint_rewards();
+    }
 
-        let burn_cap = liquid::get_burn_cap();
-        coin::burn(rewards, &burn_cap);
-        coin::destroy_burn_cap(burn_cap);
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun end_to_end(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires MinterConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+        distribution::initialize(&staking_admin);
+
+        let mint_cap = liquid::get_mint_cap(&admin);
+
+        let weekly_emission = 2000000000;
+        initialize(&staking_admin, weekly_emission, mint_cap);
+
+        let now = timestamp::now_seconds();
+        assert!(get_active_period() == now / WEEK * WEEK, 0);
+        assert!(get_weekly_emission() == weekly_emission, 1);
+
+        let to_stake_val = 1000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        let new_time = (now + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        mint_rewards();
+        assert!(get_active_period() == (new_time / 1000000) / WEEK * WEEK, 2);
+        assert!(get_weekly_emission() == 1960000000, 3);
+
+        distribution::claim(&mut nft);
+        let reward_value = ve::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 4);
+
+        distribution::claim(&mut nft);
+        let reward_value = ve::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 5);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        mint_rewards();
+        distribution::claim(&mut nft);
+        let reward_value = ve::get_nft_staked_value(&nft) - to_stake_val;
+        assert!(reward_value == 1960000000, 6);
+
+        let staking_rewards = ve::unstake(nft, true);
+        assert!(coin::value(&staking_rewards) == (1960000000 + to_stake_val), 7);
+        coin::deposit(signer::address_of(&staker), staking_rewards);
     }
 }

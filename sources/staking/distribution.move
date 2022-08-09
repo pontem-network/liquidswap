@@ -442,7 +442,39 @@ module liquidswap::distribution {
     }
 
     #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_claim_internal(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+    fun test_checkpoint_total_supply_internal(
+        core: signer,
+        staking_admin: signer,
+        admin: signer,
+        staker: signer
+    ) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+        let config = borrow_global_mut<DistConfig>(@staking_pool);
+
+        let to_stake_val = 1000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        let this_week = timestamp::now_seconds() / WEEK * WEEK;
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        assert!(get_ve_supply(config, this_week) == 0, 0);
+
+        checkpoint_total_supply_internal(config);
+
+        assert!(get_ve_supply(config, this_week) == 4233600, 1);
+        assert!(get_ve_supply(config, this_week + WEEK) == 0, 2);
+
+        let staking_rewards = ve::unstake(nft, false);
+        coin::deposit(signer::address_of(&staker), staking_rewards);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_claim(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
         initialize_test(&core, &staking_admin, &admin, &staker);
 
         initialize(&staking_admin);

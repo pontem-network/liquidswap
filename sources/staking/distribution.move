@@ -378,4 +378,96 @@ module liquidswap::distribution {
 
         initialize(&staker);
     }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        assert!(get_rewards_value() == 0, 0);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value = 1000000000;
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards = coin::mint<LAMM>(rewards_value, &mint_cap);
+
+        checkpoint(rewards);
+        assert!(get_rewards_value() == rewards_value, 1);
+
+        move_to(&admin, MintCap { mint_cap });
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint_token(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        let config = borrow_global_mut<DistConfig>(@staking_pool);
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards_value_1 = 100000000;
+        let rewards = coin::mint<LAMM>(rewards_value_1, &mint_cap);
+        checkpoint_token(config, rewards);
+        let this_week_1 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1, 0);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value_2 = 200000000;
+        let rewards = coin::mint<LAMM>(rewards_value_2, &mint_cap);
+        checkpoint_token(config, rewards);
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1 + rewards_value_2, 1);
+        let this_week_2 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_2) == 0, 2);
+
+        let new_time = (timestamp::now_seconds() + WEEK * 2) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value_3 = 300000000;
+        let rewards = coin::mint<LAMM>(rewards_value_3, &mint_cap);
+        checkpoint_token(config, rewards);
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1 + rewards_value_2, 3);
+        assert!(get_tokens_per_week(config, this_week_2) == rewards_value_3 / 2, 4);
+        let this_week_3 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_3 - WEEK) == rewards_value_3 / 2, 5);
+        assert!(get_tokens_per_week(config, this_week_3) == 0, 6);
+
+        assert!(get_rewards_value() == rewards_value_1 + rewards_value_2 + rewards_value_3, 7);
+
+        move_to(&admin, MintCap { mint_cap });
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_claim_internal(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        let to_stake_val = 1000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards_value = 100000000;
+        let rewards = coin::mint<LAMM>(rewards_value, &mint_cap);
+
+        checkpoint(rewards);
+        claim(&mut nft);
+
+        assert!(ve::get_nft_staked_value(&nft) - to_stake_val == rewards_value, 0);
+
+        let staking_rewards = ve::unstake(nft, true);
+        assert!(coin::value(&staking_rewards) == (rewards_value + to_stake_val), 1);
+
+        coin::deposit(signer::address_of(&staker), staking_rewards);
+        move_to(&admin, MintCap { mint_cap });
+    }
 }

@@ -91,7 +91,7 @@ module liquidswap::minter {
     #[test_only]
     use aptos_framework::genesis;
     #[test_only]
-    use aptos_std::iterable_table::{Self, IterableTable};
+    use aptos_std::table_with_length::{Self, TableWithLength};
     #[test_only]
     use liquidswap::liquid;
     #[test_only]
@@ -109,7 +109,7 @@ module liquidswap::minter {
 
     #[test_only]
     struct NFTs has key {
-        nfts: IterableTable<u64, ve::VE_NFT>,
+        nfts: TableWithLength<u64, ve::VE_NFT>,
     }
 
     #[test_only]
@@ -186,8 +186,8 @@ module liquidswap::minter {
         emission = calculate_emission(2000000000);
         assert!(emission == 16819936, 2);
 
-        let nfts = iterable_table::new<u64, ve::VE_NFT>();
-        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = table_with_length::new<u64, ve::VE_NFT>();
+        table_with_length::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts
@@ -209,8 +209,8 @@ module liquidswap::minter {
         circulating_supply = circulating_supply();
         assert!(circulating_supply == 10061926400, 1); // It's not exactly 0 because of division round issues.
 
-        let nfts = iterable_table::new<u64, ve::VE_NFT>();
-        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = table_with_length::new<u64, ve::VE_NFT>();
+        table_with_length::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts
@@ -247,8 +247,8 @@ module liquidswap::minter {
         assert!(get_weekly_emission() == 990751148, 2);
         assert!(get_active_period() == timestamp::now_seconds() / WEEK * WEEK, 3);
 
-        let nfts = iterable_table::new<u64, ve::VE_NFT>();
-        iterable_table::add(&mut nfts, ve::get_nft_id(&nft), nft);
+        let nfts = table_with_length::new<u64, ve::VE_NFT>();
+        table_with_length::add(&mut nfts, ve::get_nft_id(&nft), nft);
 
         move_to(&staker, NFTs {
             nfts

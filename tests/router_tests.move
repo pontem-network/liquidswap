@@ -13,7 +13,6 @@ module liquidswap::router_tests {
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::LP;
     use test_helpers::test_account::create_account;
-    use std::debug;
 
     const MAX_U64: u64 = 18446744073709551615;
 

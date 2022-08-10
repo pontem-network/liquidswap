@@ -392,12 +392,15 @@ module liquidswap::router {
         curve_type: u8
     ): u64 {
         let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
-        // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curve_type == STABLE_CURVE) {
-            // x_in * 0.997
-            let coin_in_val_after_fees = coin_in * fee_multiplier / fee_scale;
+            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
+            let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
+                (coin_in_val_scaled / (fee_scale as u128)) + 1
+            } else {
+                coin_in_val_scaled / (fee_scale as u128)
+            };
 
             (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),

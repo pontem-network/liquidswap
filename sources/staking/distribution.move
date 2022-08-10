@@ -1,15 +1,24 @@
 module liquidswap::distribution {
     use std::signer;
 
-    use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::coin::{Self, Coin, MintCapability};
     use aptos_framework::timestamp;
-    use aptos_framework::table::{Self, Table};
+    use aptos_std::table_with_length::{Self, TableWithLength};
 
     use liquidswap::ve;
     use liquidswap::math;
     use liquidswap::liquid::LAMM;
 
     friend liquidswap::minter;
+
+    #[test_only]
+    use aptos_framework::coins::register_internal;
+    #[test_only]
+    use aptos_framework::genesis;
+    #[test_only]
+    use liquidswap::liquid;
+    #[test_only]
+    use test_helpers::test_account::create_account;
 
     const ERR_CONFIG_EXISTS: u64 = 100;
     const ERR_WRONG_INITIALIZER: u64 = 101;
@@ -21,10 +30,10 @@ module liquidswap::distribution {
         last_deposit_time: u64,
         time_cursor: u64,
         rewards: Coin<LAMM>,
-        tokens_per_week: Table<u64, u64>,
-        nft_epoch_of: Table<u64, u64>,
-        time_cursor_of: Table<u64, u64>,
-        ve_supply: Table<u64, u64>,
+        tokens_per_week: TableWithLength<u64, u64>,
+        nft_epoch_of: TableWithLength<u64, u64>,
+        time_cursor_of: TableWithLength<u64, u64>,
+        ve_supply: TableWithLength<u64, u64>,
     }
 
     public fun initialize(account: &signer) {
@@ -38,10 +47,10 @@ module liquidswap::distribution {
             last_deposit_time: t,
             time_cursor: t,
             rewards: coin::zero(),
-            tokens_per_week: table::new(),
-            time_cursor_of: table::new(),
-            nft_epoch_of: table::new(),
-            ve_supply: table::new(),
+            tokens_per_week: table_with_length::new(),
+            time_cursor_of: table_with_length::new(),
+            nft_epoch_of: table_with_length::new(),
+            ve_supply: table_with_length::new(),
         });
     }
 
@@ -96,19 +105,19 @@ module liquidswap::distribution {
             let next_week = this_week + WEEK;
             if (now < next_week) {
                 if (since_last == 0 && now == t) {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = table_with_length::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + deposit_value;
                 } else {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = table_with_length::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + (deposit_value * (now - t) / since_last);
                 };
                 break
             } else {
                 if (since_last == 0 && next_week == t) {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = table_with_length::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + deposit_value;
                 } else {
-                    let per_week = table::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
+                    let per_week = table_with_length::borrow_mut_with_default(&mut config.tokens_per_week, this_week, 0);
                     *per_week = *per_week + (deposit_value * (next_week - t) / since_last);
                 };
             };
@@ -139,7 +148,7 @@ module liquidswap::distribution {
                     dt = t - ts;
                 };
 
-                let supply = table::borrow_mut_with_default(&mut config.ve_supply, t, 0);
+                let supply = table_with_length::borrow_mut_with_default(&mut config.ve_supply, t, 0);
                 *supply = ve::calc_voting_power(&point, dt);
             };
 
@@ -249,39 +258,39 @@ module liquidswap::distribution {
             _nft_epoch - 1
         };
 
-        *(table::borrow_mut_with_default(&mut config.nft_epoch_of, token_id, 0)) = _nft_epoch;
-        *(table::borrow_mut_with_default(&mut config.time_cursor_of, token_id, 0)) = week_cursor;
+        *(table_with_length::borrow_mut_with_default(&mut config.nft_epoch_of, token_id, 0)) = _nft_epoch;
+        *(table_with_length::borrow_mut_with_default(&mut config.time_cursor_of, token_id, 0)) = week_cursor;
 
         to_distribute
     }
 
     fun get_tokens_per_week(config: &DistConfig, time: u64): u64 {
-        if (table::contains(&config.tokens_per_week, time)) {
-            *table::borrow(&config.tokens_per_week, time)
+        if (table_with_length::contains(&config.tokens_per_week, time)) {
+            *table_with_length::borrow(&config.tokens_per_week, time)
         } else {
             0
         }
     }
 
     fun get_ve_supply(config: &DistConfig, time: u64): u64 {
-        if (table::contains(&config.ve_supply, time)) {
-            *table::borrow(&config.ve_supply, time)
+        if (table_with_length::contains(&config.ve_supply, time)) {
+            *table_with_length::borrow(&config.ve_supply, time)
         } else {
             0
         }
     }
 
     fun get_time_cursor_of(config: &DistConfig, token_id: u64): u64 {
-        if (table::contains(&config.time_cursor_of, token_id)) {
-            *table::borrow(&config.time_cursor_of, token_id)
+        if (table_with_length::contains(&config.time_cursor_of, token_id)) {
+            *table_with_length::borrow(&config.time_cursor_of, token_id)
         } else {
             0
         }
     }
 
     fun get_user_epoch_of(config: &DistConfig, token_id: u64): u64 {
-        if (table::contains(&config.nft_epoch_of, token_id)) {
-            *table::borrow(&config.nft_epoch_of, token_id)
+        if (table_with_length::contains(&config.nft_epoch_of, token_id)) {
+            *table_with_length::borrow(&config.nft_epoch_of, token_id)
         } else {
             0
         }
@@ -310,5 +319,200 @@ module liquidswap::distribution {
         };
 
         min
+    }
+
+    // Tests.
+
+    #[test_only]
+    struct NFTs has key {
+        nfts: TableWithLength<u64, ve::VE_NFT>,
+    }
+
+    #[test_only]
+    struct MintCap has key { mint_cap: MintCapability<LAMM> }
+
+    #[test_only]
+    fun initialize_test(core: &signer, staking_admin: &signer, admin: &signer, staker: &signer) {
+        genesis::setup(core);
+
+        create_account(staking_admin);
+        create_account(admin);
+        create_account(staker);
+
+        liquid::initialize(admin);
+        ve::initialize(staking_admin);
+
+        let to_mint_val = 20000000000;
+        let staker_addr = signer::address_of(staker);
+        register_internal<LAMM>(staker);
+        liquid::mint_internal(admin, staker_addr, to_mint_val);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool)]
+    fun test_initialize(core: signer, staking_admin: signer) acquires DistConfig {
+        genesis::setup(&core);
+
+        create_account(&staking_admin);
+
+        initialize(&staking_admin);
+
+        let t = timestamp::now_seconds() / WEEK * WEEK;
+        let stacker_admin_addr = signer::address_of(&staking_admin);
+        assert!(exists<DistConfig>(stacker_admin_addr), 0);
+        let config = borrow_global<DistConfig>(stacker_admin_addr);
+
+        assert!(config.start_time == t, 1);
+        assert!(config.last_deposit_time == t, 2);
+        assert!(config.time_cursor == t, 3);
+        assert!(coin::value(&config.rewards) == 0, 4);
+        assert!(table_with_length::length(&config.tokens_per_week) == 0, 5);
+        assert!(table_with_length::length(&config.time_cursor_of) == 0, 6);
+        assert!(table_with_length::length(&config.nft_epoch_of) == 0, 7);
+        assert!(table_with_length::length(&config.ve_supply) == 0, 8);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool)]
+    #[expected_failure(abort_code = 100)]
+    fun test_initialize_fail_if_config_exists(core: signer, staking_admin: signer) {
+        genesis::setup(&core);
+
+        create_account(&staking_admin);
+
+        initialize(&staking_admin);
+        initialize(&staking_admin);
+    }
+
+    #[test(core = @core_resources, staker = @test_staker)]
+    #[expected_failure(abort_code = 101)]
+    fun test_initialize_fail_if_wrong_initializer(core: signer, staker: signer) {
+        genesis::setup(&core);
+
+        create_account(&staker);
+
+        initialize(&staker);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        assert!(get_rewards_value() == 0, 0);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value = 1000000000;
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards = coin::mint<LAMM>(rewards_value, &mint_cap);
+
+        checkpoint(rewards);
+        assert!(get_rewards_value() == rewards_value, 1);
+
+        move_to(&admin, MintCap { mint_cap });
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint_token(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        let config = borrow_global_mut<DistConfig>(@staking_pool);
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards_value_1 = 100000000;
+        let rewards = coin::mint<LAMM>(rewards_value_1, &mint_cap);
+        checkpoint_token(config, rewards);
+        let this_week_1 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1, 0);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value_2 = 200000000;
+        let rewards = coin::mint<LAMM>(rewards_value_2, &mint_cap);
+        checkpoint_token(config, rewards);
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1 + rewards_value_2, 1);
+        let this_week_2 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_2) == 0, 2);
+
+        let new_time = (timestamp::now_seconds() + WEEK * 2) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let rewards_value_3 = 300000000;
+        let rewards = coin::mint<LAMM>(rewards_value_3, &mint_cap);
+        checkpoint_token(config, rewards);
+        assert!(get_tokens_per_week(config, this_week_1) == rewards_value_1 + rewards_value_2, 3);
+        assert!(get_tokens_per_week(config, this_week_2) == rewards_value_3 / 2, 4);
+        let this_week_3 = timestamp::now_seconds() / WEEK * WEEK;
+        assert!(get_tokens_per_week(config, this_week_3 - WEEK) == rewards_value_3 / 2, 5);
+        assert!(get_tokens_per_week(config, this_week_3) == 0, 6);
+
+        assert!(get_rewards_value() == rewards_value_1 + rewards_value_2 + rewards_value_3, 7);
+
+        move_to(&admin, MintCap { mint_cap });
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint_total_supply_internal(
+        core: signer,
+        staking_admin: signer,
+        admin: signer,
+        staker: signer
+    ) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+        let config = borrow_global_mut<DistConfig>(@staking_pool);
+
+        let to_stake_val = 1000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        let this_week = timestamp::now_seconds() / WEEK * WEEK;
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        assert!(get_ve_supply(config, this_week) == 0, 0);
+
+        checkpoint_total_supply_internal(config);
+
+        assert!(get_ve_supply(config, this_week) == 4233600, 1);
+        assert!(get_ve_supply(config, this_week + WEEK) == 0, 2);
+
+        let staking_rewards = ve::unstake(nft, false);
+        coin::deposit(signer::address_of(&staker), staking_rewards);
+    }
+
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_claim(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&core, &staking_admin, &admin, &staker);
+
+        initialize(&staking_admin);
+
+        let to_stake_val = 1000000000;
+        let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
+
+        let nft = ve::stake(to_stake, WEEK);
+
+        let new_time = (timestamp::now_seconds() + WEEK) * 1000000;
+        timestamp::update_global_time_for_test(new_time);
+
+        let mint_cap = liquid::get_mint_cap(&admin);
+        let rewards_value = 100000000;
+        let rewards = coin::mint<LAMM>(rewards_value, &mint_cap);
+
+        checkpoint(rewards);
+        claim(&mut nft);
+
+        assert!(ve::get_nft_staked_value(&nft) - to_stake_val == rewards_value, 0);
+
+        let staking_rewards = ve::unstake(nft, true);
+        assert!(coin::value(&staking_rewards) == (rewards_value + to_stake_val), 1);
+
+        coin::deposit(signer::address_of(&staker), staking_rewards);
+        move_to(&admin, MintCap { mint_cap });
     }
 }

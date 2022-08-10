@@ -66,7 +66,7 @@ module liquidswap::liquidity_pool {
 
     // Curve types.
 
-    /// Stable curve (Curve like).
+    /// Stable curve (like Solidly).
     const STABLE_CURVE: u8 = 1;
 
     /// Uncorrelated curve (Uniswap like).
@@ -495,12 +495,8 @@ module liquidswap::liquidity_pool {
         y_res_with_fees: u128,
     ) {
         if (curve_type == STABLE_CURVE) {
-            let lp_value_before_swap = stable_curve::lp_value(x_res, x_scale, y_res, y_scale);
-            // 100000000 == FEE_SCALE * FEE_SCALE
-            lp_value_before_swap = u256::mul(
-                lp_value_before_swap,
-                u256::from_u128(100000000),
-            );
+            // x_res * FEE_SCALE, y_res * FEE_SCALE
+            let lp_value_before_swap = stable_curve::lp_value(x_res * 10000, x_scale, y_res * 10000, y_scale);
             let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);

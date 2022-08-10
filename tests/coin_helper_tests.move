@@ -5,11 +5,14 @@ module liquidswap::coin_helper_tests {
     use aptos_framework::genesis;
 
     use liquidswap::coin_helper;
+
+    use test_helpers::test_account::create_account;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin)]
     fun test_end_to_end(core: signer, coin_admin: signer) {
         genesis::setup(&core);
+        create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);
 
@@ -48,6 +51,7 @@ module liquidswap::coin_helper_tests {
     #[expected_failure(abort_code = 100)]
     fun test_cant_be_same_coin_failure(core: signer, coin_admin: signer) {
         genesis::setup(&core);
+        create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);
 
@@ -58,6 +62,7 @@ module liquidswap::coin_helper_tests {
     #[test(core = @core_resources, coin_admin = @test_coin_admin)]
     fun generate_lp_name(core: signer, coin_admin: signer) {
         genesis::setup(&core);
+        create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);
 

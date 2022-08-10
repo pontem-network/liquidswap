@@ -5,17 +5,19 @@ module liquidswap::ve {
     use std::signer;
 
     use aptos_framework::coin::{Self, Coin};
-    use aptos_framework::table::{Self, Table};
     use aptos_framework::timestamp;
+    use aptos_std::table_with_length::{Self, TableWithLength};
 
     use liquidswap::liquid::LAMM;
 
     #[test_only]
-    use aptos_framework::coin::register_internal;
+    use aptos_framework::coins::register_internal;
     #[test_only]
     use aptos_framework::genesis;
     #[test_only]
     use liquidswap::liquid;
+    #[test_only]
+    use test_helpers::test_account::create_account;
 
     friend liquidswap::distribution;
 
@@ -30,7 +32,7 @@ module liquidswap::ve {
     /// When user tried to stake for time more than 4 years (see `MAX_TIME`).
     const ERR_DURATION_MORE_THAN_MAX_TIME: u64 = 102;
 
-    /// When no key found in Table.
+    /// When no key found in TableWithLength.
     const ERR_KEY_NOT_FOUND: u64 = 103;
 
     /// When unstake before unlock time.
@@ -65,9 +67,9 @@ module liquidswap::ve {
         // Current history epoch, changed after a WEEK of seconds.
         current_epoch: u64,
         // History points: <epoch, point>.
-        point_history: Table<u64, Point>,
+        point_history: TableWithLength<u64, Point>,
         // The historical slope changes we should take into account during each new epoch.
-        change_rate_history: Table<u64, u64>,
+        change_rate_history: TableWithLength<u64, u64>,
     }
 
     /// Represents VE NFT itself.
@@ -83,7 +85,7 @@ module liquidswap::ve {
         // The current epoch, when last slope/bias change happened.
         epoch: u64,
         // History points: <epoch, point>.
-        point_history: Table<u64, Point>,
+        point_history: TableWithLength<u64, Point>,
     }
 
     // Public functions.
@@ -98,8 +100,8 @@ module liquidswap::ve {
             ERR_WRONG_INITIALIZATION_ACCOUNT
         );
 
-        let point_history = table::new();
-        table::add(&mut point_history, 0, Point {
+        let point_history = table_with_length::new();
+        table_with_length::add(&mut point_history, 0, Point {
             voting_power: 0,
             power_drop_rate: 0,
             timestamp: timestamp::now_seconds(),
@@ -109,7 +111,7 @@ module liquidswap::ve {
             token_id_counter: 0,
             current_epoch: 0,
             point_history,
-            change_rate_history: table::new(),
+            change_rate_history: table_with_length::new(),
         });
     }
 
@@ -136,17 +138,17 @@ module liquidswap::ve {
 
         update_internal(pool);
 
-        let last_point = table::borrow_mut(&mut pool.point_history, pool.current_epoch);
+        let last_point = table_with_length::borrow_mut(&mut pool.point_history, pool.current_epoch);
         last_point.power_drop_rate = last_point.power_drop_rate + u_power_drop_rate;
         last_point.voting_power = last_point.voting_power + u_voting_power;
 
         let change_rate_at_unlock_ts =
-            table::borrow_mut_with_default(&mut pool.change_rate_history, unlock_timestamp, 0);
+            table_with_length::borrow_mut_with_default(&mut pool.change_rate_history, unlock_timestamp, 0);
         *change_rate_at_unlock_ts = *change_rate_at_unlock_ts + u_power_drop_rate;
 
         let start_epoch = 1;
-        let user_point_history = table::new();
-        table::add(&mut user_point_history, start_epoch, Point {
+        let user_point_history = table_with_length::new();
+        table_with_length::add(&mut user_point_history, start_epoch, Point {
             timestamp: now,
             voting_power: u_voting_power,
             power_drop_rate: u_power_drop_rate,
@@ -188,10 +190,10 @@ module liquidswap::ve {
         let i = 1;
         while (i <= epoch) {
             // currently it's less than 208 iterations
-            table::remove(&mut point_history, i);
+            table_with_length::remove(&mut point_history, i);
             i = i + 1;
         };
-        table::destroy_empty(point_history);
+        table_with_length::destroy_empty(point_history);
 
         stake
     }
@@ -199,7 +201,7 @@ module liquidswap::ve {
     /// Get `VE_NFT` supply (staked supply).
     public fun supply(): u64 acquires StakingPool {
         let pool = borrow_global<StakingPool>(@staking_pool);
-        let last_point = *table::borrow(&pool.point_history, pool.current_epoch);
+        let last_point = *table_with_length::borrow(&pool.point_history, pool.current_epoch);
 
         let now = timestamp::now_seconds();
         // starts at the last_point recording time
@@ -252,7 +254,7 @@ module liquidswap::ve {
     /// Only distribution (friend) contract can call it.
     ///
     /// We could allow to update stake with new LAMM coins if NFT holder wants
-    /// yet we really can't at this stage, as history table can become too large
+    /// yet we really can't at this stage, as history table_with_length can become too large
     /// and we wouldn't be able destroy it. Yet i think we can play around it later.
     /// So for now it's friend function and we can't merge two NFTs.
     ///
@@ -288,13 +290,13 @@ module liquidswap::ve {
         update_internal(pool);
 
         // probably should be just borrow?
-        let last_point = table::borrow_mut(&mut pool.point_history, pool.current_epoch);
+        let last_point = table_with_length::borrow_mut(&mut pool.point_history, pool.current_epoch);
         last_point.power_drop_rate = last_point.power_drop_rate + (u_new_slope - u_old_slope);
         last_point.voting_power = last_point.voting_power + (u_new_bias - u_old_bias);
 
         let old_dslope = get_drop_rate_at_timestamp(pool, locked_end);
         if (old_locked > now) {
-            let m_slope = table::borrow_mut_with_default(&mut pool.change_rate_history, locked_end, 0);
+            let m_slope = table_with_length::borrow_mut_with_default(&mut pool.change_rate_history, locked_end, 0);
             *m_slope = old_dslope - u_old_slope + u_new_slope; // maybe: old_dslope - u_old_slope + u_new_slope?
         };
 
@@ -305,14 +307,14 @@ module liquidswap::ve {
             timestamp: now,
         };
 
-        table::add(&mut nft.point_history, nft.epoch, new_point);
+        table_with_length::add(&mut nft.point_history, nft.epoch, new_point);
         coin::merge(&mut nft.stake, coins);
     }
 
     /// Filling history with new epochs, always adding at least one epoch and history point.
     /// `pool` - staking pool to update.
     fun update_internal(pool: &mut StakingPool) {
-        let last_point = *table::borrow(&pool.point_history, pool.current_epoch);
+        let last_point = *table_with_length::borrow(&pool.point_history, pool.current_epoch);
 
         let last_checkpoint = last_point.timestamp;
         let epoch = pool.current_epoch;
@@ -340,7 +342,7 @@ module liquidswap::ve {
             if (epoch_ts == now) {
                 break
             } else {
-                table::add(&mut pool.point_history, epoch, last_point);
+                table_with_length::add(&mut pool.point_history, epoch, last_point);
             };
 
             i = i + 1;
@@ -349,7 +351,7 @@ module liquidswap::ve {
         pool.current_epoch = epoch;
 
         let new_point =
-            table::borrow_mut_with_default(&mut pool.point_history, pool.current_epoch, zero_point());
+            table_with_length::borrow_mut_with_default(&mut pool.point_history, pool.current_epoch, zero_point());
         new_point.power_drop_rate = last_point.power_drop_rate;
         new_point.voting_power = last_point.voting_power;
         new_point.timestamp = last_point.timestamp;
@@ -358,8 +360,8 @@ module liquidswap::ve {
     /// Get m_slope value with default value equal zero.
     /// `timestamp` - as m_slope stored by timestamps, we should provide time.
     fun get_drop_rate_at_timestamp(pool: &StakingPool, timestamp: u64): u64 {
-        if (table::contains(&pool.change_rate_history, timestamp)) {
-            *table::borrow(&pool.change_rate_history, timestamp)
+        if (table_with_length::contains(&pool.change_rate_history, timestamp)) {
+            *table_with_length::borrow(&pool.change_rate_history, timestamp)
         } else {
             0
         }
@@ -393,9 +395,9 @@ module liquidswap::ve {
     public fun get_history_point(epoch: u64): Point acquires StakingPool {
         let pool = borrow_global<StakingPool>(@staking_pool);
 
-        assert!(table::contains(&pool.point_history, epoch), ERR_KEY_NOT_FOUND);
+        assert!(table_with_length::contains(&pool.point_history, epoch), ERR_KEY_NOT_FOUND);
 
-        *table::borrow(&pool.point_history, epoch)
+        *table_with_length::borrow(&pool.point_history, epoch)
     }
 
     // VE NFT getters.
@@ -428,9 +430,9 @@ module liquidswap::ve {
     /// `nft` - reference to `VE_NFT`.
     /// `epoch` - epoch of history point.
     public fun get_nft_history_point(nft: &VE_NFT, epoch: u64): Point {
-        assert!(table::contains(&nft.point_history, epoch), ERR_KEY_NOT_FOUND);
+        assert!(table_with_length::contains(&nft.point_history, epoch), ERR_KEY_NOT_FOUND);
 
-        *table::borrow(&nft.point_history, epoch)
+        *table_with_length::borrow(&nft.point_history, epoch)
     }
 
     // Point getters.
@@ -459,7 +461,7 @@ module liquidswap::ve {
 
     #[test_only]
     struct NFTs has key {
-        nfts: Table<u64, VE_NFT>,
+        nfts: TableWithLength<u64, VE_NFT>,
     }
 
     #[test_only]
@@ -496,10 +498,14 @@ module liquidswap::ve {
         assert!(new_bias == 25, 1);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap)]
-    fun test_initialize(core: signer, staking_admin: signer, multi_swap: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
+    fun test_initialize(core: signer, staking_admin: signer, admin: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
 
@@ -508,10 +514,10 @@ module liquidswap::ve {
 
         assert!(pool.current_epoch == 0, 0);
         assert!(pool.token_id_counter == 0, 1);
-        assert!(table::length(&pool.change_rate_history) == 0, 2);
-        assert!(table::length(&pool.point_history) == 1, 3);
+        assert!(table_with_length::length(&pool.change_rate_history) == 0, 2);
+        assert!(table_with_length::length(&pool.point_history) == 1, 3);
 
-        let point = table::borrow(&pool.point_history, 0);
+        let point = table_with_length::borrow(&pool.point_history, 0);
         assert!(point.timestamp == timestamp::now_seconds(), 4);
         assert!(point.power_drop_rate == 0, 5);
         assert!(point.voting_power == 0, 6);
@@ -519,42 +525,53 @@ module liquidswap::ve {
         assert!(get_current_epoch() == 0, 7);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
     #[expected_failure(abort_code = 100)]
-    fun test_initialize_fail(core: signer, staking_admin: signer, multi_swap: signer) {
+    fun test_initialize_fail(core: signer, staking_admin: signer, admin: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
         initialize(&staking_admin);
     }
 
-    #[test(core = @core_resources, multi_swap = @liquidswap)]
+    #[test(core = @core_resources, admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_initialize_wrong_account(core: signer, multi_swap: signer) {
+    fun test_initialize_wrong_account(core: signer, admin: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
 
-        initialize(&multi_swap);
+        create_account(&admin);
+
+        liquid::initialize(&admin);
+
+        initialize(&admin);
     }
 
-    #[test(core = @core_resources, multi_swap = @liquidswap, staker = @test_staker)]
-    public fun test_nft_getters(core: signer, multi_swap: signer, staker: signer) {
+    #[test(core = @core_resources, admin = @liquidswap, staker = @test_staker)]
+    public fun test_nft_getters(core: signer, admin: signer, staker: signer) {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
 
         let now = timestamp::now_seconds();
 
-        let history_points = table::new();
+        let history_points = table_with_length::new();
         let epoch = 523;
-        table::add(&mut history_points, epoch, Point {
+        table_with_length::add(&mut history_points, epoch, Point {
             voting_power: 50,
             power_drop_rate: 250,
             timestamp: now,
@@ -579,8 +596,8 @@ module liquidswap::ve {
         assert!(point.power_drop_rate == 250, 5);
         assert!(point.timestamp == now, 6);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
 
         move_to(&staker, NFTs {
             nfts
@@ -590,6 +607,8 @@ module liquidswap::ve {
     #[test(aptos_core = @aptos_framework, staker = @test_staker)]
     #[expected_failure(abort_code = 103)]
     fun test_get_nft_history_point_fail(aptos_core: signer, staker: signer) {
+        create_account(&staker);
+
         timestamp::set_time_has_started_for_testing(&aptos_core);
 
         let nft = VE_NFT {
@@ -597,28 +616,33 @@ module liquidswap::ve {
             stake: coin::zero(),
             unlock_timestamp: timestamp::now_seconds(),
             epoch: 0,
-            point_history: table::new(),
+            point_history: table_with_length::new(),
         };
 
         let _ = get_nft_history_point(&nft, 100);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_stake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 2000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -631,7 +655,7 @@ module liquidswap::ve {
         assert!(nft.unlock_timestamp == until, 1);
 
         let nft_point = get_nft_history_point(&nft, nft.epoch);
-        assert!(table::length(&nft.point_history) == 1, 2);
+        assert!(table_with_length::length(&nft.point_history) == 1, 2);
         assert!(nft_point.power_drop_rate == (to_stake_val / MAX_LOCK_DURATION), 3);
         assert!(nft_point.voting_power == (nft_point.power_drop_rate * (until - now)), 4);
         assert!(nft_point.timestamp == now, 5);
@@ -656,7 +680,7 @@ module liquidswap::ve {
 
         until = (now + WEEK * 208) / WEEK * WEEK;
         let nft_point2 = get_nft_history_point(&nft_2, nft_2.epoch);
-        assert!(table::length(&nft.point_history) == 1, 14);
+        assert!(table_with_length::length(&nft.point_history) == 1, 14);
         assert!(nft_point2.power_drop_rate == (to_stake_val / MAX_LOCK_DURATION), 15);
         assert!(nft_point2.voting_power == (nft_point2.power_drop_rate * (until - now)), 16);
         assert!(nft_point2.timestamp == now, 17);
@@ -669,43 +693,53 @@ module liquidswap::ve {
         let m_slope = get_m_slope_for_test(until);
         assert!(m_slope == nft_point2.power_drop_rate, 21);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
-        table::add(&mut nfts, nft_2.token_id, nft_2);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
+        table_with_length::add(&mut nfts, nft_2.token_id, nft_2);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 102)]
-    fun test_stake_fails(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    fun test_stake_fails(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
 
         let nft = stake(to_stake, WEEK * 209);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_update(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         update();
@@ -733,7 +767,7 @@ module liquidswap::ve {
         // Let's stake and see how history changed.
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -816,20 +850,25 @@ module liquidswap::ve {
         assert!(point.voting_power == 0, 28);
         assert!(point.power_drop_rate == 0, 29);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft_1.token_id, nft_1);
-        table::add(&mut nfts, nft_2.token_id, nft_2);
-        table::add(&mut nfts, nft_3.token_id, nft_3);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft_1.token_id, nft_1);
+        table_with_length::add(&mut nfts, nft_2.token_id, nft_2);
+        table_with_length::add(&mut nfts, nft_3.token_id, nft_3);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_supply(core: signer, staking_admin: signer, multi_swap: signer, staker: signer)  acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_supply(core: signer, staking_admin: signer, admin: signer, staker: signer)  acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let supply = supply();
@@ -837,7 +876,7 @@ module liquidswap::ve {
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
         let to_stake_1 = coin::withdraw<LAMM>(&staker, to_stake_val_1);
@@ -871,23 +910,28 @@ module liquidswap::ve {
         // Nothing staked.
         assert!(supply() == 0, 4);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft_1.token_id, nft_1);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft_1.token_id, nft_1);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_update_stake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let now = timestamp::now_seconds();
         let to_stake_val = 1000000000;
@@ -953,23 +997,28 @@ module liquidswap::ve {
         assert!(point.voting_power == 0, 18);
         assert!(point.timestamp == now, 19);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
 
         move_to(&staker, NFTs {
             nfts
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun test_unstake(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_unstake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1000,21 +1049,26 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 104)]
     fun test_unstake_fail_early(
         core: signer,
         staking_admin: signer,
-        multi_swap: signer,
+        admin: signer,
         staker: signer
     ) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1026,21 +1080,26 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 105)]
     fun test_unstake_fail_has_rewards(
         core: signer,
         staking_admin: signer,
-        multi_swap: signer,
+        admin: signer,
         staker: signer
     ) acquires StakingPool {
         genesis::setup(&core);
-        liquid::initialize(&multi_swap);
+
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let dist = WEEK;
@@ -1056,11 +1115,15 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, multi_swap = @liquidswap, staker = @test_staker)]
-    fun end_to_end(core: signer, staking_admin: signer, multi_swap: signer, staker: signer) acquires StakingPool {
+    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun end_to_end(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
         genesis::setup(&core);
 
-        liquid::initialize(&multi_swap);
+        create_account(&staking_admin);
+        create_account(&admin);
+        create_account(&staker);
+
+        liquid::initialize(&admin);
 
         initialize(&staking_admin);
 
@@ -1074,7 +1137,7 @@ module liquidswap::ve {
 
         let to_mint_val = 10000000000;
         register_internal<LAMM>(&staker);
-        liquid::mint_internal(&multi_swap, signer::address_of(&staker), to_mint_val);
+        liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
         let to_stake = coin::withdraw<LAMM>(&staker, to_stake_val);
@@ -1101,8 +1164,8 @@ module liquidswap::ve {
         assert!(point.power_drop_rate == 0, 9);
         assert!(point.timestamp == WEEK, 10);
 
-        let nfts = table::new<u64, VE_NFT>();
-        table::add(&mut nfts, nft.token_id, nft);
+        let nfts = table_with_length::new<u64, VE_NFT>();
+        table_with_length::add(&mut nfts, nft.token_id, nft);
 
         move_to(&staker, NFTs {
             nfts

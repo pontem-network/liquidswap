@@ -2,8 +2,8 @@
 module liquidswap::stable_curve {
     // !!!FOR AUDITOR!!!
     // Please, review this file really carefully and detailed.
-    // Look detailed at all math here, please.
-    // We threoretically could go in cycle in get_dy, to get better accuracy, but it seems it would eat too much gas.
+    // Some of the functions just migrated from Solidly (BaseV1-core).
+    // Some we implemented outself, like coin_in.
     // Also look at all places in all contracts where the functions called and check places too and arguments.
     use u256::u256::{Self, U256};
 
@@ -65,7 +65,45 @@ module liquidswap::stable_curve {
     /// * `reserve_in` - reserves of coin to swap coin_in.
     /// * `reserve_out` - reserves of coin to get in exchange.
     public fun coin_out(coin_in: u128, scale_in: u64, scale_out: u64, reserve_in: u128, reserve_out: u128): u128 {
-        get_dy(coin_in, scale_in, scale_out, reserve_in, reserve_out)
+        let u2561e8 = u256::from_u128(ONE_E_8);
+
+        let xy = lp_value(reserve_in, scale_in, reserve_out, scale_out);
+        let reserve_in_u256 = u256::div(
+            u256::mul(
+                u256::from_u128(reserve_in),
+                u2561e8,
+            ),
+            u256::from_u64(scale_in),
+        );
+        let reserve_out_u256 = u256::div(
+            u256::mul(
+                u256::from_u128(reserve_out),
+                u2561e8,
+            ),
+            u256::from_u64(scale_out),
+        );
+        let amountIn = u256::div(
+            u256::mul(
+                u256::from_u128(coin_in),
+                u2561e8
+            ),
+            u256::from_u64(scale_in)
+        );
+        let total_reserve = u256::add(amountIn, reserve_in_u256);
+        let y = u256::sub(
+            reserve_out_u256,
+            get_y(total_reserve, xy, reserve_out_u256),
+        );
+
+        let r = u256::div(
+            u256::mul(
+                y,
+                u256::from_u64(scale_out),
+            ),
+            u2561e8
+        );
+
+        u256::as_u128(r)
     }
 
     /// Get coin amount in by passing amount out, returns amount in (we don't take fees into account here).
@@ -77,89 +115,157 @@ module liquidswap::stable_curve {
     /// * `reserve_in` - reserves of coin to swap.
     /// * `reserve_out` - reserves of coin to get in exchange.
     public fun coin_in(coin_out: u128, scale_out: u64, scale_in: u64, reserve_out: u128, reserve_in: u128): u128 {
-        get_dy(coin_out, scale_out, scale_in, reserve_out, reserve_in)
+        let u2561e8 = u256::from_u128(ONE_E_8);
+
+        let xy = lp_value(reserve_in, scale_in, reserve_out, scale_out);
+        let reserve_in_u256 = u256::div(
+            u256::mul(
+                u256::from_u128(reserve_in),
+                u2561e8,
+            ),
+            u256::from_u64(scale_in),
+        );
+        let reserve_out_u256 = u256::div(
+            u256::mul(
+                u256::from_u128(reserve_out),
+                u2561e8,
+            ),
+            u256::from_u64(scale_out),
+        );
+        let amountOut = u256::div(
+            u256::mul(
+                u256::from_u128(coin_out),
+                u2561e8
+            ),
+            u256::from_u64(scale_out)
+        );
+
+        let total_reserve = u256::sub(reserve_out_u256, amountOut);
+        let x = u256::sub(
+            get_y(total_reserve, xy, reserve_in_u256),
+            reserve_in_u256,
+        );
+        let r = u256::div(
+            u256::mul(
+                x,
+                u256::from_u64(scale_in),
+            ),
+            u2561e8
+        );
+
+        u256::as_u128(r)
     }
 
-    /// Implementx -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8).
-    /// To get `coin_in` or `coin_out` using differentiate both sides.
-    /// More detailed report - https://github.com/pontem-network/multi-swap/pull/19 (see my comment contains pdf).
-    public fun get_dy(coin_dx: u128, scale_x: u64, scale_y: u64, reserve_x: u128, reserve_y: u128): u128 {
-        let dx_u256 = u256::from_u128(coin_dx);
-        let x_u256 = u256::from_u128(reserve_x);
-        let y_u256 = u256::from_u128(reserve_y);
+    /// Trying to find suitable `y` value.
+    /// * `x0` - total reserve x (include `coin_in`) with transformed decimals.
+    /// * `xy` - lp value (see `lp_value` func).
+    /// * `y` - reserves out with transformed decimals.
+    fun get_y(x0: U256, xy: U256, y: U256): U256 {
+        let i = 0;
         let u2561e8 = u256::from_u128(ONE_E_8);
-        let three_u256 = u256::from_u128(3);
+        let one_u256 = u256::from_u128(1);
 
-        let x_scale_u256 = u256::from_u64(scale_x);
-        let y_scale_u256 = u256::from_u64(scale_y);
+        while (i < 255) {
+            let k = f(x0, y);
 
-        let _x = u256::div(
-            u256::mul(x_u256, u2561e8),
-            x_scale_u256,
-        );
-
-
-        let _y = u256::div(
-            u256::mul(y_u256, u2561e8),
-            y_scale_u256,
-        );
-
-        let _dx = u256::div(
-            u256::mul(dx_u256, u2561e8),
-            x_scale_u256,
-        );
-
-        // dy = -y(y^2+3x^2)/(x(x^2+3y^2))dx = - dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)/(x*(x*x/1e8+3*y*y/1e8)/1e8)
-        let _dy = u256::div(
-            u256::mul(
-                _dx, // dx*(y*(y*y/1e8+3*x*x/1e8)/1e8)
-                u256::div( //  y * (3 * (x * x) / 1e18 + y * y / 1e8) / 1e8
-                    u256::mul( // y * (3 * (x * x) / 1e18 + y * y / 1e8)
-                        _y,
-                        u256::add( // 3 * (x * x) / 1e18 + y * y / 1e8
-                            u256::div(u256::mul(_y, _y), u2561e8), // y * y / 1e8
-                            u256::mul( // 3 * (x * x) / 1e18
-                                three_u256,
-                                u256::div(u256::mul(_x, _x), u2561e8) // x * x / 1e8
-                            )
-                        )
-                    ),
-                    u2561e8
-                ),
-            ),
-            u256::div(
-                u256::mul(
-                    _x, // x * ((x * x) / 1e8 + (y * y) / 1e8)
-                    u256::add( // x * x / 1e8 +  3 * y * y / 1e8
-                        u256::div(u256::mul(_x, _x), u2561e8), // x * x / 1e8
+            let _dy = u256::zero();
+            let cmp = u256::compare(&k, &xy);
+            if (cmp == 1) {
+                _dy = u256::add(
+                    u256::div(
                         u256::mul(
-                            three_u256, // 3 * y * y / 1e8
-                            u256::div(u256::mul(_y, _y), u2561e8) // y * y / 1e8
-                        )
-                    )
-                ),
-                u2561e8
-            )
-        );
+                            u256::sub(xy, k),
+                            u2561e8,
+                        ),
+                        d(x0, y),
+                    ),
+                    one_u256    // Round up
+                );
+                y = u256::add(y, _dy);
+            } else {
+                _dy = u256::div(
+                    u256::mul(
+                        u256::sub(k, xy),
+                        u2561e8,
+                    ),
+                    d(x0, y),
+                );
+                y = u256::sub(y, _dy);
+            };
+            cmp = u256::compare(&_dy, &one_u256);
+            if (cmp == 0 || cmp == 1) {
+                return y
+            };
 
-        let dy = u256::div(
-            u256::mul(_dy, y_scale_u256),
+            i = i + 1;
+        };
+
+        y
+    }
+
+    /// Implements x0*y^3 + x0^3*y = x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
+    fun f(x0_u256: U256, y_u256: U256): U256 {
+        let u2561e8 = u256::from_u128(ONE_E_8);
+
+        // x0*(y*y/1e18*y/1e18)/1e18
+        let yy = u256::div(
+            u256::mul(y_u256, y_u256),
+            u2561e8,
+        );
+        let yyy = u256::div(
+            u256::mul(yy, y_u256),
+            u2561e8,
+        );
+        let a = u256::div(
+            u256::mul(x0_u256, yyy),
+            u2561e8
+        );
+        //(x0*x0/1e18*x0/1e18)*y/1e18
+        let xx = u256::div(
+            u256::mul(x0_u256, x0_u256),
+            u2561e8,
+        );
+        let xxx = u256::div(
+            u256::mul(xx, x0_u256),
+            u2561e8
+        );
+        let b = u256::div(
+            u256::mul(xxx, y_u256),
             u2561e8,
         );
 
-        u256::as_u128(dy)
+        // a + b
+        u256::add(a, b)
     }
 
-    #[test]
-    fun test_get_dy() {
-        let out = get_dy(
-            251305800000,
-            1000000,
-            100000000,
-            25582858050757,
-            2558285805075712
+    /// Implements 3 * x0 * y^2 + x0^3 = 3 * x0 * (y * y / 1e8) / 1e8 + (x0 * x0 / 1e8 * x0) / 1e8
+    fun d(x0_u256: U256, y_u256: U256): U256 {
+        let three_u256 = u256::from_u128(3);
+        let u2561e8 = u256::from_u128(ONE_E_8);
+
+        // 3 * x0 * (y * y / 1e8) / 1e8
+        let x3 = u256::mul(three_u256, x0_u256);
+        let yy = u256::div(
+            u256::mul(y_u256, y_u256),
+            u2561e8,
         );
-        assert!(out == 25130580000000, 0);
+        let xyy3 = u256::div(
+            u256::mul(x3, yy),
+            u2561e8,
+        );
+
+        let xx = u256::div(
+            u256::mul(x0_u256, x0_u256),
+            u2561e8,
+        );
+
+        // x0 * x0 / 1e8 * x0 / 1e8
+        let xxx = u256::div(
+            u256::mul(xx, x0_u256),
+            u2561e8,
+        );
+
+        u256::add(xyy3, xxx)
     }
 
     #[test]
@@ -171,7 +277,7 @@ module liquidswap::stable_curve {
             25582858050757,
             2558285805075712
         );
-        assert!(out == 251305800000, 0);
+        assert!(out == 251305799999, 0);
     }
 
     #[test]
@@ -195,7 +301,7 @@ module liquidswap::stable_curve {
             2558285805075701,
             25582858050757
         );
-        assert!(in == 2513057999, 0);
+        assert!(in == 2513058000, 0);
     }
 
     #[test]
@@ -207,8 +313,44 @@ module liquidswap::stable_curve {
             25582858050757,
              2558285805075701
         );
+        assert!(in == 251305800001, 0);
+    }
 
-        assert!(in == 251305800000, 0);
+    #[test]
+    fun test_f() {
+        let x0 = u256::from_u128(10000518365287);
+        let y = u256::from_u128(2520572000001255);
+
+        let r = u256::as_u128(f(x0, y));
+        assert!(r == 160149899619106589403932994151877362, 0);
+
+        let r = u256::as_u128(f(u256::zero(), u256::zero()));
+        assert!(r == 0, 1);
+    }
+
+    #[test]
+    fun test_d() {
+        let x0 = u256::from_u128(10000518365287);
+        let y = u256::from_u128(2520572000001255);
+
+        let z = d(x0, y);
+        let r = u256::as_u128(z);
+
+        assert!(r == 19060937633564670887039886324, 0);
+
+        let x0 = u256::from_u128(5000000000);
+        let y = u256::from_u128(10000000000000000);
+
+        let z = d(x0, y);
+        let r = u256::as_u128(z);
+        assert!(r == 150000000000012500000000000, 1);
+
+        let x0 = u256::from_u128(1);
+        let y = u256::from_u128(2);
+
+        let z = d(x0, y);
+        let r = u256::as_u128(z);
+        assert!(r == 0, 2);
     }
 
     #[test]

@@ -38,8 +38,8 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 1);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2);
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
         dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
         let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
@@ -48,8 +48,8 @@ module liquidswap::dao_storage_tests {
 
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
-        assert!(x_val == 1, 2);
-        assert!(y_val == 2, 3);
+        assert!(x_val == 100000000, 2);
+        assert!(y_val == 1000000, 3);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
@@ -63,8 +63,8 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 1);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2);
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
     }
@@ -80,20 +80,20 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 1);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2);
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
         dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 1, 0);
-        assert!(coin::value(&x) == 1, 0);
+            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
+        assert!(coin::value(&x) == 100000000, 0);
         assert!(coin::value(&y) == 0, 1);
 
         let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
         assert!(x_val == 0, 2);
-        assert!(y_val == 2, 3);
+        assert!(y_val == 1000000, 3);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
@@ -111,14 +111,14 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 1);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2);
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
         dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 2, 0);
+            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 200000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
@@ -136,14 +136,14 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 1);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2);
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
         dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 1, 0);
+            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);

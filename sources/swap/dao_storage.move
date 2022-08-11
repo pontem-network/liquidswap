@@ -45,7 +45,7 @@ module liquidswap::dao_storage {
 
     /// Deposit coins to storage
     /// In the most of situation only X or Y coin argument has value.
-    /// Because an user usually exchanges only one coin, yet function allow to exchange both coin.
+    /// Because an user usually deposit only one coin, yet function allow to exchange both coin.
     /// Parameters:
     /// * `pool_addr` - pool owner address
     /// * `coin_x` - X coin to deposit

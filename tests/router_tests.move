@@ -1609,24 +1609,20 @@ module liquidswap::router_tests {
 
         test_coins::register_coins(&coin_admin);
 
+        // 100 BTC, 2,800,000 USDT
         register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
-        let x_desired = coin::value(&btc_coins);
-        let y_desired = coin::value(&usdt_coins);
-
-        let (x_res, y_res) = router::get_reserves_size<BTC, USDT, LP>(pool_owner_address);
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
 
         let (x_value, y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 0);
 
-        assert!(x_value == y_desired * x_res / y_res, 0);
+        // 1e8 x 1e10 / (2.8 x 1e11) = 35714285
+        assert!(x_value == 35714285, 0);
         assert!(y_value == y_desired, 1);
-
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
@@ -1639,46 +1635,17 @@ module liquidswap::router_tests {
 
         test_coins::register_coins(&coin_admin);
 
+        // 100 BTC, 2,800,000 USDT
         register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
-        let x_desired = coin::value(&btc_coins);
-        let y_desired = coin::value(&usdt_coins);
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
 
-        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 50, 0);
-
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 5000000000, 0);
     }
-
-//    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-//    #[expected_failure(abort_code=104)]
-//    fun test_calc_optimal_coin_values_2(core: signer, coin_admin: signer, pool_owner: signer) {
-//        genesis::setup(&core);
-//
-//        create_account(&coin_admin);
-//        create_account(&pool_owner);
-//
-//        test_coins::register_coins(&coin_admin);
-//
-//        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
-//
-//        let pool_owner_address = signer::address_of(&pool_owner);
-//
-//        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-//        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
-//        let y_desired = coin::value(&usdt_coins);
-//
-//        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, 2, y_desired, 0, 0);
-//
-//        debug::print(&_x_value);
-//
-//        test_coins::burn(&coin_admin, btc_coins);
-//        test_coins::burn(&coin_admin, usdt_coins);
-//    }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_calc_optimal_coin_values_3(core: signer, coin_admin: signer, pool_owner: signer) {
@@ -1689,14 +1656,14 @@ module liquidswap::router_tests {
 
         test_coins::register_coins(&coin_admin);
 
+        // 100 BTC, 28000 USDT
         register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
-        let x_desired = coin::value(&btc_coins);
-        let y_desired = coin::value(&usdt_coins);
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
 
         let (x_res, y_res) = router::get_reserves_size<BTC, USDT, LP>(pool_owner_address);
 
@@ -1704,9 +1671,6 @@ module liquidswap::router_tests {
 
         assert!(x_value == x_desired, 0);
         assert!(y_value == x_desired * y_res / x_res, 1);
-
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
@@ -1719,19 +1683,16 @@ module liquidswap::router_tests {
 
         test_coins::register_coins(&coin_admin);
 
+        // 100 BTC, 28000 USDT
         register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
-        let x_desired = coin::value(&btc_coins);
-        let y_desired = coin::value(&usdt_coins);
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
 
-        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 2800);
-
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 2800000000);
     }
 
 

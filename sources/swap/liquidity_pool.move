@@ -317,8 +317,8 @@ module liquidswap::liquidity_pool {
         // Split 33% of fee multiplier of provided coins to the DAOStorage
         // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
         let dao_fee_multiplier = FEE_MULTIPLIER / 3;
-        let dao_x_fee_val = (x_in_val * dao_fee_multiplier) / FEE_SCALE;
-        let dao_y_fee_val = (y_in_val * dao_fee_multiplier) / FEE_SCALE;
+        let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
+        let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
 
         let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
         let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
@@ -329,10 +329,17 @@ module liquidswap::liquidity_pool {
         // and make sure lp_value doesn't decrease:
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
-                                  - math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
-        let y_res_new_after_fee = math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
-                                  - math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+        let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(x_reserve_size_new, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
+        } else {
+            ((x_reserve_size_new - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
+
+        let y_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(y_reserve_size_new, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
+        } else {
+            ((y_reserve_size_new - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
 
         compute_and_verify_lp_value(
             pool.x_scale,
@@ -443,8 +450,8 @@ module liquidswap::liquidity_pool {
         // Split 33% of fee multiplier of provided coins to the DAOStorage
         // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
         let dao_fee_multiplier = FEE_MULTIPLIER / 3;
-        let dao_x_fee_val = (x_in_val * dao_fee_multiplier) / FEE_SCALE;
-        let dao_y_fee_val = (y_in_val * dao_fee_multiplier) / FEE_SCALE;
+        let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
+        let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
 
         let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
         let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
@@ -455,10 +462,17 @@ module liquidswap::liquidity_pool {
         // and make sure lp_value doesn't decrease:
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = math::mul_to_u128(x_reserve_size_new, FEE_SCALE)
-                                  - math::mul_to_u128(x_in_val, FEE_MULTIPLIER);
-        let y_res_new_after_fee = math::mul_to_u128(y_reserve_size_new, FEE_SCALE)
-                                  - math::mul_to_u128(y_in_val, FEE_MULTIPLIER);
+        let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(x_reserve_size_new, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
+        } else {
+            ((x_reserve_size_new - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
+
+        let y_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(y_reserve_size_new, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
+        } else {
+            ((y_reserve_size_new - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
 
         compute_and_verify_lp_value(
             pool.x_scale,
@@ -495,15 +509,13 @@ module liquidswap::liquidity_pool {
         y_res_with_fees: u128,
     ) {
         if (curve_type == STABLE_CURVE) {
-            // x_res * FEE_SCALE, y_res * FEE_SCALE
-            let lp_value_before_swap = stable_curve::lp_value(x_res * 10000, x_scale, y_res * 10000, y_scale);
+            let lp_value_before_swap = stable_curve::lp_value(x_res, x_scale, y_res, y_scale);
             let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
             assert!(cmp == 0 || cmp == 2, ERR_INCORRECT_SWAP);
         } else if (curve_type == UNCORRELATED_CURVE) {
             let lp_value_before_swap = x_res * y_res;
-            // 100000000 == FEE_SCALE * FEE_SCALE
             lp_value_before_swap = lp_value_before_swap * 100000000;
             let lp_value_after_swap_and_fee = x_res_with_fees * y_res_with_fees;
 

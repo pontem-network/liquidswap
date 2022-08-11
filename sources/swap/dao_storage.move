@@ -43,9 +43,7 @@ module liquidswap::dao_storage {
         move_to(owner, events_store);
     }
 
-    /// Deposit coins to storage
-    /// In the most of situation only X or Y coin argument has value.
-    /// Because an user usually deposit only one coin, yet function allow to exchange both coin.
+    /// Deposit coins to storage from liquidity pool
     /// Parameters:
     /// * `pool_addr` - pool owner address
     /// * `coin_x` - X coin to deposit

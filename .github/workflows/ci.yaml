@@ -23,6 +23,9 @@ jobs:
           version: latest
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Remove dependencies
+        run: rm -rf ~/.move
+
       - name: Build
         run: aptos move compile
 

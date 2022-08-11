@@ -1599,4 +1599,101 @@ module liquidswap::router_tests {
 
         test_coins::burn(&coin_admin, usdt_coins);
     }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_calc_optimal_coin_values(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        // 100 BTC, 2,800,000 USDT
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+
+        let pool_owner_address = signer::address_of(&pool_owner);
+
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
+
+        let (x_value, y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 0);
+
+        // 1e8 x 1e10 / (2.8 x 1e11) = 35714285
+        assert!(x_value == 35714285, 0);
+        assert!(y_value == y_desired, 1);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code=103)]
+    fun test_calc_optimal_coin_values_1(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        // 100 BTC, 2,800,000 USDT
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+
+        let pool_owner_address = signer::address_of(&pool_owner);
+
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
+
+        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 5000000000, 0);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_calc_optimal_coin_values_3(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        // 100 BTC, 28000 USDT
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
+
+        let pool_owner_address = signer::address_of(&pool_owner);
+
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
+
+        let (x_res, y_res) = router::get_reserves_size<BTC, USDT, LP>(pool_owner_address);
+
+        let (x_value, y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 0);
+
+        assert!(x_value == x_desired, 0);
+        assert!(y_value == x_desired * y_res / x_res, 1);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code=102)]
+    fun test_calc_optimal_coin_values_4(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        // 100 BTC, 28000 USDT
+        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
+
+        let pool_owner_address = signer::address_of(&pool_owner);
+
+        // 1 BTC, 10000 USDT
+        let x_desired = 100000000;
+        let y_desired = 10000000000;
+
+        let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 2800000000);
+    }
+
+
 }

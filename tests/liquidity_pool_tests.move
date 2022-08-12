@@ -50,24 +50,24 @@ module liquidswap::liquidity_pool_tests {
         // Check created LP.
 
         let curve_type = liquidity_pool::get_curve_type<BTC, USDT, LP>(pool_owner_addr);
-        assert!(coin::is_coin_initialized<LP>(), 6);
-        assert!(curve_type == pool_curve_type, 7);
+        assert!(coin::is_coin_initialized<LP>(), 4);
+        assert!(curve_type == pool_curve_type, 5);
         let lp_name = coin::name<LP>();
-        assert!(lp_name == pool_lp_name, 8);
+        assert!(lp_name == pool_lp_name, 6);
         let lp_symbol = coin::symbol<LP>();
-        assert!(lp_symbol == pool_lp_symbol, 9);
+        assert!(lp_symbol == pool_lp_symbol, 7);
         let lp_supply = coin::supply<LP>();
-        assert!(option::is_some(&lp_supply), 10);
+        assert!(option::is_some(&lp_supply), 8);
 
         // Get cummulative prices.
 
         let (x_cumm_price, y_cumm_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cumm_price == 0, 11);
-        assert!(y_cumm_price == 0, 12);
-        assert!(ts == 0, 13);
+        assert!(x_cumm_price == 0, 9);
+        assert!(y_cumm_price == 0, 10);
+        assert!(ts == 0, 11);
 
         // Check if it's locked.
-        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, LP>(pool_owner_addr), 14);
+        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, LP>(pool_owner_addr), 12);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
@@ -98,30 +98,30 @@ module liquidswap::liquidity_pool_tests {
 
         // Check scales.
         let (x_scale, y_scale) = liquidity_pool::get_decimals_scales<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_scale == 100000000, 4);
-        assert!(y_scale == 1000000, 5);
+        assert!(x_scale == 100000000, 2);
+        assert!(y_scale == 1000000, 3);
 
         // Check created LP.
 
         let curve_type = liquidity_pool::get_curve_type<BTC, USDT, LP>(pool_owner_addr);
-        assert!(coin::is_coin_initialized<LP>(), 6);
-        assert!(curve_type == pool_curve_type, 7);
+        assert!(coin::is_coin_initialized<LP>(), 4);
+        assert!(curve_type == pool_curve_type, 5);
         let lp_name = coin::name<LP>();
-        assert!(lp_name == pool_lp_name, 8);
+        assert!(lp_name == pool_lp_name, 6);
         let lp_symbol = coin::symbol<LP>();
-        assert!(lp_symbol == pool_lp_symbol, 9);
+        assert!(lp_symbol == pool_lp_symbol, 7);
         let lp_supply = coin::supply<LP>();
-        assert!(option::is_some(&lp_supply), 10);
+        assert!(option::is_some(&lp_supply), 8);
 
         // Get cummulative prices.
 
         let (x_cumm_price, y_cumm_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cumm_price == 0, 11);
-        assert!(y_cumm_price == 0, 12);
-        assert!(ts == 0, 13);
+        assert!(x_cumm_price == 0, 9);
+        assert!(y_cumm_price == 0, 10);
+        assert!(ts == 0, 11);
 
         // Check if it's locked.
-        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, LP>(pool_owner_addr), 14);
+        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, LP>(pool_owner_addr), 12);
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]

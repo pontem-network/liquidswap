@@ -195,7 +195,6 @@ module liquidswap::liquidity_pool {
             assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liq - MINIMAL_LIQUIDITY
         } else {
-            // (x_provided / x_reserve) * lp_tokens_total
             let x_liq = math::mul_div_u128((x_provided_val as u128), lp_coins_total, (x_reserve_size as u128));
             let y_liq = math::mul_div_u128((y_provided_val as u128), lp_coins_total, (y_reserve_size as u128));
             if (x_liq < y_liq) {
@@ -251,8 +250,7 @@ module liquidswap::liquidity_pool {
         let x_coin_to_return = coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
         let y_coin_to_return = coin::extract(&mut pool.coin_y_reserve, y_to_return_val);
 
-        // Update price and burn provided lp coins
-        update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_val - x_to_return_val, y_reserve_val - y_to_return_val);
+        update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_val, y_reserve_val);
         coin::burn(lp_coins, &pool.lp_burn_cap);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
@@ -418,7 +416,7 @@ module liquidswap::liquidity_pool {
         x_in: Coin<X>,
         y_in: Coin<Y>,
         loan: Flashloan<X, Y, LP>
-    ) acquires LiquidityPool, EventsStore {
+    ) acquires LiquidityPool {
         let Flashloan {pool_addr, x_loan, y_loan} = loan;
 
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
@@ -484,7 +482,7 @@ module liquidswap::liquidity_pool {
             (y_res_new_after_fee as u128),
         );
 
-        update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
+        // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
 
         // The pool will be unlocked after payment.
         pool.locked = false;
@@ -513,16 +511,20 @@ module liquidswap::liquidity_pool {
             let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
-            assert!(cmp == 0 || cmp == 2, ERR_INCORRECT_SWAP);
+            assert!(cmp == 2, ERR_INCORRECT_SWAP);
         } else if (curve_type == UNCORRELATED_CURVE) {
             let lp_value_before_swap = x_res * y_res;
-            lp_value_before_swap = lp_value_before_swap * 100000000;
-            let lp_value_after_swap_and_fee = x_res_with_fees * y_res_with_fees;
-
-            assert!(
-                lp_value_after_swap_and_fee >= lp_value_before_swap,
-                ERR_INCORRECT_SWAP,
+            let lp_value_before_swap_u256 = u256::mul(
+                u256::from_u128(lp_value_before_swap),
+                u256::from_u128(100000000)
             );
+            let lp_value_after_swap_and_fee = u256::mul(
+                u256::from_u128(x_res_with_fees),
+                u256::from_u128(y_res_with_fees),
+            );
+
+            let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap_u256);
+            assert!(cmp == 2, ERR_INCORRECT_SWAP);
         } else {
             abort ERR_INVALID_CURVE
         };

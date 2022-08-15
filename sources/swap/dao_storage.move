@@ -10,10 +10,10 @@ module liquidswap::dao_storage {
     // Error codes.
 
     /// When storage doesn't exists
-    const ERR_NOT_REGISTERED: u64 = 101;
+    const ERR_NOT_REGISTERED: u64 = 401;
 
     /// When invalid DAO admin account
-    const ERR_NOT_ADMIN_ACCOUNT: u64 = 102;
+    const ERR_NOT_ADMIN_ACCOUNT: u64 = 402;
 
     // Public functions.
 

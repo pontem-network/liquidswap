@@ -382,6 +382,9 @@ module liquidswap::liquidity_pool {
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
+        let reserve_x = coin::value(&pool.coin_x_reserve);
+        let reserve_y = coin::value(&pool.coin_y_reserve);
+
         // Withdraw expected amount from reserves.
         let x_loaned = coin::extract(&mut pool.coin_x_reserve, x_loan);
         let y_loaned = coin::extract(&mut pool.coin_y_reserve, y_loan);
@@ -396,6 +399,8 @@ module liquidswap::liquidity_pool {
                 x_loan,
                 y_loan,
             });
+
+        update_oracle(pool, pool_addr, reserve_x, reserve_y);
 
         // Return loaned amount.
         (x_loaned, y_loaned, Flashloan<X, Y, LP> {

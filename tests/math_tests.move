@@ -26,13 +26,13 @@ module liquidswap::math_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 2000)]
     fun test_mul_div_zero() {
         let _ = math::mul_div(10, 20, 0);
     }
 
     #[test]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 2000)]
     fun test_mul_div_u128_zero() {
         let _ = math::mul_div_u128(10, 20, 0);
     }

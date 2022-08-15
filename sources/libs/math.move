@@ -3,7 +3,7 @@ module liquidswap::math {
     // Errors codes.
 
     /// When trying to divide by zero.
-    const ERR_DIVIDE_BY_ZERO: u64 = 100;
+    const ERR_DIVIDE_BY_ZERO: u64 = 2000;
 
     // Constants.
 

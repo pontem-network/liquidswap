@@ -7,8 +7,7 @@ module liquidswap::ve {
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
     use aptos_std::table_with_length::{Self, TableWithLength};
-
-    use liquidswap::liquid::LAMM;
+    use liquidswap::lamm::LAMM;
 
     // Errors.
 

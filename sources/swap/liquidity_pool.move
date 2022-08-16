@@ -79,8 +79,8 @@ module liquidswap::liquidity_pool {
         coin_x_reserve: Coin<X>,
         coin_y_reserve: Coin<Y>,
         last_block_timestamp: u64,
-        last_price_x_cumulative: u128,
-        last_price_y_cumulative: u128,
+        last_price_x_cumulative: u256::U256,
+        last_price_y_cumulative: u256::U256,
         lp_mint_cap: coin::MintCapability<LP>,
         lp_burn_cap: coin::BurnCapability<LP>,
         // Scales are pow(10, token_decimals).
@@ -142,8 +142,8 @@ module liquidswap::liquidity_pool {
             coin_x_reserve: coin::zero<X>(),
             coin_y_reserve: coin::zero<Y>(),
             last_block_timestamp: 0,
-            last_price_x_cumulative: 0,
-            last_price_y_cumulative: 0,
+            last_price_x_cumulative: u256::zero(),
+            last_price_y_cumulative: u256::zero(),
             lp_mint_cap,
             lp_burn_cap,
             x_scale,
@@ -559,19 +559,25 @@ module liquidswap::liquidity_pool {
             let last_price_x_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(y_reserve), x_reserve)) * time_elapsed;
             let last_price_y_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(x_reserve), y_reserve)) * time_elapsed;
 
-            pool.last_price_x_cumulative = *&pool.last_price_x_cumulative + last_price_x_cumulative;
-            pool.last_price_y_cumulative = *&pool.last_price_y_cumulative + last_price_y_cumulative;
+            pool.last_price_x_cumulative = u256::add(
+                pool.last_price_x_cumulative,
+                u256::from_u128(last_price_x_cumulative),
+            );
+            pool.last_price_y_cumulative = u256::add(
+                pool.last_price_y_cumulative,
+                u256::from_u128(last_price_y_cumulative),
+            );
+
+            let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
+            event::emit_event(&mut events_store.oracle_updated_handle, OracleUpdatedEvent<X, Y, LP> {
+                last_price_x_cumulative: pool.last_price_x_cumulative,
+                last_price_y_cumulative: pool.last_price_y_cumulative,
+            });
         };
 
         pool.last_block_timestamp = block_timestamp;
 
-        let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        event::emit_event(
-            &mut events_store.oracle_updated_handle,
-            OracleUpdatedEvent<X, Y, LP> {
-                last_price_x_cumulative: pool.last_price_x_cumulative,
-                last_price_y_cumulative: pool.last_price_y_cumulative,
-            });
+
     }
 
     /// Aborts if pool is locked.
@@ -606,7 +612,7 @@ module liquidswap::liquidity_pool {
     /// Get current cumilative prices.
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
-    public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
+    public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u256::U256, u256::U256, u64)
     acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
@@ -703,7 +709,7 @@ module liquidswap::liquidity_pool {
     }
 
     struct OracleUpdatedEvent<phantom X, phantom Y, phantom LP> has drop, store {
-        last_price_x_cumulative: u128,
-        last_price_y_cumulative: u128,
+        last_price_x_cumulative: u256::U256,
+        last_price_y_cumulative: u256::U256,
     }
 }

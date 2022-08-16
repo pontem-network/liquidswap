@@ -13,6 +13,7 @@ module liquidswap::router_tests {
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::LP;
     use test_helpers::test_account::create_account;
+    use u256::u256;
 
     const MAX_U64: u64 = 18446744073709551615;
 
@@ -695,8 +696,8 @@ module liquidswap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
         let (btc_price, usdt_price, ts) =
             router::get_cumulative_prices<BTC, USDT, LP>(pool_addr);
-        assert!(btc_price == 0, 0);
-        assert!(usdt_price == 0, 1);
+        assert!(u256::as_u128(btc_price) == 0, 0);
+        assert!(u256::as_u128(usdt_price) == 0, 1);
         assert!(ts == 0, 2);
 
         // 2 seconds
@@ -713,8 +714,8 @@ module liquidswap::router_tests {
 
         let (btc_cum_price, usdt_cum_price, last_timestamp) =
             router::get_cumulative_prices<BTC, USDT, LP>(pool_addr);
-        assert!(btc_cum_price == 3689348814741910323000, 3);
-        assert!(usdt_cum_price == 368934881474191032, 4);
+        assert!(u256::as_u128(btc_cum_price) == 3689348814741910323000, 3);
+        assert!(u256::as_u128(usdt_cum_price) == 368934881474191032, 4);
         assert!(last_timestamp == 2, 5);
 
         // 4 seconds
@@ -731,8 +732,8 @@ module liquidswap::router_tests {
 
         let (btc_cum_price, usdt_cum_price, last_timestamp) =
             router::get_cumulative_prices<BTC, USDT, LP>(pool_addr);
-        assert!(btc_cum_price == 7307080858374124739730, 6);
-        assert!(usdt_cum_price == 745173212911578406, 7);
+        assert!(u256::as_u128(btc_cum_price) == 7307080858374124739730, 6);
+        assert!(u256::as_u128(usdt_cum_price) == 745173212911578406, 7);
         assert!(last_timestamp == 4, 8);
     }
 

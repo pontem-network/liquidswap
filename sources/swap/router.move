@@ -8,6 +8,7 @@ module liquidswap::router {
     use liquidswap::liquidity_pool;
     use liquidswap::math;
     use liquidswap::stable_curve;
+    use u256::u256;
 
     // Errors codes.
 
@@ -202,7 +203,7 @@ module liquidswap::router {
     /// Get current cumulative prices in liquidity pool `X`/`Y`.
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
-    public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64) {
+    public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u256::U256, u256::U256, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
             liquidity_pool::get_cumulative_prices<X, Y, LP>(pool_addr)
         } else {

@@ -15,6 +15,7 @@ module liquidswap::liquidity_pool_tests {
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp::{Self, LP};
     use test_helpers::test_account::create_account;
+    use u256::u256;
 
     // Register pool tests.
 
@@ -46,8 +47,8 @@ module liquidswap::liquidity_pool_tests {
 
         let (x_price, y_price, _) =
             liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_price == 0, 2);
-        assert!(y_price == 0, 3);
+        assert!(u256::as_u128(x_price) == 0, 2);
+        assert!(u256::as_u128(y_price) == 0, 3);
 
         // Check created LP.
 
@@ -65,8 +66,8 @@ module liquidswap::liquidity_pool_tests {
         // Get cummulative prices.
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 0, 10);
-        assert!(y_cum_price == 0, 11);
+        assert!(u256::as_u128(x_cum_price) == 0, 10);
+        assert!(u256::as_u128(y_cum_price) == 0, 11);
         assert!(ts == 0, 12);
 
         // Check if it's locked.
@@ -119,8 +120,8 @@ module liquidswap::liquidity_pool_tests {
         // Get cummulative prices.
 
         let (x_cumm_price, y_cumm_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cumm_price == 0, 9);
-        assert!(y_cumm_price == 0, 10);
+        assert!(u256::as_u128(x_cumm_price) == 0, 9);
+        assert!(u256::as_u128(y_cumm_price) == 0, 10);
         assert!(ts == 0, 11);
 
         // Check if it's locked.
@@ -303,8 +304,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == usdt_liq_val, 3);
 
         let (x_price, y_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_price == 0, 4);
-        assert!(y_price == 0, 5);
+        assert!(u256::as_u128(x_price) == 0, 4);
+        assert!(u256::as_u128(y_price) == 0, 5);
         assert!(ts == 1660338836, 6);
 
         coins::register_internal<LP>(&pool_owner);
@@ -449,8 +450,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == usdt_liq_val, 3);
 
         let (x_price, y_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_price == 0, 4);
-        assert!(y_price == 0, 5);
+        assert!(u256::as_u128(x_price) == 0, 4);
+        assert!(u256::as_u128(y_price) == 0, 5);
         assert!(ts == initial_ts, 6);
 
         coins::register_internal<LP>(&pool_owner);
@@ -473,8 +474,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == usdt_liq_val * 3, 10);
 
         let (x_price, y_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_price == 1859431802629922802792000, 11);
-        assert!(y_price == 23717242380483709200, 12);
+        assert!(u256::as_u128(x_price) == 1859431802629922802792000, 11);
+        assert!(u256::as_u128(y_price) == 23717242380483709200, 12);
         assert!(ts == initial_ts + 360, 13);
 
         coin::deposit(pool_owner_addr, lp_coins);
@@ -619,8 +620,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 0, 5);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 37188636052598456055840000, 6);
-        assert!(y_cum_price == 474344847609674184000, 7);
+        assert!(u256::as_u128(x_cum_price) == 37188636052598456055840000, 6);
+        assert!(u256::as_u128(y_cum_price) == 474344847609674184000, 7);
         assert!(ts == 1660517742 + 7200, 8);
     }
 
@@ -790,8 +791,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2772359575037, 2);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 103301766812773489044000, 3);
-        assert!(y_cum_price == 1317624576693539400, 4);
+        assert!(u256::as_u128(x_cum_price) == 103301766812773489044000, 3);
+        assert!(u256::as_u128(y_cum_price) == 1317624576693539400, 4);
         assert!(ts == 1660545565+20,5);
 
         timestamp::fast_forward_seconds(3600);
@@ -809,8 +810,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2772360574037, 7);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 18331960191116039718441600, 8);
-        assert!(y_cum_price == 243247632405227595000, 9);
+        assert!(u256::as_u128(x_cum_price) == 18331960191116039718441600, 8);
+        assert!(u256::as_u128(y_cum_price) == 243247632405227595000, 9);
         assert!(ts == 1660545565+20+3600, 10);
 
         coin::destroy_zero(btc_zero);
@@ -1699,8 +1700,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2800000000000, 1);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 0, 2);
-        assert!(y_cum_price == 0, 3);
+        assert!(u256::as_u128(x_cum_price) == 0, 2);
+        assert!(u256::as_u128(y_cum_price) == 0, 3);
         assert!(ts == 1660545565, 4);
 
         let btc_coins_user = test_coins::mint<BTC>(&coin_admin, 1500000000);
@@ -1714,8 +1715,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 3220000000000, 7);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 0, 8);
-        assert!(y_cum_price == 0, 9);
+        assert!(u256::as_u128(x_cum_price) == 0, 8);
+        assert!(u256::as_u128(y_cum_price) == 0, 9);
         assert!(ts == 1660545565, 10);
 
         timestamp::fast_forward_seconds(3600);
@@ -1734,8 +1735,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2646417723781, 12);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 18594318026299228027920000, 13);
-        assert!(y_cum_price == 237172423804837092000, 14);
+        assert!(u256::as_u128(x_cum_price) == 18594318026299228027920000, 13);
+        assert!(u256::as_u128(y_cum_price) == 237172423804837092000, 14);
         assert!(ts == 1660549165, 15);
 
         let lp_coins_user_val = coin::value(&lp_coins_user);
@@ -1756,8 +1757,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2473825263547, 12);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 18594318026299228027920000, 13);
-        assert!(y_cum_price == 237172423804837092000, 14);
+        assert!(u256::as_u128(x_cum_price) == 18594318026299228027920000, 13);
+        assert!(u256::as_u128(y_cum_price) == 237172423804837092000, 14);
         assert!(ts == 1660549165, 15);
 
         timestamp::fast_forward_seconds(3600);
@@ -1775,8 +1776,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2483815263547, 17);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 31149706178195224153700400, 18);
-        assert!(y_cum_price == 588420782034956560800, 19);
+        assert!(u256::as_u128(x_cum_price) == 31149706178195224153700400, 18);
+        assert!(u256::as_u128(y_cum_price) == 588420782034956560800, 19);
         assert!(ts == 1660552765, 20);
 
         timestamp::fast_forward_seconds(3600);
@@ -1804,8 +1805,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 0, 28);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 43806601518678425423523600, 29);
-        assert!(y_cum_price == 936852159292991150400, 30);
+        assert!(u256::as_u128(x_cum_price) == 43806601518678425423523600, 29);
+        assert!(u256::as_u128(y_cum_price) == 936852159292991150400, 30);
         assert!(ts == 1660556365, 31);
 
         coin::destroy_zero(btc_zero);

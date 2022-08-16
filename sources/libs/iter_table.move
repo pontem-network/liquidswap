@@ -1,4 +1,4 @@
-module gauge_admin::iter_table {
+module gov_admin::iter_table {
     use std::vector;
 
     use aptos_std::table_with_length::{Self, TableWithLength};

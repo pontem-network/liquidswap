@@ -573,6 +573,14 @@ module liquidswap::liquidity_pool {
         };
 
         pool.last_block_timestamp = block_timestamp;
+
+        let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
+        event::emit_event(
+            &mut events_store.oracle_updated_handle,
+            OracleUpdatedEvent<X, Y, LP> {
+                last_price_x_cumulative: pool.last_price_x_cumulative,
+                last_price_y_cumulative: pool.last_price_y_cumulative,
+            });
     }
 
     /// Aborts if pool is locked.

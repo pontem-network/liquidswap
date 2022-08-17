@@ -10,6 +10,31 @@ module liquidswap::math {
     /// Maximum of u64 number.
     const MAX_U64: u128 = 18446744073709551615;
 
+    /// Maximum of u128 number.
+    const MAX_u128: u128 = 340282366920938463463374607431768211455;
+
+    public fun overflow_sub(a: u128, b: u128): u128 {
+        if (a < b) {
+            let r = b - a;
+            MAX_u128 - r + 1
+        } else {
+            a - b
+        }
+    }
+
+    public fun overflow_add(a: u128, b: u128): u128 {
+        let r = MAX_u128 - b;
+        if (r < a) {
+            return a - r - 1
+        };
+        r = MAX_u128 - a;
+        if (r < b) {
+            return b - r - 1
+        };
+
+        a + b
+    }
+
     /// Implements: `x` * `y` / `z`.
     /// The func checks for overflows or divide by zero.
     /// Can't overflow.

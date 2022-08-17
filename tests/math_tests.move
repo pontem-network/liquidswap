@@ -1,8 +1,10 @@
 #[test_only]
 module liquidswap::math_tests {
     use liquidswap::math;
+    use liquidswap::math::{overflow_sub, overflow_add};
 
     const MAX_u64: u64 = 18446744073709551615;
+    const MAX_u128: u128 = 340282366920938463463374607431768211455;
 
     #[test]
     fun test_mul_div() {
@@ -75,5 +77,50 @@ module liquidswap::math_tests {
         assert!(math::pow_10(2) == 100, 3);
         assert!(math::pow_10(5) == 100000, 4);
         assert!(math::pow_10(10) == 10000000000, 5);
+    }
+
+    #[test]
+    fun test_overflow_sub() {
+        let a = overflow_sub(0, 0);
+        assert!(a == 0, 0);
+
+        let a = overflow_sub(0, 100);
+        assert!(a == 340282366920938463463374607431768211356, 1);
+
+        let a = overflow_sub(100, 1000);
+        assert!(a == 340282366920938463463374607431768210556, 2);
+
+        let a = overflow_sub(0, MAX_u128);
+        assert!(a == 1, 3);
+
+        let a = overflow_sub(1, MAX_u128);
+        assert!(a == 2, 4);
+
+        let a = overflow_sub(MAX_u128, MAX_u128);
+        assert!(a == 0, 5);
+
+        let a = overflow_sub(18446744073709551615, 340282366920938463463374607431768211455);
+        assert!(a == 18446744073709551616, 6);
+    }
+
+    #[test]
+    fun test_overflow_add() {
+        let a = overflow_add(1, MAX_u128);
+        assert!(a == 0, 0);
+
+        let a = overflow_add(MAX_u128, 1);
+        assert!(a == 0, 1);
+
+        let a = overflow_add(MAX_u128, MAX_u128);
+        assert!(a == 340282366920938463463374607431768211454, 2);
+
+        let a = overflow_add(0, 0);
+        assert!(a == 0, 3);
+
+        let a = overflow_add(100, 50);
+        assert!(a == 150, 4);
+
+        let a = overflow_add(18446744073709551615, 1);
+        assert!(a == 18446744073709551615 + 1, 5);
     }
 }

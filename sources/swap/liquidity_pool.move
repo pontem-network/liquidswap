@@ -545,6 +545,8 @@ module liquidswap::liquidity_pool {
     }
 
     /// Update current cumulative prices.
+    /// Important: If you want to use the following functions take into account prices and timestamp can be
+    /// overflowed. So it's important to use same logic in your math/algo. See math::overflow_add / math::overflow_sub.
     /// * `pool` - Liquidity pool to update prices.
     /// * `pool_addr` - address of pool to get event emitter.
     /// * `x_reserve` - coin X reserves.
@@ -559,17 +561,25 @@ module liquidswap::liquidity_pool {
 
         let block_timestamp = timestamp::now_seconds() % (1u64 << 32);
 
-        let time_elapsed = ((block_timestamp - last_block_timestamp) as u128);
+        let time_elapsed = math::overflow_sub(
+            (block_timestamp as u128),
+            (last_block_timestamp as u128)
+        );
 
         if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
-            // If we are not in the same block.
-            // Uniswap is using the following library https://github.com/Uniswap/v2-core/blob/master/contracts/libraries/UQ112x112.sol
-            // And doing it so - https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L77.
             let last_price_x_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(y_reserve), x_reserve)) * time_elapsed;
             let last_price_y_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(x_reserve), y_reserve)) * time_elapsed;
 
-            pool.last_price_x_cumulative = *&pool.last_price_x_cumulative + last_price_x_cumulative;
-            pool.last_price_y_cumulative = *&pool.last_price_y_cumulative + last_price_y_cumulative;
+            pool.last_price_x_cumulative = math::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
+            pool.last_price_y_cumulative = math::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
+
+            let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
+            event::emit_event(
+                &mut events_store.oracle_updated_handle,
+                OracleUpdatedEvent<X, Y, LP> {
+                    last_price_x_cumulative: pool.last_price_x_cumulative,
+                    last_price_y_cumulative: pool.last_price_y_cumulative,
+                });
         };
 
         pool.last_block_timestamp = block_timestamp;

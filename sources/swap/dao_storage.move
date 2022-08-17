@@ -81,8 +81,8 @@ module liquidswap::dao_storage {
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
-            &mut events_store.coin_deposited_handle,
-            CoinDepositedEvent<X, Y, LP>{ x_val, y_val }
+            &mut events_store.coin_withdrawn_handle,
+            CoinWithdrawnEvent<X, Y, LP>{ x_val, y_val }
         );
 
         (coin_x, coin_y)

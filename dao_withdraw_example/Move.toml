@@ -1,0 +1,9 @@
+[package]
+name = "DAOAccount"
+version = "0.0.0"
+
+[addresses]
+dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
+
+[dependencies]
+Liquidswap = { local = "../" }

@@ -1,6 +1,5 @@
 #[test_only]
 module liquidswap::voter_tests {
-    use std::signer;
     use std::string::utf8;
 
     use aptos_framework::genesis;
@@ -34,11 +33,5 @@ module liquidswap::voter_tests {
             2
         );
         voter::initialize(&gov_admin);
-
-        voter::vote_for_liquidity_pool<BTC, USDT, LP>(
-            signer::address_of(&pool_owner),
-            ve_nft,
-            10
-        );
     }
 }

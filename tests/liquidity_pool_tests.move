@@ -74,8 +74,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(!liquidity_pool::is_pool_locked<BTC, USDT, LP>(pool_owner_addr), 13);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
-    #[expected_failure(abort_code=4002)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
+    #[expected_failure(abort_code=4001)]
     fun test_create_pool_emergency_fails(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -435,8 +435,8 @@ module liquidswap::liquidity_pool_tests {
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
-    #[expected_failure(abort_code=4002)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
+    #[expected_failure(abort_code=4001)]
     fun test_add_liquidity_emergency_stop_fails(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -721,7 +721,7 @@ module liquidswap::liquidity_pool_tests {
         test_coins::burn(&coin_admin, usdt_return);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
     fun test_emergency_exit(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -804,8 +804,8 @@ module liquidswap::liquidity_pool_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
-    #[expected_failure(abort_code=4002)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
+    #[expected_failure(abort_code=4001)]
     fun test_swap_coins_emergency_fails(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -1763,8 +1763,8 @@ module liquidswap::liquidity_pool_tests {
 
     // Getters.
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
-    #[expected_failure(abort_code=4002)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
+    #[expected_failure(abort_code=4001)]
     fun test_get_reserves_emergency_fails(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -1785,8 +1785,8 @@ module liquidswap::liquidity_pool_tests {
         let (_, _) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
-    #[expected_failure(abort_code=4002)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
+    #[expected_failure(abort_code=4001)]
     fun test_get_cumulative_price_emergency_fails(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 
@@ -2001,7 +2001,7 @@ module liquidswap::liquidity_pool_tests {
         test_coins::burn(&coin_admin, usdt_earned_initial);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency)]
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
     fun test_end_to_end_emergency(core: signer, coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup(&core);
 

@@ -5,16 +5,13 @@ module liquidswap::emergency {
     // Error codes.
 
     /// When the wrong account attempted to create an emergency resource.
-    const ERR_WRONG_ADDR: u64 = 4000;
-
-    /// When operations stopped already.
-    const ERR_ALREADY_STOPPED: u64 = 4001;
+    const ERR_NO_PERMISSIONS: u64 = 4000;
 
     /// When attempted to execute operation during an emergency.
-    const ERR_EMERGENCY: u64 = 4002;
+    const ERR_EMERGENCY: u64 = 4001;
 
     /// When emergency functional disabled.
-    const ERR_DISABLED: u64 = 4003;
+    const ERR_DISABLED: u64 = 4002;
 
     /// The resource stored under account means we are in an emergency.
     struct Emergency has key {}
@@ -24,46 +21,43 @@ module liquidswap::emergency {
 
     /// Pauses all operations.
     public entry fun pause(account: &signer) {
-        let account_addr = signer::address_of(account);
-        assert!(account_addr == @emergency, ERR_WRONG_ADDR);
         assert!(!is_disabled(), ERR_DISABLED);
+        assert_no_emergency();
 
-        assert!(!exists<Emergency>(account_addr), ERR_ALREADY_STOPPED);
+        assert!(signer::address_of(account) == @emergency_admin, ERR_NO_PERMISSIONS);
 
         move_to(account, Emergency {});
     }
 
     /// Resumes all operations.
     public entry fun resume(account: &signer) acquires Emergency {
-        let account_addr = signer::address_of(account);
         assert!(!is_disabled(), ERR_DISABLED);
 
-        assert!(exists<Emergency>(account_addr), ERR_WRONG_ADDR);
+        let account_addr = signer::address_of(account);
+        assert!(exists<Emergency>(account_addr), ERR_NO_PERMISSIONS);
 
         let Emergency {} = move_from<Emergency>(account_addr);
     }
 
     /// Get if it's paused or not.
     public fun is_emergency(): bool {
-        exists<Emergency>(@emergency)
+        exists<Emergency>(@emergency_admin)
     }
 
     /// Would abort if currently paused.
-    public fun assert_emergency() {
-        assert!(!exists<Emergency>(@emergency), ERR_EMERGENCY);
+    public fun assert_no_emergency() {
+        assert!(!is_emergency(), ERR_EMERGENCY);
     }
 
     /// Get if it's disabled or not.
     public fun is_disabled(): bool {
-        exists<Disabled>(@emergency)
+        exists<Disabled>(@emergency_admin)
     }
 
     /// Disable condition forever.
     public entry fun disable_forever(account: &signer) {
-        let account_addr = signer::address_of(account);
-
-        assert!(account_addr == @emergency, ERR_WRONG_ADDR);
         assert!(!is_disabled(), ERR_DISABLED);
+        assert!(signer::address_of(account) == @emergency_admin, ERR_NO_PERMISSIONS);
 
         move_to(account, Disabled {});
     }

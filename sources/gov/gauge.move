@@ -65,22 +65,17 @@ module liquidswap::gauge {
         gauge.period_finish = now + WEEK;
     }
 
-    public(friend) fun withdraw_rewards(pool_id: PoolId, amount: u64): Coin<LAMM> acquires GaugeConfig {
+    public(friend) fun withdraw_rewards(pool_id: PoolId, token_votes: u64, total_pool_votes: u64): Coin<LAMM> acquires GaugeConfig {
         let config = borrow_global_mut<GaugeConfig>(@gov_admin);
         let gauge = table::borrow_mut_with_default(&mut config.gauges, pool_id, zero_gauge());
-        assert!(amount >= gauge.rewards, 1);
+
+        let now = timestamp::now_seconds();
+        let time = if (now >= gauge.period_finish) { WEEK } else { now + WEEK - gauge.period_finish };
+        let amount = time * gauge.reward_rate * token_votes / total_pool_votes;
+        assert!(amount <= gauge.rewards, 1);
         gauge.rewards = gauge.rewards - amount;
-        gauge.reward_rate = gauge.rewards / WEEK;
-        gauge.period_finish = timestamp::now_seconds();
 
         coin::extract(&mut config.rewards, amount)
-    }
-
-    public fun get_rewards(pool_id: PoolId): u64 acquires GaugeConfig {
-        let config = borrow_global<GaugeConfig>(@gov_admin);
-        assert!(table::contains(&config.gauges, pool_id), 1);
-        let gauge = table::borrow( &config.gauges, pool_id);
-        gauge.rewards
     }
 
     fun zero_gauge(): Gauge {

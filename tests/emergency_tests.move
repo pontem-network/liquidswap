@@ -43,7 +43,7 @@ module liquidswap::emergency_tests {
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4000)]
+    #[expected_failure(abort_code=4003)]
     public fun test_resume_fails(emergency_acc: signer) {
         emergency::resume(&emergency_acc);
     }

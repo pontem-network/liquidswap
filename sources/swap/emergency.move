@@ -13,6 +13,9 @@ module liquidswap::emergency {
     /// When emergency functional disabled.
     const ERR_DISABLED: u64 = 4002;
 
+    /// When attempted to resume, but we are not in an emergency state.
+    const ERR_NOT_EMERGENCY: u64 = 4003;
+
     /// The resource stored under account means we are in an emergency.
     struct Emergency has key {}
 
@@ -34,7 +37,8 @@ module liquidswap::emergency {
         assert!(!is_disabled(), ERR_DISABLED);
 
         let account_addr = signer::address_of(account);
-        assert!(exists<Emergency>(account_addr), ERR_NO_PERMISSIONS);
+        assert!(account_addr == @emergency_admin, ERR_NO_PERMISSIONS);
+        assert!(is_emergency(), ERR_NOT_EMERGENCY);
 
         let Emergency {} = move_from<Emergency>(account_addr);
     }

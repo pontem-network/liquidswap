@@ -96,5 +96,17 @@ module liquidswap::math_tests {
 
         let a = math::overflow_add(18446744073709551615, 1);
         assert!(a == 18446744073709551615 + 1, 5);
+
+        let a = math::overflow_add(MAX_u128 / 2, MAX_u128 / 2);
+        assert!(a == MAX_u128 - 1, 6);
+
+        let a = math::overflow_add(224586362167819385885827240904967019560,187155301806516154904856034087472516300);
+        assert!(a == 71459297053397077327308667560671324404, 7);
+
+        let a = math::overflow_add(0, 1);
+        assert!(a == 1, 8);
+
+        let a = math::overflow_add(1, 0);
+        assert!(a == 1, 9);
     }
 }

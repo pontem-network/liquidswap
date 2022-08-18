@@ -13,7 +13,7 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::coin_helper::supply;
 
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_pool_owner::test_lp::{Self, LP};
+    use test_pool_owner::test_lp::{Self, LP, register_lp_for_fails};
     use test_helpers::test_account::create_account;
     use liquidswap::emergency;
 
@@ -2152,5 +2152,409 @@ module liquidswap::liquidity_pool_tests {
         test_coins::burn(&coin_admin, usdt_earned_user);
         test_coins::burn(&coin_admin, btc_earned_initial);
         test_coins::burn(&coin_admin, usdt_earned_initial);
+    }
+
+    // Compute LP
+    #[test]
+    fun test_compute_lp_uncorrelated() {
+        let x_res = 100;
+        let y_res = 100;
+        let x_res_new = 101 * 10000;
+        let y_res_new = 101 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+
+        let x_res = 18446744073709551615;
+        let y_res = 18446744073709551515;
+        let x_res_new = 18446744073709551615 * 10000;
+        let y_res_new = 18446744073709551615 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+
+        let x_res = 18446744073709551115;
+        let y_res = 18446744073709551115;
+        let x_res_new = 18446744073709551615 * 10000;
+        let y_res_new = 18446744073709551615 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            10000,
+            10000,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_uncorrelated_fails_equal() {
+        let x_res = 0;
+        let y_res = 0;
+        let x_res_new = 0;
+        let y_res_new = 0;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_uncorrelated_fails_equal_1() {
+        let x_res = 18446744073709551615;
+        let y_res = 18446744073709551615;
+        let x_res_new = 18446744073709551615 * 10000;
+        let y_res_new = 18446744073709551615 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_uncorrelated_fails_equal_2() {
+        let x_res = 18446744073709551615;
+        let y_res = 1;
+        let x_res_new = 1 * 10000;
+        let y_res_new = 18446744073709551615 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_uncorrelated_fails_less() {
+        let x_res = 100;
+        let y_res = 99;
+        let x_res_new = 100 * 10000;
+        let y_res_new = 99 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_uncorrelated_fails_less_1() {
+        let x_res = 18446744073709551615;
+        let y_res = 10;
+        let x_res_new = 18446744073709551613 * 10000;
+        let y_res_new = 10 * 10000;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            0,
+            0,
+            2,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    fun test_compute_lp_stable() {
+        let x_res = 10000;
+        let y_res = 100;
+        let x_res_new = 9999;
+        let y_res_new = 101;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            100,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+
+        let x_res = 10000;
+        let y_res = 100;
+        let x_res_new = 10001;
+        let y_res_new = 100;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            100,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+
+        let x_res = 1000000001;
+        let y_res = 100;
+        let x_res_new = 1000000001;
+        let y_res_new = 101;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            1000000000,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+
+        let x_res = 100000000000000000;
+        let y_res = 100000000000000000;
+        let x_res_new = 100000000000000001;
+        let y_res_new = 100000000000000001;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            100000000,
+            100000000,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_stable_less_fails() {
+        let x_res = 10000;
+        let y_res = 100;
+        let x_res_new = 10001;
+        let y_res_new = 99;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            10000,
+            100,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_stable_less_fails_1() {
+        let x_res = 10000;
+        let y_res = 10;
+        let x_res_new = 10001;
+        let y_res_new = 9;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            10000,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_stable_equal_fails() {
+        let x_res = 1000000001;
+        let y_res = 100;
+        let x_res_new = 1000000009;
+        let y_res_new = 100;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            1000000000,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    #[test]
+    #[expected_failure(abort_code=105)]
+    fun test_compute_lp_stable_equal_fails_1() {
+        let x_res = 0;
+        let y_res = 0;
+        let x_res_new = 0;
+        let y_res_new = 0;
+
+        liquidity_pool::compute_and_verify_lp_value_for_test(
+            1000000000,
+            10,
+            1,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        );
+    }
+
+    // Update cumulative price itself.
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::fast_forward_seconds(1660545565);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            1660545565 - 3600,
+            18446744073709551615,
+            18446744073709551615,
+            8500000000000000,
+            126000000000000,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 1660545565, 0);
+        assert!(x_cum_price == 1002851816054256914415, 1);
+        assert!(y_cum_price == 4479942007502107673191215, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_max_time(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::update_global_time_for_test(18446744073709551615);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            0,
+            18446744073709551615,
+            18446744073709551615,
+            18446744073709551615,
+            18446744073709551615,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 18446744073709, 0);
+        assert!(x_cum_price == 340282366920946734669822609541650, 1);
+        assert!(y_cum_price == 340282366920946734669822609541650, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_overflow(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::fast_forward_seconds(1);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            0,
+            340282366920938463463374607431768211455,
+            340282366920938463463374607431768211455,
+            18446744073709551615,
+            18446744073709551615,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 1, 0);
+        assert!(x_cum_price == 18446744073709551614, 1);
+        assert!(y_cum_price == 18446744073709551614, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_overflow_1(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::update_global_time_for_test(18446744073709551615);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            0,
+            340282366920938463463374607431768211455,
+            340282366920938463463374607431768211455,
+            18446744073709551615,
+            18446744073709551615,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 18446744073709, 0);
+        assert!(x_cum_price == 340282366920928287925748899990034, 1);
+        assert!(y_cum_price == 340282366920928287925748899990034, 2);
     }
 }

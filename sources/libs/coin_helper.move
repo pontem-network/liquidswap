@@ -12,10 +12,10 @@ module liquidswap::coin_helper {
     // Errors codes.
 
     /// When both coins have same names and can't be ordered.
-    const ERR_CANNOT_BE_THE_SAME_COIN: u64 = 100;
+    const ERR_CANNOT_BE_THE_SAME_COIN: u64 = 3000;
 
     /// When provided CoinType is not a coin.
-    const ERR_IS_NOT_COIN: u64 = 101;
+    const ERR_IS_NOT_COIN: u64 = 3001;
 
     // Constants.
 

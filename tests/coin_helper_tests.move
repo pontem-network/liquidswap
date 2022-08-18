@@ -42,13 +42,13 @@ module liquidswap::coin_helper_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 101)]
+    #[expected_failure(abort_code = 3001)]
     fun test_assert_is_coin_failure() {
         coin_helper::assert_is_coin<USDT>();
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin)]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 3000)]
     fun test_cant_be_same_coin_failure(core: signer, coin_admin: signer) {
         genesis::setup(&core);
         create_account(&coin_admin);

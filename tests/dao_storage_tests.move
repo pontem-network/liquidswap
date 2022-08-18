@@ -53,7 +53,7 @@ module liquidswap::dao_storage_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 101)]
+    #[expected_failure(abort_code = 401)]
     fun test_deposit_fail_if_not_registered(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -125,7 +125,7 @@ module liquidswap::dao_storage_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0x09)]
-    #[expected_failure(abort_code = 102)]
+    #[expected_failure(abort_code = 402)]
     fun test_withdraw_fail_if_not_dao_admin(core: signer, coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
         genesis::setup(&core);
 

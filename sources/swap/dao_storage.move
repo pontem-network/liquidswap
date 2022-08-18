@@ -10,10 +10,10 @@ module liquidswap::dao_storage {
     // Error codes.
 
     /// When storage doesn't exists
-    const ERR_NOT_REGISTERED: u64 = 101;
+    const ERR_NOT_REGISTERED: u64 = 401;
 
     /// When invalid DAO admin account
-    const ERR_NOT_ADMIN_ACCOUNT: u64 = 102;
+    const ERR_NOT_ADMIN_ACCOUNT: u64 = 402;
 
     // Public functions.
 
@@ -81,8 +81,8 @@ module liquidswap::dao_storage {
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
-            &mut events_store.coin_deposited_handle,
-            CoinDepositedEvent<X, Y, LP>{ x_val, y_val }
+            &mut events_store.coin_withdrawn_handle,
+            CoinWithdrawnEvent<X, Y, LP>{ x_val, y_val }
         );
 
         (coin_x, coin_y)

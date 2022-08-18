@@ -122,7 +122,7 @@ module liquidswap::stable_curve {
             ),
             u256::from_u64(scale_out),
         );
-        let amountOut = u256::div(
+        let amount_out = u256::div(
             u256::mul(
                 u256::from_u128(coin_out),
                 u2561e8
@@ -130,7 +130,7 @@ module liquidswap::stable_curve {
             u256::from_u64(scale_out)
         );
 
-        let total_reserve = u256::sub(reserve_out_u256, amountOut);
+        let total_reserve = u256::sub(reserve_out_u256, amount_out);
         let x = u256::sub(
             get_y(total_reserve, xy, reserve_in_u256),
             reserve_in_u256,

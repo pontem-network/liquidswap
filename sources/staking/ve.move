@@ -435,6 +435,14 @@ module liquidswap::ve {
         *table_with_length::borrow(&nft.point_history, epoch)
     }
 
+    /// Get current VE NFT voting power.
+    /// `nft` - reference to `VE_NFT`.
+    public fun get_nft_voting_power(nft: &VE_NFT): u64 acquires StakingPool {
+        let epoch = get_current_epoch();
+        let point = get_nft_history_point(nft, epoch);
+        get_voting_power(&point)
+    }
+
     // Point getters.
 
     /// Get a time when `point` created.

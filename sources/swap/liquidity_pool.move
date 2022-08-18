@@ -545,7 +545,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Update current cumulative prices.
-    /// Important: If you want to use the following functions take into account prices can be overflowed.
+    /// Important: If you want to use the following function take into account prices can be overflowed.
     /// So it's important to use same logic in your math/algo (as Move doesn't allow overflow). See math::overflow_add.
     /// * `pool` - Liquidity pool to update prices.
     /// * `pool_addr` - address of pool to get event emitter.
@@ -613,7 +613,9 @@ module liquidswap::liquidity_pool {
         (x_reserve, y_reserve)
     }
 
-    /// Get current cumilative prices.
+    /// Get current cumulative prices.
+    /// Cumulative prices can be overflowed, so take it into account before work with the following function.
+    /// It's important to use same logic in your math/algo (as Move doesn't allow overflow).
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)

@@ -545,6 +545,8 @@ module liquidswap::liquidity_pool {
     }
 
     /// Update current cumulative prices.
+    /// Important: If you want to use the following function take into account prices can be overflowed.
+    /// So it's important to use same logic in your math/algo (as Move doesn't allow overflow). See math::overflow_add.
     /// * `pool` - Liquidity pool to update prices.
     /// * `pool_addr` - address of pool to get event emitter.
     /// * `x_reserve` - coin X reserves.
@@ -557,30 +559,27 @@ module liquidswap::liquidity_pool {
     ) acquires EventsStore {
         let last_block_timestamp = pool.last_block_timestamp;
 
-        let block_timestamp = timestamp::now_seconds() % (1u64 << 32);
+        let block_timestamp = timestamp::now_seconds();
 
         let time_elapsed = ((block_timestamp - last_block_timestamp) as u128);
 
         if (time_elapsed > 0 && x_reserve != 0 && y_reserve != 0) {
-            // If we are not in the same block.
-            // Uniswap is using the following library https://github.com/Uniswap/v2-core/blob/master/contracts/libraries/UQ112x112.sol
-            // And doing it so - https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L77.
-            let last_price_x_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(y_reserve), x_reserve)) * time_elapsed;
-            let last_price_y_cumulative = uq64x64::to_u128(uq64x64::div(uq64x64::encode(x_reserve), y_reserve)) * time_elapsed;
+            let last_price_x_cumulative = uq64x64::to_u128(uq64x64::fraction(y_reserve, x_reserve)) * time_elapsed;
+            let last_price_y_cumulative = uq64x64::to_u128(uq64x64::fraction(x_reserve, y_reserve)) * time_elapsed;
 
-            pool.last_price_x_cumulative = *&pool.last_price_x_cumulative + last_price_x_cumulative;
-            pool.last_price_y_cumulative = *&pool.last_price_y_cumulative + last_price_y_cumulative;
+            pool.last_price_x_cumulative = math::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
+            pool.last_price_y_cumulative = math::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
+
+            let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
+            event::emit_event(
+                &mut events_store.oracle_updated_handle,
+                OracleUpdatedEvent<X, Y, LP> {
+                    last_price_x_cumulative: pool.last_price_x_cumulative,
+                    last_price_y_cumulative: pool.last_price_y_cumulative,
+                });
         };
 
         pool.last_block_timestamp = block_timestamp;
-
-        let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
-        event::emit_event(
-            &mut events_store.oracle_updated_handle,
-            OracleUpdatedEvent<X, Y, LP> {
-                last_price_x_cumulative: pool.last_price_x_cumulative,
-                last_price_y_cumulative: pool.last_price_y_cumulative,
-            });
     }
 
     /// Aborts if pool is locked.
@@ -614,7 +613,9 @@ module liquidswap::liquidity_pool {
         (x_reserve, y_reserve)
     }
 
-    /// Get current cumilative prices.
+    /// Get current cumulative prices.
+    /// Cumulative prices can be overflowed, so take it into account before work with the following function.
+    /// It's important to use same logic in your math/algo (as Move doesn't allow overflow).
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
@@ -718,5 +719,95 @@ module liquidswap::liquidity_pool {
     struct OracleUpdatedEvent<phantom X, phantom Y, phantom LP> has drop, store {
         last_price_x_cumulative: u128,
         last_price_y_cumulative: u128,
+    }
+
+    #[test_only]
+    public fun compute_and_verify_lp_value_for_test(
+        x_scale: u64,
+        y_scale: u64,
+        curve_type: u8,
+        x_res: u128,
+        y_res: u128,
+        x_res_new: u128,
+        y_res_new: u128,
+    ) {
+        compute_and_verify_lp_value(
+            x_scale,
+            y_scale,
+            curve_type,
+            x_res,
+            y_res,
+            x_res_new,
+            y_res_new,
+        )
+    }
+
+    #[test_only]
+    public fun update_cumulative_price_for_test<X, Y, LP>(
+        account: &signer,
+        last_block_timestamp: u64,
+        last_price_x_cumulative: u128,
+        last_price_y_cumulative: u128,
+        x_reserve: u64,
+        y_reserve: u64,
+        lp_mint_cap: coin::MintCapability<LP>,
+        lp_burn_cap: coin::BurnCapability<LP>,
+    ): (u128, u128, u64) acquires EventsStore {
+        // just in case
+        let addr = signer::address_of(account);
+        assert!(addr == @0x12, 0);
+
+        let pool = LiquidityPool<X, Y, LP> {
+            coin_x_reserve: coin::zero<X>(),
+            coin_y_reserve: coin::zero<Y>(),
+            last_block_timestamp,
+            last_price_x_cumulative,
+            last_price_y_cumulative,
+            lp_mint_cap,
+            lp_burn_cap,
+            x_scale: 0,
+            y_scale: 0,
+            curve_type: 2,
+            locked: false,
+        };
+
+        let events_store = EventsStore<X, Y, LP> {
+            pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(account),
+            liquidity_added_handle: event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(account),
+            liquidity_removed_handle: event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(account),
+            swap_handle: event::new_event_handle<SwapEvent<X, Y, LP>>(account),
+            loan_handle: event::new_event_handle<FlashloanEvent<X, Y, LP>>(account),
+            oracle_updated_handle: event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(account),
+        };
+
+        move_to(account, events_store);
+
+        update_oracle(
+            &mut pool,
+            addr,
+            x_reserve,
+            y_reserve
+        );
+
+        let LiquidityPool {
+            coin_x_reserve,
+            coin_y_reserve,
+            last_block_timestamp,
+            last_price_x_cumulative,
+            last_price_y_cumulative,
+            lp_mint_cap,
+            lp_burn_cap,
+            x_scale: _,
+            y_scale: _,
+            curve_type: _,
+            locked: _,
+        } = pool;
+
+        coin::destroy_zero(coin_x_reserve);
+        coin::destroy_zero(coin_y_reserve);
+        coin::destroy_mint_cap(lp_mint_cap);
+        coin::destroy_burn_cap(lp_burn_cap);
+
+        (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
     }
 }

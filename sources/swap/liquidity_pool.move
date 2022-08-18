@@ -546,7 +546,7 @@ module liquidswap::liquidity_pool {
 
     /// Update current cumulative prices.
     /// Important: If you want to use the following functions take into account prices and timestamp can be
-    /// overflowed. So it's important to use same logic in your math/algo. See math::overflow_add / math::overflow_sub.
+    /// overflowed. So it's important to use same logic in your math/algo. See math::overflow_add.
     /// * `pool` - Liquidity pool to update prices.
     /// * `pool_addr` - address of pool to get event emitter.
     /// * `x_reserve` - coin X reserves.

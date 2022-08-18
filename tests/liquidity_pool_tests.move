@@ -2469,6 +2469,96 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_1(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::fast_forward_seconds(1660545565);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            1660545565 - 3600,
+            0,
+            0,
+            1123123,
+            255666393,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 1660545565, 0);
+        assert!(x_cum_price == 15117102108771710567580000, 1);
+        assert!(y_cum_price == 291726512367500775600, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_2(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::fast_forward_seconds(1660545565);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            0,
+            10,
+            10,
+            583,
+            984,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 1660545565, 0);
+        assert!(x_cum_price == 51700776184088875072100447870 + 10, 1);
+        assert!(y_cum_price == 18148635398524546874446331270 + 10, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_price_3(core: signer, coin_admin: signer, pool_owner: signer) {
+        genesis::setup(&core);
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+        register_lp_for_fails(&pool_owner);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        timestamp::fast_forward_seconds(3600);
+
+        let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT, LP>(
+            &pool_owner,
+            0,
+            0,
+            0,
+            0,
+            0,
+            test_lp::get_mint_cap(pool_owner_addr),
+            test_lp::get_burn_cap(pool_owner_addr),
+        );
+
+        assert!(ts == 3600, 0);
+        assert!(x_cum_price == 0, 1);
+        assert!(y_cum_price == 0, 2);
+    }
+
+    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     fun test_cumulative_price_max_time(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 

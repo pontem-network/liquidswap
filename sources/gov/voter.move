@@ -2,7 +2,7 @@ module liquidswap::voter {
     use std::option;
 
     use aptos_framework::coin::Coin;
-    use aptos_std::iterable_table::{Self, IterableTable, head_key, borrow_iter, destroy_empty};
+    use aptos_std::iterable_table::{Self, IterableTable};
     use aptos_std::table::{Self, Table};
 
     use liquidswap::gauge::PoolId;
@@ -28,23 +28,25 @@ module liquidswap::voter {
 
     public fun vote(ve_nft: &VE_NFT, weights: IterableTable<PoolId, u64>) acquires Votes {
         let total_weight = 0;
-        let key = head_key(&weights);
+        let key = iterable_table::head_key(&weights);
         while (option::is_some(&key)) {
-            let (weight, _, next) = borrow_iter(&weights, *option::borrow(&key));
+            let (weight, _, next) =
+                iterable_table::borrow_iter(&weights, *option::borrow(&key));
             total_weight = total_weight + *weight;
             key = next;
         };
 
         let ve_voting_power = ve::get_nft_voting_power(ve_nft);
-        key = head_key(&weights);
+        key = iterable_table::head_key(&weights);
         while (option::is_some(&key)) {
-            let (weight, _, next) = borrow_iter(&weights, *option::borrow(&key));
+            let (weight, _, next) =
+                iterable_table::borrow_iter(&weights, *option::borrow(&key));
             let pool_id = *option::borrow(&key);
             let vote_stake = *weight * ve_voting_power / total_weight;
             vote_internal(ve_nft, pool_id, vote_stake);
             key = next;
         };
-        destroy_empty(weights);
+        iterable_table::destroy_empty(weights);
     }
 
     fun vote_internal(ve_nft: &VE_NFT, pool_id: PoolId, vote_stake: u64) acquires Votes {

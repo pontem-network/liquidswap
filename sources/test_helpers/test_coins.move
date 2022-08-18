@@ -16,6 +16,23 @@ module test_coin_admin::test_coins {
         burn_cap: BurnCapability<CoinType>,
     }
 
+    // Register one coin with custom details.
+    public fun register_coin<CoinType>(coin_admin: &signer, name: vector<u8>, symbol: vector<u8>, decimals: u64) {
+        let (mint_cap, burn_cap) = coin::initialize<CoinType>(
+            coin_admin,
+            utf8(name),
+            utf8(symbol),
+            decimals,
+            true,
+        );
+
+        move_to(coin_admin, Capabilities<CoinType> {
+            mint_cap,
+            burn_cap,
+        });
+    }
+
+    // Register all known coins in one func.
     public fun register_coins(coin_admin: &signer) {
         let (usdt_mint_cap, usdt_burn_cap) =
             coin::initialize<USDT>(

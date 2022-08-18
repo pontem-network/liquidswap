@@ -159,7 +159,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 102)]
+    #[expected_failure(abort_code = 202)]
     fun test_add_liquidity_to_fail_with_insufficient_y_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
         test_coins::register_coins(&coin_admin);
@@ -187,7 +187,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 103)]
+    #[expected_failure(abort_code = 203)]
     fun test_add_liquidity_to_fail_with_insufficient_x_coins(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -251,7 +251,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = 205)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_x(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -278,7 +278,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = 205)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_y(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -409,7 +409,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = 205)]
     fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -525,7 +525,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=106)]
+    #[expected_failure(abort_code=206)]
     fun test_swap_coin_for_exact_coin_router_check_fails(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -584,7 +584,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = 205)]
     fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -1335,19 +1335,19 @@ module liquidswap::router_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 200)]
     fun test_fail_convert_with_current_price_coin_in_val() {
         router::convert_with_current_price(0, 1, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 101)]
+    #[expected_failure(abort_code = 201)]
     fun test_fail_convert_with_current_price_reserve_in_size() {
         router::convert_with_current_price(1, 0, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 101)]
+    #[expected_failure(abort_code = 201)]
     fun test_fail_convert_with_current_price_reserve_out_size() {
         router::convert_with_current_price(1, 1, 0);
     }
@@ -1740,7 +1740,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=103)]
+    #[expected_failure(abort_code=203)]
     fun test_calc_optimal_coin_values_1(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 
@@ -1788,7 +1788,7 @@ module liquidswap::router_tests {
     }
 
     #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=102)]
+    #[expected_failure(abort_code=202)]
     fun test_calc_optimal_coin_values_4(core: signer, coin_admin: signer, pool_owner: signer) {
         genesis::setup(&core);
 

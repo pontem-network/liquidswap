@@ -11,6 +11,14 @@ module test_pool_owner::test_lp {
         burn_cap: BurnCapability<CoinType>,
     }
 
+    public fun get_mint_cap(pool_owner_addr: address): MintCapability<LP> acquires Capabilities {
+        *&borrow_global<Capabilities<LP>>(pool_owner_addr).mint_cap
+    }
+
+    public fun get_burn_cap(pool_owner_addr: address): BurnCapability<LP> acquires Capabilities {
+        *&borrow_global<Capabilities<LP>>(pool_owner_addr).burn_cap
+    }
+
     public fun register_lp_for_fails(pool_owner: &signer) {
         let (mint_cap, burn_cap) =
             coin::initialize<LP>(

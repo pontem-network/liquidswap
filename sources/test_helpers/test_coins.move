@@ -17,14 +17,15 @@ module test_coin_admin::test_coins {
     }
 
     // Register one coin with custom details.
-    public fun register_coin<CoinType>(coin_admin: &signer, name: vector<u8>, symbol: vector<u8>, decimals: u64) {
-        let (mint_cap, burn_cap) = coin::initialize<CoinType>(
+    public fun register_coin<CoinType>(coin_admin: &signer, name: vector<u8>, symbol: vector<u8>, decimals: u8) {
+        let (burn_cap, freeze_cap, mint_cap, ) = coin::initialize<CoinType>(
             coin_admin,
             utf8(name),
             utf8(symbol),
             decimals,
             true,
         );
+        coin::destroy_freeze_cap(freeze_cap);
 
         move_to(coin_admin, Capabilities<CoinType> {
             mint_cap,
@@ -34,7 +35,7 @@ module test_coin_admin::test_coins {
 
     // Register all known coins in one func.
     public fun register_coins(coin_admin: &signer) {
-        let (usdt_mint_cap, usdt_burn_cap) =
+        let (usdt_burn_cap, usdt_freeze_cap, usdt_mint_cap) =
             coin::initialize<USDT>(
                 coin_admin,
                 utf8(b"USDT"),
@@ -43,7 +44,7 @@ module test_coin_admin::test_coins {
                 true
             );
 
-        let (btc_mint_cap, btc_burn_cap) =
+        let (btc_burn_cap, btc_freeze_cap, btc_mint_cap) =
             coin::initialize<BTC>(
                 coin_admin,
                 utf8(b"BTC"),
@@ -52,7 +53,7 @@ module test_coin_admin::test_coins {
                 true
             );
 
-        let (usdc_mint_cap, usdc_burn_cap) =
+        let (usdc_burn_cap, usdc_freeze_cap, usdc_mint_cap) =
             coin::initialize<USDC>(
                 coin_admin,
                 utf8(b"USDC"),
@@ -75,6 +76,10 @@ module test_coin_admin::test_coins {
             mint_cap: usdc_mint_cap,
             burn_cap: usdc_burn_cap,
         });
+
+        coin::destroy_freeze_cap(usdt_freeze_cap);
+        coin::destroy_freeze_cap(usdc_freeze_cap);
+        coin::destroy_freeze_cap(btc_freeze_cap);
     }
 
     public fun mint<CoinType>(coin_admin: &signer, amount: u64): Coin<CoinType> acquires Capabilities {

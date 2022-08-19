@@ -12,13 +12,12 @@ module liquidswap::voter_tests {
     use test_pool_owner::test_lp::LP;
 
     #[test(
-        core = @core_resources,
         coin_admin = @test_coin_admin,
         pool_owner = @test_pool_owner,
         gov_admin = @gov_admin
     )]
-    fun test_vote_for_liquidity_pool(core: signer, coin_admin: signer, pool_owner: signer, gov_admin: signer) {
-        genesis::setup(&core);
+    fun test_vote_for_liquidity_pool(coin_admin: signer, pool_owner: signer, gov_admin: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);

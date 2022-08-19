@@ -20,7 +20,7 @@ module liquidswap::gauge {
         lp_symbol: String,
     }
 
-    struct Gauge has drop, store {
+    struct Gauge has store {
         rewards: u64,
         reward_rate: u64,
         period_finish: u64,
@@ -48,7 +48,9 @@ module liquidswap::gauge {
 
         coin::merge(&mut config.rewards, deposit);
 
-        let gauge = table::borrow_mut_with_default(&mut config.gauges, pool_id, zero_gauge());
+        if(!table::contains(&config.gauges, pool_id))
+            table::add(&mut config.gauges, pool_id, zero_gauge());
+        let gauge = table::borrow_mut(&mut config.gauges, pool_id);
 
         let now = timestamp::now_seconds();
         if (now >= gauge.period_finish) {
@@ -67,7 +69,8 @@ module liquidswap::gauge {
 
     public(friend) fun withdraw_rewards(pool_id: PoolId, token_votes: u64, total_pool_votes: u64): Coin<LAMM> acquires GaugeConfig {
         let config = borrow_global_mut<GaugeConfig>(@gov_admin);
-        let gauge = table::borrow_mut_with_default(&mut config.gauges, pool_id, zero_gauge());
+        assert!(table::contains(&config.gauges, pool_id), 1);
+        let gauge = table::borrow_mut(&mut config.gauges, pool_id);
 
         let now = timestamp::now_seconds();
         let time = if (now >= gauge.period_finish) { WEEK } else { now + WEEK - gauge.period_finish };

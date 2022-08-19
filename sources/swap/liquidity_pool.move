@@ -108,13 +108,14 @@ module liquidswap::liquidity_pool {
             ERR_INVALID_CURVE
         );
 
-        let (lp_mint_cap, lp_burn_cap) = coin::initialize<LP>(
+        let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) = coin::initialize<LP>(
             owner,
             lp_name,
             lp_symbol,
             6,
             true
         );
+        coin::destroy_freeze_cap(lp_freeze_cap);
 
         let x_scale = 0;
         let y_scale = 0;

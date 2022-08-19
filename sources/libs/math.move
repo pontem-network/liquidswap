@@ -71,7 +71,7 @@ module liquidswap::math {
     }
 
     /// Returns 10^degree.
-    public fun pow_10(degree: u64): u64 {
+    public fun pow_10(degree: u8): u64 {
         let res = 1;
         let i = 0;
         while (i < degree) {

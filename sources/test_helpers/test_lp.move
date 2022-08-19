@@ -20,7 +20,7 @@ module test_pool_owner::test_lp {
     }
 
     public fun register_lp_for_fails(pool_owner: &signer) {
-        let (mint_cap, burn_cap) =
+        let (burn_cap, freeze_cap, mint_cap) =
             coin::initialize<LP>(
                 pool_owner,
                 utf8(b"LP"),
@@ -28,6 +28,7 @@ module test_pool_owner::test_lp {
                 6,
                 true
             );
+        coin::destroy_freeze_cap(freeze_cap);
 
         move_to(pool_owner, Capabilities<LP> { mint_cap, burn_cap });
     }

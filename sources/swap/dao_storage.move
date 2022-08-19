@@ -7,14 +7,25 @@ module liquidswap::dao_storage {
 
     friend liquidswap::liquidity_pool;
 
-    const ERR_NOT_REGISTERED: u64 = 101;
-    const ERR_NOT_ADMIN_ACCOUNT: u64 = 102;
+    // Error codes.
 
+    /// When storage doesn't exists
+    const ERR_NOT_REGISTERED: u64 = 401;
+
+    /// When invalid DAO admin account
+    const ERR_NOT_ADMIN_ACCOUNT: u64 = 402;
+
+    // Public functions.
+
+    /// Storage for keeping coins
     struct Storage<phantom X, phantom Y, phantom LP> has key {
         coin_x: Coin<X>,
         coin_y: Coin<Y>
     }
 
+    /// Register storage
+    /// Parameters:
+    /// * `owner` - owner of storage
     public(friend) fun register<X, Y, LP>(owner: &signer) {
         let storage = Storage<X, Y, LP>{ coin_x: coin::zero<X>(), coin_y: coin::zero<Y>() };
         move_to(owner, storage);
@@ -32,6 +43,11 @@ module liquidswap::dao_storage {
         move_to(owner, events_store);
     }
 
+    /// Deposit coins to storage from liquidity pool
+    /// Parameters:
+    /// * `pool_addr` - pool owner address
+    /// * `coin_x` - X coin to deposit
+    /// * `coin_y` - Y coin to deposit
     public(friend) fun deposit<X, Y, LP>(pool_addr: address, coin_x: Coin<X>, coin_y: Coin<Y>) acquires Storage, EventsStore {
         assert!(exists<Storage<X, Y, LP>>(pool_addr), ERR_NOT_REGISTERED);
 
@@ -48,6 +64,13 @@ module liquidswap::dao_storage {
         );
     }
 
+    /// Withdraw coins from storage
+    /// Parameters:
+    /// * `dao_admin_acc` - DAO admin
+    /// * `pool_addr` - pool owner address
+    /// * `x_val` - amount of X coins to withdraw
+    /// * `y_val` - amount of Y coins to withdraw
+    /// Returns both withdrawn X and Y coins: `(Coin<X>, Coin<Y>)`.
     public fun withdraw<X, Y, LP>(dao_admin_acc: &signer, pool_addr: address, x_val: u64, y_val: u64): (Coin<X>, Coin<Y>)
     acquires Storage, EventsStore {
         assert!(signer::address_of(dao_admin_acc) == @dao_admin, ERR_NOT_ADMIN_ACCOUNT);
@@ -58,8 +81,8 @@ module liquidswap::dao_storage {
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
-            &mut events_store.coin_deposited_handle,
-            CoinDepositedEvent<X, Y, LP>{ x_val, y_val }
+            &mut events_store.coin_withdrawn_handle,
+            CoinWithdrawnEvent<X, Y, LP>{ x_val, y_val }
         );
 
         (coin_x, coin_y)
@@ -72,6 +95,22 @@ module liquidswap::dao_storage {
         let y_val = coin::value(&storage.coin_y);
         (x_val, y_val)
     }
+
+    #[test_only]
+    public fun register_for_test<X, Y, LP>(owner: &signer) {
+        register<X, Y, LP>(owner);
+    }
+
+    #[test_only]
+    public fun deposit_for_test<X, Y, LP>(
+        pool_addr: address,
+        coin_x: Coin<X>,
+        coin_y: Coin<Y>
+    ) acquires Storage, EventsStore {
+        deposit<X, Y, LP>(pool_addr, coin_x, coin_y);
+    }
+
+    // Events
 
     struct EventsStore<phantom X, phantom Y, phantom LP> has key {
         storage_registered_handle: event::EventHandle<StorageCreatedEvent<X, Y, LP>>,

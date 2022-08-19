@@ -12,23 +12,21 @@ module liquidswap::router {
     // Errors codes.
 
     /// Wrong amount used.
-    const ERR_WRONG_AMOUNT: u64 = 100;
+    const ERR_WRONG_AMOUNT: u64 = 200;
     /// Wrong reserve used.
-    const ERR_WRONG_RESERVE: u64 = 101;
+    const ERR_WRONG_RESERVE: u64 = 201;
     /// Insuficient amount in Y reserves.
-    const ERR_INSUFFICIENT_Y_AMOUNT: u64 = 102;
+    const ERR_INSUFFICIENT_Y_AMOUNT: u64 = 202;
     /// Insuficient amount in X reserves.
-    const ERR_INSUFFICIENT_X_AMOUNT: u64 = 103;
+    const ERR_INSUFFICIENT_X_AMOUNT: u64 = 203;
     /// Overlimit of X coins to swap.
-    const ERR_OVERLIMIT_X: u64 = 104;
+    const ERR_OVERLIMIT_X: u64 = 204;
     /// Amount out less than minimum.
-    const ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 105;
+    const ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 205;
     /// Needed amount in great than maximum.
-    const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 106;
+    const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 206;
     /// When unknown curve used.
-    const ERR_INVALID_CURVE: u64 = 107;
-    /// When operation expired.
-    const ERR_OP_EXPIRED: u64 = 108;
+    const ERR_INVALID_CURVE: u64 = 207;
 
     // Constants.
 
@@ -392,12 +390,15 @@ module liquidswap::router {
         curve_type: u8
     ): u64 {
         let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
-        // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curve_type == STABLE_CURVE) {
-            // x_in * 0.997
-            let coin_in_val_after_fees = coin_in * fee_multiplier / fee_scale;
+            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
+            let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
+                (coin_in_val_scaled / (fee_scale as u128)) + 1
+            } else {
+                coin_in_val_scaled / (fee_scale as u128)
+            };
 
             (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),

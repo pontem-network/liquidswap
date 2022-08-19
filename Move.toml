@@ -1,10 +1,11 @@
 [package]
 name = "Liquidswap"
-version = "0.2.2"
+version = "0.2.3"
 
 [addresses]
 liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
 dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
+emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 staking_pool = "0x42"
 
 # Addresses for tests.
@@ -15,23 +16,23 @@ test_staker = "0x14"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "908aff867fcc1e1b12f058d474329097ab96f14b"
+rev = "a58060f88d66b90a0548a506e22270b04a328db3"
 subdir = "aptos-move/framework/move-stdlib"
 
 [dependencies.AptosStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "908aff867fcc1e1b12f058d474329097ab96f14b"
+rev = "a58060f88d66b90a0548a506e22270b04a328db3"
 subdir = "aptos-move/framework/aptos-stdlib"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "908aff867fcc1e1b12f058d474329097ab96f14b"
+rev = "a58060f88d66b90a0548a506e22270b04a328db3"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.3.2"
+rev = "c1634669a2748b8cf7b5911ddab65341f4615fc4"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.3.2"
+rev = "45b0a151145653a314e21a5354416e97824faac0"

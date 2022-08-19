@@ -33,13 +33,12 @@ module liquidswap::scripts_tests {
         };
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     public entry fun test_register_pool_with_script(
-        core: signer,
         coin_admin: signer,
         pool_owner: signer
     ) {
-        genesis::setup(&core);
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -53,13 +52,12 @@ module liquidswap::scripts_tests {
         assert!(liquidity_pool::pool_exists_at<BTC, USDT, LP>(pool_owner_addr), 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     public entry fun test_register_and_add_liquidity_in_one_script(
-        core: signer,
         coin_admin: signer,
         pool_owner: signer
     ) {
-        genesis::setup(&core);
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -91,9 +89,9 @@ module liquidswap::scripts_tests {
         assert!(coin::balance<LP>(pool_owner_addr) == 10, 4);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    public entry fun test_add_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    public entry fun test_add_liquidity(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -126,9 +124,9 @@ module liquidswap::scripts_tests {
         assert!(coin::balance<LP>(pool_owner_addr) == 10, 3);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    public entry fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    public entry fun test_remove_liquidity(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -168,9 +166,9 @@ module liquidswap::scripts_tests {
         assert!(coin::balance<USDT>(pool_owner_addr) == 10100, 3);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    public entry fun test_swap_exact_btc_for_usdt(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    public entry fun test_swap_exact_btc_for_usdt(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -195,9 +193,9 @@ module liquidswap::scripts_tests {
         assert!(coin::balance<USDT>(pool_owner_addr) == 907, 2);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    public entry fun test_swap_btc_for_exact_usdt(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    public entry fun test_swap_btc_for_exact_usdt(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);

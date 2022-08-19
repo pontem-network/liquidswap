@@ -33,27 +33,15 @@ module liquidswap::stable_curve {
             y_scale_u256,
         );
 
-        let _a = u256::div(
-            u256::mul(_x, _y),
-            u2561e8,
-        );
+        let _a = u256::mul(_x, _y);
 
         // ((_x * _x) / 1e18 + (_y * _y) / 1e18)
         let _b = u256::add(
-            u256::div(
-                u256::mul(_x, _x),
-                u2561e8,
-            ),
-            u256::div(
-                u256::mul(_y, _y),
-                u2561e8,
-            )
+            u256::mul(_x, _x),
+            u256::mul(_y, _y),
         );
 
-        u256::div(
-            u256::mul(_a, _b),
-            u2561e8,
-        )
+        u256::mul(_a, _b)
     }
 
     /// Get coin amount out by passing amount in, returns amount out (we don't take fees into account here).
@@ -68,6 +56,7 @@ module liquidswap::stable_curve {
         let u2561e8 = u256::from_u128(ONE_E_8);
 
         let xy = lp_value(reserve_in, scale_in, reserve_out, scale_out);
+
         let reserve_in_u256 = u256::div(
             u256::mul(
                 u256::from_u128(reserve_in),
@@ -82,14 +71,14 @@ module liquidswap::stable_curve {
             ),
             u256::from_u64(scale_out),
         );
-        let amountIn = u256::div(
+        let amount_in = u256::div(
             u256::mul(
                 u256::from_u128(coin_in),
                 u2561e8
             ),
             u256::from_u64(scale_in)
         );
-        let total_reserve = u256::add(amountIn, reserve_in_u256);
+        let total_reserve = u256::add(amount_in, reserve_in_u256);
         let y = u256::sub(
             reserve_out_u256,
             get_y(total_reserve, xy, reserve_out_u256),
@@ -118,6 +107,7 @@ module liquidswap::stable_curve {
         let u2561e8 = u256::from_u128(ONE_E_8);
 
         let xy = lp_value(reserve_in, scale_in, reserve_out, scale_out);
+
         let reserve_in_u256 = u256::div(
             u256::mul(
                 u256::from_u128(reserve_in),
@@ -132,7 +122,7 @@ module liquidswap::stable_curve {
             ),
             u256::from_u64(scale_out),
         );
-        let amountOut = u256::div(
+        let amount_out = u256::div(
             u256::mul(
                 u256::from_u128(coin_out),
                 u2561e8
@@ -140,7 +130,7 @@ module liquidswap::stable_curve {
             u256::from_u64(scale_out)
         );
 
-        let total_reserve = u256::sub(reserve_out_u256, amountOut);
+        let total_reserve = u256::sub(reserve_out_u256, amount_out);
         let x = u256::sub(
             get_y(total_reserve, xy, reserve_in_u256),
             reserve_in_u256,
@@ -162,7 +152,7 @@ module liquidswap::stable_curve {
     /// * `y` - reserves out with transformed decimals.
     fun get_y(x0: U256, xy: U256, y: U256): U256 {
         let i = 0;
-        let u2561e8 = u256::from_u128(ONE_E_8);
+
         let one_u256 = u256::from_u128(1);
 
         while (i < 255) {
@@ -173,10 +163,7 @@ module liquidswap::stable_curve {
             if (cmp == 1) {
                 _dy = u256::add(
                     u256::div(
-                        u256::mul(
-                            u256::sub(xy, k),
-                            u2561e8,
-                        ),
+                        u256::sub(xy, k),
                         d(x0, y),
                     ),
                     one_u256    // Round up
@@ -184,10 +171,7 @@ module liquidswap::stable_curve {
                 y = u256::add(y, _dy);
             } else {
                 _dy = u256::div(
-                    u256::mul(
-                        u256::sub(k, xy),
-                        u2561e8,
-                    ),
+                    u256::sub(k, xy),
                     d(x0, y),
                 );
                 y = u256::sub(y, _dy);
@@ -205,34 +189,16 @@ module liquidswap::stable_curve {
 
     /// Implements x0*y^3 + x0^3*y = x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
     fun f(x0_u256: U256, y_u256: U256): U256 {
-        let u2561e8 = u256::from_u128(ONE_E_8);
-
         // x0*(y*y/1e18*y/1e18)/1e18
-        let yy = u256::div(
-            u256::mul(y_u256, y_u256),
-            u2561e8,
-        );
-        let yyy = u256::div(
-            u256::mul(yy, y_u256),
-            u2561e8,
-        );
-        let a = u256::div(
-            u256::mul(x0_u256, yyy),
-            u2561e8
-        );
+        let yy = u256::mul(y_u256, y_u256);
+        let yyy = u256::mul(yy, y_u256);
+
+        let a = u256::mul(x0_u256, yyy);
+
         //(x0*x0/1e18*x0/1e18)*y/1e18
-        let xx = u256::div(
-            u256::mul(x0_u256, x0_u256),
-            u2561e8,
-        );
-        let xxx = u256::div(
-            u256::mul(xx, x0_u256),
-            u2561e8
-        );
-        let b = u256::div(
-            u256::mul(xxx, y_u256),
-            u2561e8,
-        );
+        let xx = u256::mul(x0_u256, x0_u256);
+        let xxx = u256::mul(xx, x0_u256);
+        let b = u256::mul(xxx, y_u256);
 
         // a + b
         u256::add(a, b)
@@ -241,29 +207,15 @@ module liquidswap::stable_curve {
     /// Implements 3 * x0 * y^2 + x0^3 = 3 * x0 * (y * y / 1e8) / 1e8 + (x0 * x0 / 1e8 * x0) / 1e8
     fun d(x0_u256: U256, y_u256: U256): U256 {
         let three_u256 = u256::from_u128(3);
-        let u2561e8 = u256::from_u128(ONE_E_8);
 
         // 3 * x0 * (y * y / 1e8) / 1e8
         let x3 = u256::mul(three_u256, x0_u256);
-        let yy = u256::div(
-            u256::mul(y_u256, y_u256),
-            u2561e8,
-        );
-        let xyy3 = u256::div(
-            u256::mul(x3, yy),
-            u2561e8,
-        );
-
-        let xx = u256::div(
-            u256::mul(x0_u256, x0_u256),
-            u2561e8,
-        );
+        let yy = u256::mul(y_u256, y_u256);
+        let xyy3 = u256::mul(x3, yy);
+        let xx = u256::mul(x0_u256, x0_u256);
 
         // x0 * x0 / 1e8 * x0 / 1e8
-        let xxx = u256::div(
-            u256::mul(xx, x0_u256),
-            u2561e8,
-        );
+        let xxx = u256::mul(xx, x0_u256);
 
         u256::add(xyy3, xxx)
     }
@@ -321,8 +273,8 @@ module liquidswap::stable_curve {
         let x0 = u256::from_u128(10000518365287);
         let y = u256::from_u128(2520572000001255);
 
-        let r = u256::as_u128(f(x0, y));
-        assert!(r == 160149899619106589403932994151877362, 0);
+        let r = u256::as_u128(u256::div(f(x0, y), u256::from_u128(1000000000000000000000000)));
+        assert!(r == 160149899619106589403934712464197979, 0);
 
         let r = u256::as_u128(f(u256::zero(), u256::zero()));
         assert!(r == 0, 1);
@@ -334,31 +286,33 @@ module liquidswap::stable_curve {
         let y = u256::from_u128(2520572000001255);
 
         let z = d(x0, y);
-        let r = u256::as_u128(z);
+        let r = u256::as_u128(u256::div(z, u256::from_u128(100000000)));
 
-        assert!(r == 19060937633564670887039886324, 0);
+        assert!(r == 1906093763356467088703995764640866982, 0);
 
         let x0 = u256::from_u128(5000000000);
         let y = u256::from_u128(10000000000000000);
 
         let z = d(x0, y);
-        let r = u256::as_u128(z);
-        assert!(r == 150000000000012500000000000, 1);
+        let r = u256::as_u128(u256::div(z, u256::from_u128(100000000)));
+
+        assert!(r == 15000000000001250000000000000000000, 1);
 
         let x0 = u256::from_u128(1);
         let y = u256::from_u128(2);
 
         let z = d(x0, y);
         let r = u256::as_u128(z);
-        assert!(r == 0, 2);
+        assert!(r == 13, 2);
     }
 
     #[test]
     fun test_lp_value_compute() {
         // 0.3 ^ 3 * 0.5 + 0.5 ^ 3 * 0.3 = 0.051 (12 decimals)
         let lp_value = lp_value(300000, 1000000, 500000, 1000000);
+
         assert!(
-            u256::as_u128(lp_value) == 5100000,
+            u256::as_u128(lp_value) == 5100000000000000000000000000000,
             0
         );
 
@@ -369,6 +323,7 @@ module liquidswap::stable_curve {
             1000000000000
         );
 
-        assert!(u256::as_u128(lp_value) == 312508781701599715772530613362069248234, 1);
+        lp_value = u256::div(lp_value, u256::from_u128(1000000000000000000000000));
+        assert!(u256::as_u128(lp_value) == 312508781701599715772756132553838833260, 1);
     }
 }

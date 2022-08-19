@@ -15,9 +15,9 @@ module liquidswap::liquid_tests {
 
     struct BurnCap has key { burn_cap: BurnCapability<LAMM> }
 
-    #[test(core = @core_resources, admin = @liquidswap, user = @0x43)]
-    fun test_mint_burn_with_functions(core: signer, admin: signer, user: signer) {
-        genesis::setup(&core);
+    #[test(admin = @liquidswap, user = @0x43)]
+    fun test_mint_burn_with_functions(admin: signer, user: signer) {
+        genesis::setup();
 
         create_account(&admin);
         create_account(&user);
@@ -34,9 +34,9 @@ module liquidswap::liquid_tests {
         assert!(coin::supply<LAMM>() == option::some(50), 2);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
-    fun test_mint_burn_with_caps(core: signer, admin: signer) {
-        genesis::setup(&core);
+    #[test(admin = @liquidswap)]
+    fun test_mint_burn_with_caps(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 
@@ -52,10 +52,10 @@ module liquidswap::liquid_tests {
         coin::destroy_burn_cap(burn_cap);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
+    #[test(admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_cannot_get_mint_cap_if_locked(core: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_cannot_get_mint_cap_if_locked(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 
@@ -67,10 +67,10 @@ module liquidswap::liquid_tests {
         move_to(&admin, MintCap { mint_cap });
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
+    #[test(admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_cannot_mint_if_locked(core: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_cannot_mint_if_locked(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 
@@ -81,10 +81,10 @@ module liquidswap::liquid_tests {
         liquid::mint_internal(&admin, signer::address_of(&admin), 100);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap, user = @0x42)]
+    #[test(admin = @liquidswap, user = @0x42)]
     #[expected_failure(abort_code = 100)]
-    fun test_cannot_mint_if_no_cap(core: signer, admin: signer, user: signer) {
-        genesis::setup(&core);
+    fun test_cannot_mint_if_no_cap(admin: signer, user: signer) {
+        genesis::setup();
 
         create_account(&admin);
         create_account(&user);
@@ -94,10 +94,10 @@ module liquidswap::liquid_tests {
         liquid::mint_internal(&user, signer::address_of(&user), 100);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap, user = @0x42)]
+    #[test(admin = @liquidswap, user = @0x42)]
     #[expected_failure(abort_code = 100)]
-    fun test_cannot_get_mint_cap_if_no_cap(core: signer, admin: signer, user: signer) {
-        genesis::setup(&core);
+    fun test_cannot_get_mint_cap_if_no_cap(admin: signer, user: signer) {
+        genesis::setup();
 
         create_account(&admin);
         create_account(&user);
@@ -108,9 +108,9 @@ module liquidswap::liquid_tests {
         move_to(&user, MintCap { mint_cap });
     }
 
-    #[test(core = @core_resources, admin = @liquidswap, user = @0x43)]
-    fun test_anyone_can_acquire_burn_cap(core: signer, admin: signer, user: signer) {
-        genesis::setup(&core);
+    #[test(admin = @liquidswap, user = @0x43)]
+    fun test_anyone_can_acquire_burn_cap(admin: signer, user: signer) {
+        genesis::setup();
 
         create_account(&admin);
         create_account(&user);
@@ -127,10 +127,10 @@ module liquidswap::liquid_tests {
         move_to(&admin, BurnCap { burn_cap });
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
+    #[test(admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_lock_minting_after_6_months_later(core: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_lock_minting_after_6_months_later(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 
@@ -141,10 +141,10 @@ module liquidswap::liquid_tests {
         liquid::mint_internal(&admin, signer::address_of(&admin), 100);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
+    #[test(admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_cannot_get_mint_cap_after_6_months_late(core: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_cannot_get_mint_cap_after_6_months_late(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 

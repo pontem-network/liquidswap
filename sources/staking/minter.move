@@ -113,8 +113,8 @@ module liquidswap::minter {
     }
 
     #[test_only]
-    fun initialize_test(core: &signer, staking_admin: &signer, admin: &signer, staker: &signer) {
-        genesis::setup(core);
+    fun initialize_test(staking_admin: &signer, admin: &signer, staker: &signer) {
+        genesis::setup();
 
         create_account(staking_admin);
         create_account(admin);
@@ -129,9 +129,9 @@ module liquidswap::minter {
         liquid::mint_internal(admin, staker_addr, to_mint_val);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_initialize(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires MinterConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_initialize(staking_admin: signer, admin: signer, staker: signer) acquires MinterConfig {
+        initialize_test(&staking_admin, &admin, &staker);
         let mint_cap = liquid::get_mint_cap(&admin);
 
         let weekly_emission = 2000000000;
@@ -141,29 +141,29 @@ module liquidswap::minter {
         assert!(get_active_period() == timestamp::now_seconds() / WEEK * WEEK, 1);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 100)]
-    fun test_initialize_fail_exists(core: signer, staking_admin: signer, admin: signer, staker: signer) {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    fun test_initialize_fail_exists(staking_admin: signer, admin: signer, staker: signer) {
+        initialize_test(&staking_admin, &admin, &staker);
         let mint_cap = liquid::get_mint_cap(&admin);
 
         initialize(&staking_admin, 1, mint_cap);
         initialize(&staking_admin, 1, mint_cap);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 101)]
-    fun test_initialize_fail_wrong_account(core: signer, staking_admin: signer, admin: signer, staker: signer) {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    fun test_initialize_fail_wrong_account(staking_admin: signer, admin: signer, staker: signer) {
+        initialize_test(&staking_admin, &admin, &staker);
         let mint_cap = liquid::get_mint_cap(&admin);
 
         initialize(&admin, 1, mint_cap);
     }
 
     // test initialize fails.
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_calculate_emission(core: signer, staking_admin: signer, admin: signer, staker: signer) {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_calculate_emission(staking_admin: signer, admin: signer, staker: signer) {
+        initialize_test(&staking_admin, &admin, &staker);
 
         let emission = calculate_emission(2000000000);
         assert!(emission == 1960000000, 0);
@@ -194,9 +194,9 @@ module liquidswap::minter {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_circulating_supply(core: signer, staking_admin: signer, admin: signer, staker: signer) {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_circulating_supply(staking_admin: signer, admin: signer, staker: signer) {
+        initialize_test(&staking_admin, &admin, &staker);
 
         let circulating_supply = circulating_supply();
         assert!(circulating_supply == 20000000000, 0);
@@ -217,14 +217,13 @@ module liquidswap::minter {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     fun test_mint_rewards(
-        core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires MinterConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+        initialize_test(&staking_admin, &admin, &staker);
         distribution::initialize(&staking_admin);
 
         let mint_cap = liquid::get_mint_cap(&admin);
@@ -255,15 +254,14 @@ module liquidswap::minter {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 102)]
     fun test_mint_rewards_fail(
-        core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires MinterConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+        initialize_test(&staking_admin, &admin, &staker);
         distribution::initialize(&staking_admin);
 
         let mint_cap = liquid::get_mint_cap(&admin);
@@ -274,9 +272,9 @@ module liquidswap::minter {
         mint_rewards();
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun end_to_end(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires MinterConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun end_to_end(staking_admin: signer, admin: signer, staker: signer) acquires MinterConfig {
+        initialize_test(&staking_admin, &admin, &staker);
         distribution::initialize(&staking_admin);
 
         let mint_cap = liquid::get_mint_cap(&admin);

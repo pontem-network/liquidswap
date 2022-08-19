@@ -46,9 +46,9 @@ module liquidswap::router_tests {
         };
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_initial_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_add_initial_liquidity(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -84,9 +84,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_liquidity_to_pool(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_add_liquidity_to_pool(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -121,9 +121,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_liquidity_to_pool_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_add_liquidity_to_pool_reverse(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -158,10 +158,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 202)]
-    fun test_add_liquidity_to_fail_with_insufficient_y_coins(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_add_liquidity_to_fail_with_insufficient_y_coins(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
         test_coins::register_coins(&coin_admin);
 
         create_account(&coin_admin);
@@ -186,10 +186,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 203)]
-    fun test_add_liquidity_to_fail_with_insufficient_x_coins(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_add_liquidity_to_fail_with_insufficient_x_coins(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -214,9 +214,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_remove_liquidity(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_remove_liquidity(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -250,10 +250,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 205)]
-    fun test_remove_liquidity_to_fail_if_less_than_minimum_x(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_x(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -277,10 +277,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 205)]
-    fun test_remove_liquidity_to_fail_if_less_than_minimum_y(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_y(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -304,9 +304,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_exact_coin_for_coin(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -330,9 +330,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_exact_coin_for_coin_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -357,9 +357,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_exact_coin_for_coin_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -384,9 +384,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_exact_coin_for_coin_reverse(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -408,10 +408,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, btc_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 205)]
-    fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -434,9 +434,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_exact_coin(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -462,9 +462,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_exact_coin_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -493,9 +493,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_exact_coin_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -524,10 +524,10 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code=206)]
-    fun test_swap_coin_for_exact_coin_router_check_fails(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_swap_coin_for_exact_coin_router_check_fails(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -555,9 +555,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_exact_coin_reverse(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -583,10 +583,10 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 205)]
-    fun test_fail_if_price_fell_behind_threshold(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_fail_if_price_fell_behind_threshold(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -609,10 +609,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 104)]
-    fun test_fail_if_swap_zero_coin(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_fail_if_swap_zero_coin(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -635,9 +635,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_returned_usdt_proportially_decrease_for_big_swaps(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_returned_usdt_proportially_decrease_for_big_swaps(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -666,9 +666,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_pool_exists(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_pool_exists(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -681,9 +681,9 @@ module liquidswap::router_tests {
         assert!(router::pool_exists_at<USDT, BTC, LP>(signer::address_of(&pool_owner)), 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_cumulative_prices_after_swaps(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_cumulative_prices_after_swaps(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -736,9 +736,9 @@ module liquidswap::router_tests {
         assert!(last_timestamp == 4, 8);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -767,9 +767,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&core);
+    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact_1(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
+        timestamp::set_time_has_started_for_testing(&aptos_framework);
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -797,9 +797,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&core);
+    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact_2(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
+        timestamp::set_time_has_started_for_testing(&aptos_framework);
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -827,9 +827,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_3(core: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&core);
+    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact_3(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
+        timestamp::set_time_has_started_for_testing(&aptos_framework);
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -857,9 +857,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact_vice_versa(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -887,9 +887,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_vice_versa_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_swap_exact_vice_versa_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -916,9 +916,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -950,9 +950,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_versa(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap_vice_versa(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -984,9 +984,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -999,9 +999,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 674816, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_in(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1014,9 +1014,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 41115034299, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_in_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1029,9 +1029,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 112134290, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_in_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1044,9 +1044,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 257, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1059,9 +1059,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 726737, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1074,9 +1074,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 152, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_3(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in_3(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1089,9 +1089,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 15875935305, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_4(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in_4(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1104,9 +1104,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 102, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_5(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_in_5(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1119,9 +1119,9 @@ module liquidswap::router_tests {
         assert!(amount_in == 5738519680397, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1134,9 +1134,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 67279199, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_out(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1149,9 +1149,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 5750085, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_out_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1164,9 +1164,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 25779211810, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_amount_out_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1179,9 +1179,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 259, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1194,9 +1194,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 31295205, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1209,9 +1209,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 5802699, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_3(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out_3(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1224,9 +1224,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 149, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_4(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out_4(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1239,9 +1239,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 0, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_5(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_get_amount_out_5(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1254,9 +1254,9 @@ module liquidswap::router_tests {
         assert!(amount_out == 5704071102, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_vera_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap_vice_vera_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1288,9 +1288,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_versa_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_curve_exact_swap_vice_versa_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1352,9 +1352,9 @@ module liquidswap::router_tests {
         router::convert_with_current_price(1, 1, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_curve_type_stables(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_curve_type_stables(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1368,9 +1368,9 @@ module liquidswap::router_tests {
         assert!(router::get_curve_type<USDT, USDC, LP>(pool_owner_address) == 1, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_curve_type_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_curve_type_uncorrelated(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1384,9 +1384,9 @@ module liquidswap::router_tests {
         assert!(router::get_curve_type<USDT, BTC, LP>(pool_owner_address) == 2, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_decimals_scales_stables(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_decimals_scales_stables(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1404,9 +1404,9 @@ module liquidswap::router_tests {
         assert!(y == 1000000, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_decimals_scales_uncorrelated(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_get_decimals_scales_uncorrelated(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1423,9 +1423,9 @@ module liquidswap::router_tests {
     }
 
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_coin_unchecked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1449,9 +1449,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_swap_coin_for_coin_unchecked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_swap_coin_for_coin_unchecked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1475,9 +1475,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_swap_coin_for_coin_unchecked_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_stable_swap_coin_for_coin_unchecked_reverse(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1501,9 +1501,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_reverse(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_coin_unchecked_reverse(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1525,9 +1525,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, btc_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_coin_unchecked_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1552,9 +1552,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_swap_coin_for_coin_unchecked_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1579,10 +1579,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 105)]
-    fun test_fail_if_price_fell_behind_threshold_unchecked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_fail_if_price_fell_behind_threshold_unchecked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1605,10 +1605,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1632,10 +1632,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1659,10 +1659,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1686,10 +1686,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdc_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code=105)]
-    fun test_swap_coin_for_coin_unchecked_fails(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_swap_coin_for_coin_unchecked_fails(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1714,9 +1714,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_calc_optimal_coin_values(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_calc_optimal_coin_values(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1739,10 +1739,10 @@ module liquidswap::router_tests {
         assert!(y_value == y_desired, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code=203)]
-    fun test_calc_optimal_coin_values_1(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_calc_optimal_coin_values_1(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1761,9 +1761,9 @@ module liquidswap::router_tests {
         let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 5000000000, 0);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_calc_optimal_coin_values_3(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_calc_optimal_coin_values_3(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -1787,10 +1787,10 @@ module liquidswap::router_tests {
         assert!(y_value == x_desired * y_res / x_res, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code=202)]
-    fun test_calc_optimal_coin_values_4(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_calc_optimal_coin_values_4(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);

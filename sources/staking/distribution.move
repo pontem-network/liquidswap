@@ -332,8 +332,8 @@ module liquidswap::distribution {
     struct MintCap has key { mint_cap: MintCapability<LAMM> }
 
     #[test_only]
-    fun initialize_test(core: &signer, staking_admin: &signer, admin: &signer, staker: &signer) {
-        genesis::setup(core);
+    fun initialize_test(staking_admin: &signer, admin: &signer, staker: &signer) {
+        genesis::setup();
 
         create_account(staking_admin);
         create_account(admin);
@@ -348,9 +348,9 @@ module liquidswap::distribution {
         liquid::mint_internal(admin, staker_addr, to_mint_val);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool)]
-    fun test_initialize(core: signer, staking_admin: signer) acquires DistConfig {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool)]
+    fun test_initialize(staking_admin: signer) acquires DistConfig {
+        genesis::setup();
 
         create_account(&staking_admin);
 
@@ -371,10 +371,10 @@ module liquidswap::distribution {
         assert!(table_with_length::length(&config.ve_supply) == 0, 8);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool)]
+    #[test(staking_admin = @staking_pool)]
     #[expected_failure(abort_code = 100)]
-    fun test_initialize_fail_if_config_exists(core: signer, staking_admin: signer) {
-        genesis::setup(&core);
+    fun test_initialize_fail_if_config_exists(staking_admin: signer) {
+        genesis::setup();
 
         create_account(&staking_admin);
 
@@ -382,19 +382,19 @@ module liquidswap::distribution {
         initialize(&staking_admin);
     }
 
-    #[test(core = @core_resources, staker = @test_staker)]
+    #[test(staker = @test_staker)]
     #[expected_failure(abort_code = 101)]
-    fun test_initialize_fail_if_wrong_initializer(core: signer, staker: signer) {
-        genesis::setup(&core);
+    fun test_initialize_fail_if_wrong_initializer(staker: signer) {
+        genesis::setup();
 
         create_account(&staker);
 
         initialize(&staker);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_checkpoint(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint(staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&staking_admin, &admin, &staker);
 
         initialize(&staking_admin);
 
@@ -413,9 +413,9 @@ module liquidswap::distribution {
         move_to(&admin, MintCap { mint_cap });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_checkpoint_token(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_checkpoint_token(staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&staking_admin, &admin, &staker);
 
         initialize(&staking_admin);
 
@@ -454,14 +454,13 @@ module liquidswap::distribution {
         move_to(&admin, MintCap { mint_cap });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     fun test_checkpoint_total_supply_internal(
-        core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires DistConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+        initialize_test(&staking_admin, &admin, &staker);
 
         initialize(&staking_admin);
         let config = borrow_global_mut<DistConfig>(@staking_pool);
@@ -486,9 +485,9 @@ module liquidswap::distribution {
         coin::deposit(signer::address_of(&staker), staking_rewards);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_claim(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
-        initialize_test(&core, &staking_admin, &admin, &staker);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_claim(staking_admin: signer, admin: signer, staker: signer) acquires DistConfig {
+        initialize_test(&staking_admin, &admin, &staker);
 
         initialize(&staking_admin);
 

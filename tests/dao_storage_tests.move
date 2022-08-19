@@ -15,9 +15,9 @@ module liquidswap::dao_storage_tests {
     use test_pool_owner::test_lp::LP;
     use test_helpers::test_account::create_account;
 
-    #[test(core = @core_resources, pool_owner = @test_pool_owner)]
-    fun test_register(core: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(pool_owner = @test_pool_owner)]
+    fun test_register(pool_owner: signer) {
+        genesis::setup();
 
         create_account(&pool_owner);
 
@@ -28,9 +28,9 @@ module liquidswap::dao_storage_tests {
         assert!(y_val == 0, 1);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_deposit(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    fun test_deposit(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -52,10 +52,10 @@ module liquidswap::dao_storage_tests {
         assert!(y_val == 1000000, 3);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code = 101)]
-    fun test_deposit_fail_if_not_registered(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 401)]
+    fun test_deposit_fail_if_not_registered(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -69,9 +69,9 @@ module liquidswap::dao_storage_tests {
         dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
-    fun test_withdraw(core: signer, coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
+    fun test_withdraw(coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -99,10 +99,10 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
-    #[expected_failure(abort_code = 65541)]
-    fun test_withdraw_fail_if_more_deposited(core: signer, coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
+    #[expected_failure(abort_code = 65542)]
+    fun test_withdraw_fail_if_more_deposited(coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -124,10 +124,10 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0x09)]
-    #[expected_failure(abort_code = 102)]
-    fun test_withdraw_fail_if_not_dao_admin(core: signer, coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0x09)]
+    #[expected_failure(abort_code = 402)]
+    fun test_withdraw_fail_if_not_dao_admin(coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -149,14 +149,13 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
     fun test_split_third_of_fees_into_dao_storage_account(
-        core: signer,
         coin_admin: signer,
         pool_owner: signer,
         dao_admin_acc: signer,
     ) {
-        genesis::setup(&core);
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);

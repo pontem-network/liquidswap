@@ -506,9 +506,9 @@ module liquidswap::ve {
         assert!(new_bias == 25, 1);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
-    fun test_initialize(core: signer, staking_admin: signer, admin: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap)]
+    fun test_initialize(staking_admin: signer, admin: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -533,10 +533,10 @@ module liquidswap::ve {
         assert!(get_current_epoch() == 0, 7);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap)]
     #[expected_failure(abort_code = 100)]
-    fun test_initialize_fail(core: signer, staking_admin: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_initialize_fail(staking_admin: signer, admin: signer) {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -547,10 +547,10 @@ module liquidswap::ve {
         initialize(&staking_admin);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap)]
+    #[test(admin = @liquidswap)]
     #[expected_failure(abort_code = 101)]
-    fun test_initialize_wrong_account(core: signer, admin: signer) {
-        genesis::setup(&core);
+    fun test_initialize_wrong_account(admin: signer) {
+        genesis::setup();
 
         create_account(&admin);
 
@@ -559,9 +559,9 @@ module liquidswap::ve {
         initialize(&admin);
     }
 
-    #[test(core = @core_resources, admin = @liquidswap, staker = @test_staker)]
-    public fun test_nft_getters(core: signer, admin: signer, staker: signer) {
-        genesis::setup(&core);
+    #[test(admin = @liquidswap, staker = @test_staker)]
+    public fun test_nft_getters(admin: signer, staker: signer) {
+        genesis::setup();
 
         create_account(&admin);
         create_account(&staker);
@@ -637,9 +637,9 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_stake(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -710,10 +710,10 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 102)]
-    fun test_stake_fails(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    fun test_stake_fails(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -739,9 +739,9 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_update(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -868,9 +868,9 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_supply(core: signer, staking_admin: signer, admin: signer, staker: signer)  acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_supply(staking_admin: signer, admin: signer, staker: signer)  acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -926,9 +926,9 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_update_stake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_update_stake(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -1013,9 +1013,9 @@ module liquidswap::ve {
         });
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun test_unstake(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun test_unstake(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -1057,15 +1057,14 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 104)]
     fun test_unstake_fail_early(
-        core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires StakingPool {
-        genesis::setup(&core);
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -1088,15 +1087,14 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
     #[expected_failure(abort_code = 105)]
     fun test_unstake_fail_has_rewards(
-        core: signer,
         staking_admin: signer,
         admin: signer,
         staker: signer
     ) acquires StakingPool {
-        genesis::setup(&core);
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);
@@ -1123,9 +1121,9 @@ module liquidswap::ve {
         coin::deposit(signer::address_of(&staker), unstaked);
     }
 
-    #[test(core = @core_resources, staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
-    fun end_to_end(core: signer, staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
-        genesis::setup(&core);
+    #[test(staking_admin = @staking_pool, admin = @liquidswap, staker = @test_staker)]
+    fun end_to_end(staking_admin: signer, admin: signer, staker: signer) acquires StakingPool {
+        genesis::setup();
 
         create_account(&staking_admin);
         create_account(&admin);

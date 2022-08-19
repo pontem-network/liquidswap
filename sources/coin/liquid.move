@@ -36,13 +36,15 @@ module liquidswap::liquid {
     /// Initialize LAMM coin.
     /// Use `@liquidswap` admin account to do it.
     public fun initialize(admin: &signer) {
-        let (mint_cap, burn_cap) = coin::initialize<LAMM>(
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<LAMM>(
             admin,
             string::utf8(b"Liquid"),
             string::utf8(b"LAMM"),
             6,
             true
         );
+
+        coin::destroy_freeze_cap(freeze_cap);
 
         move_to(admin, Capabilities {
             mint_cap,

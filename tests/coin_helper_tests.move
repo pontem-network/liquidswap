@@ -9,9 +9,9 @@ module liquidswap::coin_helper_tests {
     use test_helpers::test_account::create_account;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin)]
-    fun test_end_to_end(core: signer, coin_admin: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin)]
+    fun test_end_to_end(coin_admin: signer) {
+        genesis::setup();
         create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);
@@ -42,15 +42,15 @@ module liquidswap::coin_helper_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 101)]
+    #[expected_failure(abort_code = 3001)]
     fun test_assert_is_coin_failure() {
         coin_helper::assert_is_coin<USDT>();
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin)]
-    #[expected_failure(abort_code = 100)]
-    fun test_cant_be_same_coin_failure(core: signer, coin_admin: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin)]
+    #[expected_failure(abort_code = 3000)]
+    fun test_cant_be_same_coin_failure(coin_admin: signer) {
+        genesis::setup();
         create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);
@@ -59,9 +59,9 @@ module liquidswap::coin_helper_tests {
         let _ = coin_helper::is_sorted<USDT, USDT>();
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin)]
-    fun generate_lp_name(core: signer, coin_admin: signer) {
-        genesis::setup(&core);
+    #[test(coin_admin = @test_coin_admin)]
+    fun generate_lp_name(coin_admin: signer) {
+        genesis::setup();
         create_account(&coin_admin);
 
         test_coins::register_coins(&coin_admin);

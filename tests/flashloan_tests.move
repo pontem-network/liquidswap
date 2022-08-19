@@ -312,10 +312,10 @@ module liquidswap::flashloan_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 109)]
-    fun test_fail_if_get_reserves_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_fail_if_get_reserves_when_pool_is_locked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);
@@ -353,10 +353,10 @@ module liquidswap::flashloan_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(core = @core_resources, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
     #[expected_failure(abort_code = 109)]
-    fun test_fail_if_get_cumulative_prices_when_pool_is_locked(core: signer, coin_admin: signer, pool_owner: signer) {
-        genesis::setup(&core);
+    fun test_fail_if_get_cumulative_prices_when_pool_is_locked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
 
         create_account(&coin_admin);
         create_account(&pool_owner);

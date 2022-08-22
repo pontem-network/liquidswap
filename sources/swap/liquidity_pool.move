@@ -441,13 +441,14 @@ module liquidswap::liquidity_pool {
 
         assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
 
-        let (x_reserve_size, y_reserve_size) = get_reserves_size_internal<X, Y, LP>(pool_addr);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
+
+        let x_reserve_size = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size = coin::value(&pool.coin_y_reserve);
 
         // Reserve sizes before loan out
         x_reserve_size = x_reserve_size + x_loan;
         y_reserve_size = y_reserve_size + y_loan;
-
-        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
 
         // Deposit new coins to liquidity pool.
         coin::merge(&mut pool.coin_x_reserve, x_in);
@@ -600,17 +601,13 @@ module liquidswap::liquidity_pool {
     /// Get reserves of a pool.
     /// * `pool_addr` - pool owner address.
     /// Returns both (X, Y) reserves.
-    public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
+    public fun get_reserves_size<X, Y, LP>(pool_addr: address): (u64, u64)
+    acquires LiquidityPool {
         assert_no_emergency();
         assert_pool_locked<X, Y, LP>(pool_addr);
 
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
-
-        get_reserves_size_internal<X, Y, LP>(pool_addr)
-    }
-
-    fun get_reserves_size_internal<X, Y, LP>(pool_addr: address): (u64, u64) acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let x_reserve = coin::value(&liquidity_pool.coin_x_reserve);

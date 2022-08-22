@@ -1,101 +1,68 @@
 module liquidswap::gauge {
-    use std::signer;
-    use std::string::String;
-
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
-    use aptos_std::table::{Self, Table};
+    use aptos_std::iterable_table::{Self, IterableTable};
 
     use liquidswap::liquid::LAMM;
-    use liquidswap::liquidity_pool;
+    use liquidswap::ve::{Self, VE_NFT};
 
     friend liquidswap::voter;
 
     const WEEK: u64 = 604800;
 
-    struct PoolId has copy, drop, store {
-        pool_address: address,
-        x_symbol: String,
-        y_symbol: String,
-        lp_symbol: String,
-    }
-
     struct Gauge has store {
-        rewards: u64,
+        rewards: Coin<LAMM>,
         reward_rate: u64,
         period_finish: u64,
+        total_voted: u64,
+        voted_per_token: IterableTable<u64, u64>  // table<token_id, vote>
     }
 
-    struct GaugeConfig has key {
-        rewards: Coin<LAMM>,
-        gauges: Table<PoolId, Gauge>
+    public(friend) fun vote(gauge: &mut Gauge, ve_nft: &VE_NFT, vote: u64) {
+        let ve_token_id = ve::get_nft_id(ve_nft);
+        let votes = iterable_table::borrow_mut_with_default(&mut gauge.voted_per_token, ve_token_id, 0);
+        *votes = vote;
+
+        gauge.total_voted = gauge.total_voted + vote;
     }
 
-    public fun initialize(account: &signer) {
-        assert!(!exists<GaugeConfig>(@gov_admin), 1);
-        assert!(signer::address_of(account) == @gov_admin, 2);
-
-        move_to(account, GaugeConfig {
-            rewards: coin::zero(),
-            gauges: table::new<PoolId, Gauge>()
-        });
-    }
-
-    public(friend) fun add_rewards(pool_id: PoolId, deposit: Coin<LAMM>) acquires GaugeConfig {
-        let config = borrow_global_mut<GaugeConfig>(@gov_admin);
-
-        let deposit_value = coin::value(&deposit);
-
-        coin::merge(&mut config.rewards, deposit);
-
-        if(!table::contains(&config.gauges, pool_id))
-            table::add(&mut config.gauges, pool_id, zero_gauge());
-        let gauge = table::borrow_mut(&mut config.gauges, pool_id);
-
+    public(friend) fun add_rewards(gauge: &mut Gauge, coin_in: Coin<LAMM>) {
+        let coin_in_value = coin::value(&coin_in);
         let now = timestamp::now_seconds();
         if (now >= gauge.period_finish) {
-            gauge.reward_rate = deposit_value / WEEK;
+            gauge.reward_rate = coin_in_value / WEEK;
         } else {
             let remaining = gauge.period_finish - now;
             let left = remaining * gauge.reward_rate;
-            assert!(deposit_value > left, 2);
-            gauge.reward_rate = (deposit_value + left) / WEEK;
+            assert!(coin_in_value > left, 2);
+            gauge.reward_rate = (coin_in_value + left) / WEEK;
         };
 
-        gauge.rewards = gauge.rewards + deposit_value;
-        assert!(gauge.reward_rate <= gauge.rewards / WEEK, 3);
+        coin::merge(&mut gauge.rewards, coin_in);
+
+        assert!(gauge.reward_rate <= coin::value(&gauge.rewards) / WEEK, 3);
         gauge.period_finish = now + WEEK;
     }
 
-    public(friend) fun withdraw_rewards(pool_id: PoolId, token_votes: u64, total_pool_votes: u64): Coin<LAMM> acquires GaugeConfig {
-        let config = borrow_global_mut<GaugeConfig>(@gov_admin);
-        assert!(table::contains(&config.gauges, pool_id), 1);
-        let gauge = table::borrow_mut(&mut config.gauges, pool_id);
+    public(friend) fun withdraw_rewards(gauge: &mut Gauge, ve_nft: &VE_NFT): Coin<LAMM> {
+        let ve_token_id = ve::get_nft_id(ve_nft);
+        let token_votes = iterable_table::borrow(&gauge.voted_per_token, ve_token_id);
 
         let now = timestamp::now_seconds();
         let time = if (now >= gauge.period_finish) { WEEK } else { now + WEEK - gauge.period_finish };
-        let amount = time * gauge.reward_rate * token_votes / total_pool_votes;
-        assert!(amount <= gauge.rewards, 1);
-        gauge.rewards = gauge.rewards - amount;
+        let amount = time * gauge.reward_rate * *token_votes / gauge.total_voted;
+        assert!(amount <= coin::value(&gauge.rewards), 1);
 
-        coin::extract(&mut config.rewards, amount)
+        coin::extract(&mut gauge.rewards, amount)
     }
 
-    fun zero_gauge(): Gauge {
+    public(friend) fun zero_gauge(): Gauge {
         Gauge {
-            rewards: 0,
+            rewards: coin::zero(),
             reward_rate: 0,
             period_finish: 0,
-        }
-    }
-
-    public fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
-        assert!(liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr), 1);
-        PoolId {
-            pool_address: pool_addr,
-            x_symbol: coin::symbol<X>(),
-            y_symbol: coin::symbol<Y>(),
-            lp_symbol: coin::symbol<LP>(),
+            total_voted: 0,
+            voted_per_token: iterable_table::new<u64, u64>()
         }
     }
 }

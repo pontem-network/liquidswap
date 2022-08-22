@@ -1,32 +1,41 @@
 module liquidswap::voter {
     use std::option;
+    use std::string::String;
 
-    use aptos_framework::coin::Coin;
+    use aptos_framework::coin::{Self, Coin};
     use aptos_std::iterable_table::{Self, IterableTable};
     use aptos_std::table::{Self, Table};
 
-    use liquidswap::gauge::PoolId;
+    use liquidswap::bribe::Bribe;
+    use liquidswap::gauge::{Self, Gauge};
     use liquidswap::ve::{Self, VE_NFT};
     use liquidswap::liquid::LAMM;
-    use liquidswap::gauge;
+    use liquidswap::liquidity_pool;
 
-    struct Votes has key {
+    struct PoolId has copy, drop, store {
+        pool_address: address,
+        x_symbol: String,
+        y_symbol: String,
+        lp_symbol: String,
+    }
+
+    struct Voter has key {
+        bribes: Table<PoolId, Bribe>,
+        gauges: Table<PoolId, Gauge>,
         total_vote: u64,
-        // pool_id -> total voted
-        total_voted_by_pool: Table<PoolId, u64>,
-        // pool_id -> table<token_id, stake>
-        items: IterableTable<PoolId, IterableTable<u64, u64>>,
     }
 
     public fun initialize(gov_admin: &signer) {
-        move_to(gov_admin, Votes {
+        move_to(gov_admin, Voter {
+            bribes: table::new<PoolId, Bribe>(),
+            gauges: table::new<PoolId, Gauge>(),
             total_vote: 0,
-            total_voted_by_pool: table::new(),
-            items: iterable_table::new(),
         });
     }
 
-    public fun vote(ve_nft: &VE_NFT, weights: IterableTable<PoolId, u64>) acquires Votes {
+    public fun vote(ve_nft: &VE_NFT, weights: IterableTable<PoolId, u64>) acquires Voter {
+        let voter = borrow_global_mut<Voter>(@gov_admin);
+
         let total_weight = 0;
         let key = iterable_table::head_key(&weights);
         while (option::is_some(&key)) {
@@ -42,44 +51,42 @@ module liquidswap::voter {
             let (weight, _, next) =
                 iterable_table::borrow_iter(&weights, *option::borrow(&key));
             let pool_id = *option::borrow(&key);
-            let vote_stake = *weight * ve_voting_power / total_weight;
-            vote_for_pool_internal(ve_nft, pool_id, vote_stake);
+            let votes = *weight * ve_voting_power / total_weight;
+
+            if(!table::contains(&voter.gauges, pool_id))
+                table::add(&mut voter.gauges, pool_id, gauge::zero_gauge());
+            let gauge = table::borrow_mut(&mut voter.gauges, pool_id);
+            gauge::vote(gauge, ve_nft, votes);
+
             key = next;
         };
         iterable_table::destroy_empty(weights);
     }
 
-    fun vote_for_pool_internal(ve_nft: &VE_NFT, pool_id: PoolId, vote_stake: u64) acquires Votes {
-        let votes = borrow_global_mut<Votes>(@gov_admin);
-        let ve_token_id = ve::get_nft_id(ve_nft);
+    public fun deposit(pool_id: PoolId, coin_in: Coin<LAMM>) acquires Voter {
+        let voter = borrow_global_mut<Voter>(@gov_admin);
 
-        if (!iterable_table::contains(&votes.items, pool_id)) {
-            iterable_table::add(&mut votes.items, pool_id, iterable_table::new());
-        };
-        let pool_votes = iterable_table::borrow_mut(&mut votes.items, pool_id);
-        let pool_nft_vote = iterable_table::borrow_mut_with_default(pool_votes, ve_token_id, 0);
-        *pool_nft_vote = vote_stake;
-
-        let pool_total_vote = table::borrow_mut_with_default(
-            &mut votes.total_voted_by_pool,
-            pool_id,
-            0
-        );
-        *pool_total_vote = *pool_total_vote + vote_stake;
+        if(!table::contains(&voter.gauges, pool_id))
+            table::add(&mut voter.gauges, pool_id, gauge::zero_gauge());
+        let gauge = table::borrow_mut(&mut voter.gauges, pool_id);
+        gauge::add_rewards(gauge, coin_in);
     }
 
-    public fun deposit(pool_id: PoolId, amount: Coin<LAMM>) {
-        gauge::add_rewards(pool_id, amount);
+    public fun claim(pool_id: PoolId, ve_nft: &VE_NFT): Coin<LAMM> acquires Voter {
+        let voter = borrow_global_mut<Voter>(@gov_admin);
+
+        assert!(table::contains(&voter.gauges, pool_id), 1);
+        let gauge = table::borrow_mut(&mut voter.gauges, pool_id);
+        gauge::withdraw_rewards(gauge, ve_nft)
     }
 
-    public fun claim(ve_nft: &VE_NFT, pool_id: PoolId): Coin<LAMM> acquires Votes {
-        let votes = borrow_global_mut<Votes>(@gov_admin);
-        assert!(table::contains(&votes.total_voted_by_pool, pool_id), 1);
-        let total_pool_votes = table::borrow(&votes.total_voted_by_pool, pool_id);
-
-        let ve_token_id = ve::get_nft_id(ve_nft);
-        let item = iterable_table::borrow(&votes.items, pool_id);
-        let token_votes = iterable_table::borrow(item, ve_token_id);
-        gauge::withdraw_rewards(pool_id, *token_votes, *total_pool_votes)
+     public fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
+        assert!(liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr), 1);
+        PoolId {
+            pool_address: pool_addr,
+            x_symbol: coin::symbol<X>(),
+            y_symbol: coin::symbol<Y>(),
+            lp_symbol: coin::symbol<LP>(),
+        }
     }
 }

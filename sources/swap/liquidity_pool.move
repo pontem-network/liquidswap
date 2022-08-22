@@ -593,6 +593,7 @@ module liquidswap::liquidity_pool {
     /// Check if pool is locked.
     /// * `pool_addr` - pool owner address.
     public fun is_pool_locked<X, Y, LP>(pool_addr: address): bool acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         pool.locked
@@ -605,9 +606,6 @@ module liquidswap::liquidity_pool {
     acquires LiquidityPool {
         assert_no_emergency();
         assert_pool_locked<X, Y, LP>(pool_addr);
-
-        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         let x_reserve = coin::value(&liquidity_pool.coin_x_reserve);
@@ -624,10 +622,6 @@ module liquidswap::liquidity_pool {
     public fun get_cumulative_prices<X, Y, LP>(pool_addr: address): (u128, u128, u64)
     acquires LiquidityPool {
         assert_no_emergency();
-
-        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
-
         assert_pool_locked<X, Y, LP>(pool_addr);
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);

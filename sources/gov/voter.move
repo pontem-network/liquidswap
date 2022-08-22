@@ -6,7 +6,6 @@ module liquidswap::voter {
     use aptos_std::iterable_table::{Self, IterableTable};
     use aptos_std::table::{Self, Table};
 
-    use liquidswap::bribe::Bribe;
     use liquidswap::gauge::{Self, Gauge};
     use liquidswap::ve::{Self, VE_NFT};
     use liquidswap::liquid::LAMM;
@@ -20,14 +19,12 @@ module liquidswap::voter {
     }
 
     struct Voter has key {
-        bribes: Table<PoolId, Bribe>,
         gauges: Table<PoolId, Gauge>,
         total_vote: u64,
     }
 
     public fun initialize(gov_admin: &signer) {
         move_to(gov_admin, Voter {
-            bribes: table::new<PoolId, Bribe>(),
             gauges: table::new<PoolId, Gauge>(),
             total_vote: 0,
         });

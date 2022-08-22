@@ -3,6 +3,7 @@ module liquidswap::gauge {
     use aptos_framework::timestamp;
     use aptos_std::iterable_table::{Self, IterableTable};
 
+    use liquidswap::bribe::{Self, Bribe};
     use liquidswap::liquid::LAMM;
     use liquidswap::ve::{Self, VE_NFT};
 
@@ -11,6 +12,7 @@ module liquidswap::gauge {
     const WEEK: u64 = 604800;
 
     struct Gauge has store {
+        bribe: Bribe,
         rewards: Coin<LAMM>,
         reward_rate: u64,
         period_finish: u64,
@@ -58,6 +60,7 @@ module liquidswap::gauge {
 
     public(friend) fun zero_gauge(): Gauge {
         Gauge {
+            bribe: bribe::zero_bribe(),
             rewards: coin::zero(),
             reward_rate: 0,
             period_finish: 0,

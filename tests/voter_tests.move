@@ -23,6 +23,8 @@ module liquidswap::voter_tests {
         create_account(&pool_owner);
         create_account(&gov_admin);
 
+        voter::initialize(&gov_admin);
+
         test_coins::register_coins(&coin_admin);
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -31,6 +33,5 @@ module liquidswap::voter_tests {
             utf8(b"LP-BTC-USDT"),
             2
         );
-        voter::initialize(&gov_admin);
     }
 }

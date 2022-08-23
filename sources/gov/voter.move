@@ -1,21 +1,24 @@
 module liquidswap::voter {
     use std::option;
-    use std::string::String;
+    use std::signer;
 
-    use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::coin::Coin;
     use aptos_std::iterable_table::{Self, IterableTable};
     use aptos_std::table::{Self, Table};
+    use aptos_std::type_info;
 
     use liquidswap::gauge::{Self, Gauge};
     use liquidswap::ve::{Self, VE_NFT};
     use liquidswap::liquid::LAMM;
     use liquidswap::liquidity_pool;
 
+    const ERR_WRONG_INITIALIZER: u64 = 100;
+
     struct PoolId has copy, drop, store {
         pool_address: address,
-        x_symbol: String,
-        y_symbol: String,
-        lp_symbol: String,
+        x_address: address,
+        y_address: address,
+        lp_address: address,
     }
 
     struct Voter has key {
@@ -24,10 +27,18 @@ module liquidswap::voter {
     }
 
     public fun initialize(gov_admin: &signer) {
+        assert!(signer::address_of(gov_admin) == @gov_admin, ERR_WRONG_INITIALIZER);
         move_to(gov_admin, Voter {
             gauges: table::new<PoolId, Gauge>(),
             total_vote: 0,
         });
+    }
+
+    public fun register<X, Y, LP>(owner: &signer) acquires Voter {
+        let voter = borrow_global_mut<Voter>(@gov_admin);
+        let owner_addr = signer::address_of(owner);
+        let pool_id = get_liquidity_pool_id<X, Y, LP>(owner_addr);
+        table::add(&mut voter.gauges, pool_id, gauge::zero_gauge());
     }
 
     public fun vote(ve_nft: &VE_NFT, weights: IterableTable<PoolId, u64>) acquires Voter {
@@ -77,13 +88,18 @@ module liquidswap::voter {
         gauge::withdraw_rewards(gauge, ve_nft)
     }
 
-     public fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
-        assert!(liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr), 1);
-        PoolId {
-            pool_address: pool_addr,
-            x_symbol: coin::symbol<X>(),
-            y_symbol: coin::symbol<Y>(),
-            lp_symbol: coin::symbol<LP>(),
-        }
+     fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
+         assert!(liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr), 1);
+         PoolId {
+             pool_address: pool_addr,
+             x_address: coin_address<X>(),
+             y_address: coin_address<Y>(),
+             lp_address: coin_address<LP>(),
+         }
+    }
+
+    fun coin_address<CoinType>(): address {
+        let type_info = type_info::type_of<CoinType>();
+        type_info::account_address(&type_info)
     }
 }

@@ -5,7 +5,7 @@ module liquidswap::voter {
     use aptos_framework::coin::Coin;
     use aptos_std::iterable_table::{Self, IterableTable};
     use aptos_std::table::{Self, Table};
-    use aptos_std::type_info;
+    use aptos_std::type_info::{Self, TypeInfo};
 
     use liquidswap::gauge::{Self, Gauge};
     use liquidswap::ve::{Self, VE_NFT};
@@ -14,11 +14,12 @@ module liquidswap::voter {
 
     const ERR_WRONG_INITIALIZER: u64 = 100;
 
+    // TODO: can be replaced with hash?
     struct PoolId has copy, drop, store {
         pool_address: address,
-        x_address: address,
-        y_address: address,
-        lp_address: address,
+        x_type_info: TypeInfo,
+        y_type_info: TypeInfo,
+        lp_type_info: TypeInfo,
     }
 
     struct Voter has key {
@@ -34,13 +35,16 @@ module liquidswap::voter {
         });
     }
 
-    public fun register<X, Y, LP>(owner: &signer) acquires Voter {
+    public fun register<X, Y, LP>(pool_owner: address) acquires Voter {
         let voter = borrow_global_mut<Voter>(@gov_admin);
-        let owner_addr = signer::address_of(owner);
-        let pool_id = get_liquidity_pool_id<X, Y, LP>(owner_addr);
+
+        // TODO: check pool doesn't exist already.
+
+        let pool_id = get_liquidity_pool_id<X, Y, LP>(pool_owner);
         table::add(&mut voter.gauges, pool_id, gauge::zero_gauge());
     }
 
+    // TODO: replace IterableTable with two vectors imho.
     public fun vote(ve_nft: &VE_NFT, weights: IterableTable<PoolId, u64>) acquires Voter {
         let voter = borrow_global_mut<Voter>(@gov_admin);
 
@@ -76,30 +80,27 @@ module liquidswap::voter {
 
         if(!table::contains(&voter.gauges, pool_id))
             table::add(&mut voter.gauges, pool_id, gauge::zero_gauge());
+
         let gauge = table::borrow_mut(&mut voter.gauges, pool_id);
         gauge::add_rewards(gauge, coin_in);
     }
 
-    public fun claim(pool_id: PoolId, ve_nft: &VE_NFT): Coin<LAMM> acquires Voter {
+    public fun claim(pool_id: &PoolId, ve_nft: &VE_NFT): Coin<LAMM> acquires Voter {
         let voter = borrow_global_mut<Voter>(@gov_admin);
 
-        assert!(table::contains(&voter.gauges, pool_id), 1);
-        let gauge = table::borrow_mut(&mut voter.gauges, pool_id);
+        assert!(table::contains(&voter.gauges, *pool_id), 1);
+
+        let gauge = table::borrow_mut(&mut voter.gauges, *pool_id);
         gauge::withdraw_rewards(gauge, ve_nft)
     }
 
-     fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
+     public fun get_liquidity_pool_id<X, Y, LP>(pool_addr: address): PoolId {
          assert!(liquidity_pool::pool_exists_at<X, Y, LP>(pool_addr), 1);
          PoolId {
              pool_address: pool_addr,
-             x_address: coin_address<X>(),
-             y_address: coin_address<Y>(),
-             lp_address: coin_address<LP>(),
+             x_type_info: type_info::type_of<X>(),
+             y_type_info: type_info::type_of<Y>(),
+             lp_type_info: type_info::type_of<LP>(),
          }
-    }
-
-    fun coin_address<CoinType>(): address {
-        let type_info = type_info::type_of<CoinType>();
-        type_info::account_address(&type_info)
     }
 }

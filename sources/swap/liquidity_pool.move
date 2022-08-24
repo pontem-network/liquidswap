@@ -15,9 +15,11 @@ module liquidswap::liquidity_pool {
     use liquidswap::coin_helper;
     use liquidswap::coin_helper::assert_is_coin;
     use liquidswap::dao_storage;
+    use liquidswap::gauge;
     use liquidswap::math;
     use liquidswap::stable_curve;
     use liquidswap::emergency::assert_no_emergency;
+    use liquidswap::bribe;
 
     // Error codes.
 
@@ -158,6 +160,8 @@ module liquidswap::liquidity_pool {
         move_to(owner, pool);
 
         dao_storage::register<X, Y, LP>(owner);
+        gauge::register<X, Y, LP>(owner);
+        bribe::register<X, Y, LP>(owner);
 
         let events_store = EventsStore<X, Y, LP> {
             pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),

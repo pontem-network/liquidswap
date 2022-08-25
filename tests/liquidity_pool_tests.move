@@ -5,7 +5,6 @@ module liquidswap::liquidity_pool_tests {
     use std::option;
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use aptos_framework::genesis;
     use aptos_framework::timestamp;
 
@@ -325,7 +324,7 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_price == 0, 5);
         assert!(ts == 1660338836, 6);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
@@ -356,7 +355,7 @@ module liquidswap::liquidity_pool_tests {
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_liq, usdt_liq);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
@@ -387,7 +386,7 @@ module liquidswap::liquidity_pool_tests {
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_liq, usdt_liq);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
@@ -425,7 +424,7 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == btc_liq_val, 2);
         assert!(y_res == usdt_liq_val, 3);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
@@ -458,7 +457,7 @@ module liquidswap::liquidity_pool_tests {
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_liq, usdt_liq);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins)
     }
 
@@ -504,7 +503,7 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_price == 0, 5);
         assert!(ts == initial_ts, 6);
 
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         timestamp::fast_forward_seconds(360);
@@ -562,7 +561,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins_zero = liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, coin::zero(), coin::zero());
 
-        coins::register_internal<LP>(&coin_admin);
+        coin::register<LP>(&coin_admin);
         coin::deposit(signer::address_of(&coin_admin), lp_coins);
         coin::deposit(signer::address_of(&coin_admin), lp_coins_zero);
     }
@@ -778,7 +777,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -822,7 +821,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         emergency::pause(&emergency_acc);
@@ -862,7 +861,7 @@ module liquidswap::liquidity_pool_tests {
 
          let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);
@@ -902,7 +901,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         timestamp::fast_forward_seconds(20);
@@ -974,7 +973,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -1014,7 +1013,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (btc_coins, usdt_coins) =
@@ -1051,7 +1050,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -1095,7 +1094,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -1134,7 +1133,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -1181,7 +1180,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
@@ -1228,7 +1227,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         // 1 minus fee for 1
@@ -1265,7 +1264,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
@@ -1307,7 +1306,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 7078017525);
@@ -1349,7 +1348,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 152);
@@ -1391,7 +1390,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 6748155);
@@ -1433,7 +1432,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
@@ -1476,7 +1475,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
@@ -1519,7 +1518,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
@@ -1561,7 +1560,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 999901);
@@ -1603,7 +1602,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
@@ -1650,7 +1649,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
@@ -1696,7 +1695,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 125804314);
@@ -1735,7 +1734,7 @@ module liquidswap::liquidity_pool_tests {
 
         let lp_coins =
             liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);

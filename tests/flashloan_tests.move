@@ -4,7 +4,6 @@ module liquidswap::flashloan_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
@@ -36,7 +35,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -78,7 +77,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -115,7 +114,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -150,7 +149,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -195,7 +194,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -244,7 +243,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -289,7 +288,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -336,7 +335,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -377,7 +376,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =

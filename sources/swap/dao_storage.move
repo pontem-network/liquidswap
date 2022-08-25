@@ -4,6 +4,7 @@ module liquidswap::dao_storage {
     use aptos_std::event;
 
     use aptos_framework::coin::{Self, Coin};
+    use aptos_framework::account;
 
     friend liquidswap::liquidity_pool;
 
@@ -31,9 +32,9 @@ module liquidswap::dao_storage {
         move_to(owner, storage);
 
         let events_store = EventsStore<X, Y, LP>{
-            storage_registered_handle: event::new_event_handle(owner),
-            coin_deposited_handle: event::new_event_handle(owner),
-            coin_withdrawn_handle: event::new_event_handle(owner)
+            storage_registered_handle: account::new_event_handle(owner),
+            coin_deposited_handle: account::new_event_handle(owner),
+            coin_withdrawn_handle: account::new_event_handle(owner)
         };
         event::emit_event(
             &mut events_store.storage_registered_handle,

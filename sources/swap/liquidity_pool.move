@@ -15,11 +15,11 @@ module liquidswap::liquidity_pool {
     use liquidswap::coin_helper;
     use liquidswap::coin_helper::assert_is_coin;
     use liquidswap::dao_storage;
-    use liquidswap::gauge;
     use liquidswap::math;
     use liquidswap::stable_curve;
     use liquidswap::emergency::assert_no_emergency;
-    use liquidswap::bribe;
+
+    friend liquidswap::gauge;
 
     // Error codes.
 
@@ -91,6 +91,8 @@ module liquidswap::liquidity_pool {
         y_scale: u64,
         curve_type: u8,
         locked: bool,
+        x_claimable_fee_val: u64,
+        y_claimable_fee_val: u64,
     }
 
     /// Flash loan resource
@@ -156,12 +158,12 @@ module liquidswap::liquidity_pool {
             y_scale,
             curve_type,
             locked: false,
+            x_claimable_fee_val: 0,
+            y_claimable_fee_val: 0,
         };
         move_to(owner, pool);
 
         dao_storage::register<X, Y, LP>(owner);
-        gauge::register<X, Y, LP>(owner);
-        bribe::register<X, Y, LP>(owner);
 
         let events_store = EventsStore<X, Y, LP> {
             pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
@@ -332,6 +334,14 @@ module liquidswap::liquidity_pool {
         let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
         dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
 
+        // Split 66% of fee multiplier of provided coins to the Bribe
+        let bribe_fee_multiplier = 2 * FEE_MULTIPLIER / 3;
+        let bribe_x_fee_val = math::mul_div(x_in_val, bribe_fee_multiplier, FEE_SCALE);
+        let bribe_y_fee_val = math::mul_div(y_in_val, bribe_fee_multiplier, FEE_SCALE);
+
+        pool.x_claimable_fee_val = pool.x_claimable_fee_val + bribe_x_fee_val;
+        pool.y_claimable_fee_val = pool.y_claimable_fee_val + bribe_y_fee_val;
+
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
         // and make sure lp_value doesn't decrease:
@@ -474,6 +484,14 @@ module liquidswap::liquidity_pool {
         let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
         dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
 
+        // Split 66% of fee multiplier of provided coins to the Bribe
+        let bribe_fee_multiplier = 2 * FEE_MULTIPLIER / 3;
+        let bribe_x_fee_val = math::mul_div(x_in_val, bribe_fee_multiplier, FEE_SCALE);
+        let bribe_y_fee_val = math::mul_div(y_in_val, bribe_fee_multiplier, FEE_SCALE);
+
+        pool.x_claimable_fee_val = pool.x_claimable_fee_val + bribe_x_fee_val;
+        pool.y_claimable_fee_val = pool.y_claimable_fee_val + bribe_y_fee_val;
+
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
         // and make sure lp_value doesn't decrease:
@@ -599,6 +617,22 @@ module liquidswap::liquidity_pool {
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
         let pool = borrow_global<LiquidityPool<X, Y, LP>>(pool_addr);
         pool.locked
+    }
+
+    /// Claim fees.
+    /// * `pool_addr` - pool owner address.
+    public(friend) fun claim_fees<X, Y, LP>(pool_addr: address): (Coin<X>, Coin<Y>) acquires LiquidityPool {
+        assert_no_emergency();
+        assert_pool_locked<X, Y, LP>(pool_addr);
+
+        let pool = borrow_global_mut<LiquidityPool<X, Y, LP>>(pool_addr);
+        let x_fee = coin::extract(&mut pool.coin_x_reserve, pool.x_claimable_fee_val);
+        let y_fee = coin::extract(&mut pool.coin_y_reserve, pool.y_claimable_fee_val);
+
+        pool.x_claimable_fee_val = 0;
+        pool.y_claimable_fee_val = 0;
+
+        (x_fee, y_fee)
     }
 
     /// Get reserves of a pool.
@@ -774,6 +808,8 @@ module liquidswap::liquidity_pool {
             y_scale: 0,
             curve_type: 2,
             locked: false,
+            x_claimable_fee_val: 0,
+            y_claimable_fee_val: 0,
         };
 
         let events_store = EventsStore<X, Y, LP> {
@@ -806,6 +842,8 @@ module liquidswap::liquidity_pool {
             y_scale: _,
             curve_type: _,
             locked: _,
+            x_claimable_fee_val: _,
+            y_claimable_fee_val: _,
         } = pool;
 
         coin::destroy_zero(coin_x_reserve);

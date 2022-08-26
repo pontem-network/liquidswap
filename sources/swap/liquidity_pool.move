@@ -391,7 +391,7 @@ module liquidswap::liquidity_pool {
     ) acquires LiquidityPool {
         assert_no_emergency();
 
-        let Flashloan {pool_addr, x_loan, y_loan} = loan;
+        let Flashloan { pool_addr, x_loan, y_loan } = loan;
 
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
@@ -477,6 +477,7 @@ module liquidswap::liquidity_pool {
             (y_res_new_after_fee as u128),
         );
     }
+
     /// Compute and verify LP value after and before swap, in nutshell, _k function.
     /// * `x_scale` - 10 pow by X coin decimals.
     /// * `y_scale` - 10 pow by Y coin decimals.

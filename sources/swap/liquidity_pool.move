@@ -305,14 +305,15 @@ module liquidswap::liquidity_pool {
         let x_swapped = coin::extract(&mut pool.coin_x_reserve, x_out);
         let y_swapped = coin::extract(&mut pool.coin_y_reserve, y_out);
 
-        assert_lp_value_is_not_reduced(
+        assert_lp_value_is_increased(
             pool,
-            pool_addr,
             x_in_val,
             y_in_val,
             x_reserve_size,
-            y_reserve_size
+            y_reserve_size,
         );
+
+        split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
 
@@ -413,14 +414,15 @@ module liquidswap::liquidity_pool {
         coin::merge(&mut pool.coin_x_reserve, x_in);
         coin::merge(&mut pool.coin_y_reserve, y_in);
 
-        assert_lp_value_is_not_reduced(
+        assert_lp_value_is_increased(
             pool,
-            pool_addr,
             x_in_val,
             y_in_val,
             x_reserve_size,
-            y_reserve_size
+            y_reserve_size,
         );
+
+        split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
 
         // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
 
@@ -428,31 +430,20 @@ module liquidswap::liquidity_pool {
         pool.locked = false;
     }
 
-    fun assert_lp_value_is_not_reduced<X, Y, LP>(
-        pool: &mut LiquidityPool<X, Y, LP>,
-        pool_addr: address,
+    fun assert_lp_value_is_increased<X, Y, LP>(
+        pool: &LiquidityPool<X, Y, LP>,
         x_in_val: u64,
         y_in_val: u64,
         x_reserve_size: u64,
         y_reserve_size: u64,
     ) {
-        // Get new reserves.
-        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
-        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
-
-        // Split 33% of fee multiplier of provided coins to the DAOStorage
-        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
-        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
-        let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
-        let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
-
-        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
-        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
-        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
-
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
         // and make sure lp_value doesn't decrease:
+
+        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
+
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
         let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
@@ -477,6 +468,24 @@ module liquidswap::liquidity_pool {
             (y_res_new_after_fee as u128),
         );
     }
+
+    fun split_third_of_fee_to_dao<X, Y, LP>(
+        pool: &mut LiquidityPool<X, Y, LP>,
+        pool_addr: address,
+        x_in_val: u64,
+        y_in_val: u64
+    ) {
+        // Split 33% of fee multiplier of provided coins to the DAOStorage
+        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
+        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
+        let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
+        let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
+
+        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
+        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
+        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
+    }
+
     /// Compute and verify LP value after and before swap, in nutshell, _k function.
     /// * `x_scale` - 10 pow by X coin decimals.
     /// * `y_scale` - 10 pow by Y coin decimals.

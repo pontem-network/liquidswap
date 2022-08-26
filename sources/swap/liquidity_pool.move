@@ -305,12 +305,25 @@ module liquidswap::liquidity_pool {
         let x_swapped = coin::extract(&mut pool.coin_x_reserve, x_out);
         let y_swapped = coin::extract(&mut pool.coin_y_reserve, y_out);
 
+        // Confirm that lp_value for the pool hasn't been reduced.
+        // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
+        // and make sure lp_value doesn't decrease
+        let (x_res_new_after_fee, y_res_new_after_fee) =
+            new_reserves_after_fees_scaled(
+                coin::value(&pool.coin_x_reserve),
+                coin::value(&pool.coin_y_reserve),
+                x_in_val,
+                y_in_val,
+                pool.curve_type
+            );
         assert_lp_value_is_increased(
-            pool,
-            x_in_val,
-            y_in_val,
-            x_reserve_size,
-            y_reserve_size,
+            pool.x_scale,
+            pool.y_scale,
+            pool.curve_type,
+            (x_reserve_size as u128),
+            (y_reserve_size as u128),
+            (x_res_new_after_fee as u128),
+            (y_res_new_after_fee as u128),
         );
 
         split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
@@ -392,7 +405,7 @@ module liquidswap::liquidity_pool {
     ) acquires LiquidityPool {
         assert_no_emergency();
 
-        let Flashloan {pool_addr, x_loan, y_loan} = loan;
+        let Flashloan { pool_addr, x_loan, y_loan } = loan;
 
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
@@ -414,14 +427,27 @@ module liquidswap::liquidity_pool {
         coin::merge(&mut pool.coin_x_reserve, x_in);
         coin::merge(&mut pool.coin_y_reserve, y_in);
 
+        // Confirm that lp_value for the pool hasn't been reduced.
+        // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
+        // and make sure lp_value doesn't decrease
+        let (x_res_new_after_fee, y_res_new_after_fee) =
+            new_reserves_after_fees_scaled(
+                coin::value(&pool.coin_x_reserve),
+                coin::value(&pool.coin_y_reserve),
+                x_in_val,
+                y_in_val,
+                pool.curve_type
+            );
         assert_lp_value_is_increased(
-            pool,
-            x_in_val,
-            y_in_val,
-            x_reserve_size,
-            y_reserve_size,
+            pool.x_scale,
+            pool.y_scale,
+            pool.curve_type,
+            (x_reserve_size as u128),
+            (y_reserve_size as u128),
+            x_res_new_after_fee,
+            y_res_new_after_fee,
         );
-
+        // third of all fees goes into DAO
         split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
 
         // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
@@ -430,43 +456,27 @@ module liquidswap::liquidity_pool {
         pool.locked = false;
     }
 
-    fun assert_lp_value_is_increased<X, Y, LP>(
-        pool: &LiquidityPool<X, Y, LP>,
+    fun new_reserves_after_fees_scaled(
+        x_reserve: u64,
+        y_reserve: u64,
         x_in_val: u64,
         y_in_val: u64,
-        x_reserve_size: u64,
-        y_reserve_size: u64,
-    ) {
-        // Confirm that lp_value for the pool hasn't been reduced.
-        // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
-        // and make sure lp_value doesn't decrease:
-
-        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
-        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
-
+        curve_type: u8
+    ): (u128, u128) {
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(x_reserve_size_new, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
+        let x_res_new_after_fee = if (curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
         } else {
-            ((x_reserve_size_new - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+            ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
         };
 
-        let y_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(y_reserve_size_new, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
+        let y_res_new_after_fee = if (curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
         } else {
-            ((y_reserve_size_new - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+            ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
         };
-
-        compute_and_verify_lp_value(
-            pool.x_scale,
-            pool.y_scale,
-            pool.curve_type,
-            (x_reserve_size as u128),
-            (y_reserve_size as u128),
-            (x_res_new_after_fee as u128),
-            (y_res_new_after_fee as u128),
-        );
+        (x_res_new_after_fee, y_res_new_after_fee)
     }
 
     fun split_third_of_fee_to_dao<X, Y, LP>(
@@ -495,7 +505,7 @@ module liquidswap::liquidity_pool {
     /// * `x_res_with_fees` - X reserves after swap.
     /// * `y_res_with_fees` - Y reserves after swap.
     /// Aborts if swap can't be done.
-    fun compute_and_verify_lp_value(
+    fun assert_lp_value_is_increased(
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
@@ -514,7 +524,7 @@ module liquidswap::liquidity_pool {
             let lp_value_before_swap = x_res * y_res;
             let lp_value_before_swap_u256 = u256::mul(
                 u256::from_u128(lp_value_before_swap),
-                u256::from_u128(100000000)
+                u256::from_u64(FEE_SCALE * FEE_SCALE)
             );
             let lp_value_after_swap_and_fee = u256::mul(
                 u256::from_u128(x_res_with_fees),
@@ -712,7 +722,7 @@ module liquidswap::liquidity_pool {
         x_res_new: u128,
         y_res_new: u128,
     ) {
-        compute_and_verify_lp_value(
+        assert_lp_value_is_increased(
             x_scale,
             y_scale,
             curve_type,

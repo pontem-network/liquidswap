@@ -11,6 +11,7 @@ module liquidswap::liquidity_pool {
 
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
+    use aptos_framework::account;
 
     use liquidswap::coin_helper;
     use liquidswap::coin_helper::assert_is_coin;
@@ -142,11 +143,11 @@ module liquidswap::liquidity_pool {
         dao_storage::register<X, Y, LP>(owner);
 
         let events_store = EventsStore<X, Y, LP> {
-            pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
-            liquidity_added_handle: event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
-            liquidity_removed_handle: event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
-            swap_handle: event::new_event_handle<SwapEvent<X, Y, LP>>(owner),
-            oracle_updated_handle: event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
+            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
+            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(owner),
+            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(owner),
+            swap_handle: account::new_event_handle<SwapEvent<X, Y, LP>>(owner),
+            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(owner),
         };
         event::emit_event(
             &mut events_store.pool_created_handle,
@@ -601,11 +602,11 @@ module liquidswap::liquidity_pool {
         };
 
         let events_store = EventsStore<X, Y, LP> {
-            pool_created_handle: event::new_event_handle<PoolCreatedEvent<X, Y, LP>>(account),
-            liquidity_added_handle: event::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(account),
-            liquidity_removed_handle: event::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(account),
-            swap_handle: event::new_event_handle<SwapEvent<X, Y, LP>>(account),
-            oracle_updated_handle: event::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(account),
+            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, LP>>(account),
+            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, LP>>(account),
+            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, LP>>(account),
+            swap_handle: account::new_event_handle<SwapEvent<X, Y, LP>>(account),
+            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, LP>>(account),
         };
 
         move_to(account, events_store);

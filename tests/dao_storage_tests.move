@@ -3,7 +3,6 @@ module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::dao_storage;
@@ -124,7 +123,7 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0x09)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0xac)]
     #[expected_failure(abort_code = 402)]
     fun test_withdraw_fail_if_not_dao_admin(coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
         genesis::setup();
@@ -172,7 +171,7 @@ module liquidswap::dao_storage_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);

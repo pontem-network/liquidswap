@@ -123,7 +123,7 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0x09)]
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @0xca)]
     #[expected_failure(abort_code = 402)]
     fun test_withdraw_fail_if_not_dao_admin(coin_admin: signer, pool_owner: signer, dao_admin_acc: signer) {
         genesis::setup();

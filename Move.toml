@@ -1,6 +1,6 @@
 [package]
 name = "Liquidswap"
-version = "0.2.3"
+version = "0.2.6"
 
 [addresses]
 liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
@@ -16,23 +16,23 @@ test_staker = "0x14"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a58060f88d66b90a0548a506e22270b04a328db3"
+rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
 subdir = "aptos-move/framework/move-stdlib"
 
 [dependencies.AptosStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a58060f88d66b90a0548a506e22270b04a328db3"
+rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
 subdir = "aptos-move/framework/aptos-stdlib"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "a58060f88d66b90a0548a506e22270b04a328db3"
+rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "c1634669a2748b8cf7b5911ddab65341f4615fc4"
+rev = "v0.3.5"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "45b0a151145653a314e21a5354416e97824faac0"
+rev = "v0.3.5"

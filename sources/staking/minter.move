@@ -87,8 +87,6 @@ module liquidswap::minter {
     }
 
     #[test_only]
-    use aptos_framework::coins::register_internal;
-    #[test_only]
     use aptos_framework::genesis;
     #[test_only]
     use aptos_std::table_with_length::{Self, TableWithLength};
@@ -125,7 +123,7 @@ module liquidswap::minter {
 
         let to_mint_val = 20000000000;
         let staker_addr = signer::address_of(staker);
-        register_internal<LAMM>(staker);
+        coin::register<LAMM>(staker);
         liquid::mint_internal(admin, staker_addr, to_mint_val);
     }
 

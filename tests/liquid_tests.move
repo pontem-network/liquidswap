@@ -4,7 +4,6 @@ module liquidswap::liquid_tests {
     use std::signer;
 
     use aptos_framework::coin::{Self, MintCapability, BurnCapability};
-    use aptos_framework::coins;
     use aptos_framework::genesis;
     use aptos_framework::timestamp;
 
@@ -23,7 +22,7 @@ module liquidswap::liquid_tests {
         create_account(&user);
 
         liquid::initialize(&admin);
-        coins::register_internal<LAMM>(&user);
+        coin::register<LAMM>(&user);
 
         let user_addr = signer::address_of(&user);
         liquid::mint_internal(&admin, user_addr, 100);
@@ -116,7 +115,7 @@ module liquidswap::liquid_tests {
         create_account(&user);
 
         liquid::initialize(&admin);
-        coins::register_internal<LAMM>(&user);
+        coin::register<LAMM>(&user);
 
         liquid::mint_internal(&admin, signer::address_of(&user), 100);
 

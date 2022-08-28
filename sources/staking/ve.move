@@ -11,8 +11,6 @@ module liquidswap::ve {
     use liquidswap::liquid::LAMM;
 
     #[test_only]
-    use aptos_framework::coins::register_internal;
-    #[test_only]
     use aptos_framework::genesis;
     #[test_only]
     use liquidswap::liquid;
@@ -561,7 +559,7 @@ module liquidswap::ve {
         liquid::initialize(&admin);
 
         let to_mint_val = 10000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
@@ -641,7 +639,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 2000000000;
@@ -715,7 +713,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
@@ -766,7 +764,7 @@ module liquidswap::ve {
 
         // Let's stake and see how history changed.
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
@@ -875,7 +873,7 @@ module liquidswap::ve {
         assert!(supply == 0, 0);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val_1 = 1000000000;
@@ -930,7 +928,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let now = timestamp::now_seconds();
@@ -1017,7 +1015,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
@@ -1066,7 +1064,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
@@ -1096,7 +1094,7 @@ module liquidswap::ve {
         initialize(&staking_admin);
 
         let to_mint_val = 20000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;
@@ -1134,7 +1132,7 @@ module liquidswap::ve {
         assert!(point.power_drop_rate == 0, 3);
 
         let to_mint_val = 10000000000;
-        register_internal<LAMM>(&staker);
+        coin::register<LAMM>(&staker);
         liquid::mint_internal(&admin, signer::address_of(&staker), to_mint_val);
 
         let to_stake_val = 1000000000;

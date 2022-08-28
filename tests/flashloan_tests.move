@@ -4,7 +4,6 @@ module liquidswap::flashloan_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use aptos_framework::genesis;
 
     use liquidswap::liquidity_pool;
@@ -36,7 +35,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -78,7 +77,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -115,7 +114,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -150,7 +149,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -195,7 +194,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -244,7 +243,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -289,7 +288,7 @@ module liquidswap::flashloan_tests {
 
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        coins::register_internal<LP>(&pool_owner);
+        coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let (zero, usdt_coins, loan) =
@@ -304,6 +303,88 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero_test);
         test_coins::burn(&coin_admin, usdt_coins_test);
 
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 109)]
+    fun test_fail_if_get_reserves_when_pool_is_locked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<BTC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-BTC-USDT"),
+            2
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        coin::register<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        // get reserves when pool is locked
+        let (_, _) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[expected_failure(abort_code = 109)]
+    fun test_fail_if_get_cumulative_prices_when_pool_is_locked(coin_admin: signer, pool_owner: signer) {
+        genesis::setup();
+
+        create_account(&coin_admin);
+        create_account(&pool_owner);
+
+        test_coins::register_coins(&coin_admin);
+
+        liquidity_pool::register<BTC, USDT, LP>(
+            &pool_owner,
+            utf8(b"LiquidSwap LP"),
+            utf8(b"LP-BTC-USDT"),
+            2
+        );
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        coin::register<LP>(&pool_owner);
+        coin::deposit(pool_owner_addr, lp_coins);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        // get cumulative prices when pool is locked
+        let (_, _, _) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
         liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);

@@ -81,4 +81,20 @@ module liquidswap::math {
 
         res
     }
+
+    /// Returns max value.
+    public fun max(a: u64, b: u64): u64 {
+        if (a < b) {
+            return b
+        };
+        a
+    }
+
+    /// Returns min value.
+    public fun min(a: u64, b: u64): u64 {
+        if (a < b) {
+            return a
+        };
+        b
+    }
 }

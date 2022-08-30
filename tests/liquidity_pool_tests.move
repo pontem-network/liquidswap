@@ -71,7 +71,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     fun test_create_pool_emergency_fails(coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup();
 
@@ -329,7 +329,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=102)]
+    #[expected_failure(abort_code = 102)]
     fun test_add_liquidity_less_than_minimal(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -360,7 +360,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=102)]
+    #[expected_failure(abort_code = 102)]
     fun test_add_liquidity_zero_initially(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -429,7 +429,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     fun test_add_liquidity_emergency_stop_fails(coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup();
 
@@ -516,7 +516,7 @@ module liquidswap::liquidity_pool_tests {
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_liq, usdt_liq);
 
         assert!(coin::value(&lp_coins) == expected_liquidity_2, 7);
-        assert!(supply<LP>() == ((expected_liquidity_2+expected_liquidity) as u128), 8);
+        assert!(supply<LP>() == ((expected_liquidity_2 + expected_liquidity) as u128), 8);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_res == btc_liq_val * 3, 9);
@@ -798,7 +798,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     fun test_swap_coins_emergency_fails(coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup();
 
@@ -859,7 +859,7 @@ module liquidswap::liquidity_pool_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 18446744073709550615);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 18446744073709551615);
 
-         let lp_coins =
+        let lp_coins =
             liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
         coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
@@ -922,7 +922,7 @@ module liquidswap::liquidity_pool_tests {
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_cum_price == 103301766812773489044000, 3);
         assert!(y_cum_price == 1317624576693539400, 4);
-        assert!(ts == 1660545565+20,5);
+        assert!(ts == 1660545565 + 20, 5);
 
         timestamp::fast_forward_seconds(3600);
 
@@ -941,7 +941,7 @@ module liquidswap::liquidity_pool_tests {
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
         assert!(x_cum_price == 18331960191116039718441600, 8);
         assert!(y_cum_price == 243247632405227595000, 9);
-        assert!(ts == 1660545565+20+3600, 10);
+        assert!(ts == 1660545565 + 20 + 3600, 10);
 
         coin::destroy_zero(btc_zero);
         coin::destroy_zero(usdt_zero);
@@ -950,7 +950,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_1_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -990,7 +990,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=104)]
+    #[expected_failure(abort_code = 104)]
     fun test_swap_coins_zero_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1071,7 +1071,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_vice_versa_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1157,7 +1157,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_two_coins_failure(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1318,9 +1318,9 @@ module liquidswap::liquidity_pool_tests {
             );
         assert!(coin::value(&usdt_coins) == 672790928423, 0);
 
-         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
-         assert!(x_res == 22070939508, 1);
-         assert!(y_res == 827209071577, 2);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 22070939508, 1);
+        assert!(y_res == 827209071577, 2);
 
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
@@ -1360,9 +1360,9 @@ module liquidswap::liquidity_pool_tests {
             );
         assert!(coin::value(&usdt_coins) == 15199, 0);
 
-         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
-         assert!(x_res == 15000000152, 1);
-         assert!(y_res == 1499999984801, 2);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 15000000152, 1);
+        assert!(y_res == 1499999984801, 2);
 
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
@@ -1402,9 +1402,9 @@ module liquidswap::liquidity_pool_tests {
             );
         assert!(coin::value(&usdt_coins) == 672791099, 0);
 
-         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
-         assert!(x_res == 15006741407, 1);
-         assert!(y_res == 1499327208901, 2);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
+        assert!(x_res == 15006741407, 1);
+        assert!(y_res == 1499327208901, 2);
 
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
@@ -1453,7 +1453,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_1_unit_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1496,7 +1496,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_fails(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1627,7 +1627,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_two_coins_with_stable_curve_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1712,7 +1712,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_vice_versa_fail(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1757,7 +1757,7 @@ module liquidswap::liquidity_pool_tests {
     // Getters.
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     fun test_get_reserves_emergency_fails(coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup();
 
@@ -1779,7 +1779,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     fun test_get_cumulative_price_emergency_fails(coin_admin: signer, pool_owner: signer, emergency_acc: signer) {
         genesis::setup();
 
@@ -2197,7 +2197,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_uncorrelated_fails_equal() {
         let x_res = 0;
         let y_res = 0;
@@ -2216,7 +2216,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_uncorrelated_fails_equal_1() {
         let x_res = 18446744073709551615;
         let y_res = 18446744073709551615;
@@ -2235,7 +2235,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_uncorrelated_fails_equal_2() {
         let x_res = 18446744073709551615;
         let y_res = 1;
@@ -2254,7 +2254,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_uncorrelated_fails_less() {
         let x_res = 100;
         let y_res = 99;
@@ -2273,7 +2273,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_uncorrelated_fails_less_1() {
         let x_res = 18446744073709551615;
         let y_res = 10;
@@ -2355,7 +2355,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_stable_less_fails() {
         let x_res = 10000;
         let y_res = 100;
@@ -2374,7 +2374,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_stable_less_fails_1() {
         let x_res = 10000;
         let y_res = 10;
@@ -2393,7 +2393,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_stable_equal_fails() {
         let x_res = 1000000001;
         let y_res = 100;
@@ -2412,7 +2412,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_compute_lp_stable_equal_fails_1() {
         let x_res = 0;
         let y_res = 0;

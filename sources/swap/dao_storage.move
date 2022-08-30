@@ -28,17 +28,17 @@ module liquidswap::dao_storage {
     /// Parameters:
     /// * `owner` - owner of storage
     public(friend) fun register<X, Y, LP>(owner: &signer) {
-        let storage = Storage<X, Y, LP>{ coin_x: coin::zero<X>(), coin_y: coin::zero<Y>() };
+        let storage = Storage<X, Y, LP> { coin_x: coin::zero<X>(), coin_y: coin::zero<Y>() };
         move_to(owner, storage);
 
-        let events_store = EventsStore<X, Y, LP>{
+        let events_store = EventsStore<X, Y, LP> {
             storage_registered_handle: account::new_event_handle(owner),
             coin_deposited_handle: account::new_event_handle(owner),
             coin_withdrawn_handle: account::new_event_handle(owner)
         };
         event::emit_event(
             &mut events_store.storage_registered_handle,
-            StorageCreatedEvent<X, Y, LP>{}
+            StorageCreatedEvent<X, Y, LP> {}
         );
 
         move_to(owner, events_store);
@@ -61,7 +61,7 @@ module liquidswap::dao_storage {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
             &mut events_store.coin_deposited_handle,
-            CoinDepositedEvent<X, Y, LP>{ x_val, y_val }
+            CoinDepositedEvent<X, Y, LP> { x_val, y_val }
         );
     }
 
@@ -83,7 +83,7 @@ module liquidswap::dao_storage {
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
             &mut events_store.coin_withdrawn_handle,
-            CoinWithdrawnEvent<X, Y, LP>{ x_val, y_val }
+            CoinWithdrawnEvent<X, Y, LP> { x_val, y_val }
         );
 
         (coin_x, coin_y)

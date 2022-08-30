@@ -3,8 +3,9 @@
 **LiquidSwap** is AMM protocol for [Aptos](https://www.aptos.com/) blockchain. 
 
 We support two curves:
-    * For uncorrelated swaps.
-    * For stable swaps.
+
+* For uncorrelated swaps.
+* For stable swaps.
 
 The current repository contains: 
 

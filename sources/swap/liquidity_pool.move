@@ -60,7 +60,7 @@ module liquidswap::liquidity_pool {
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Current fee is 0.03%
+    /// Current fee is 0.3%
     const FEE_MULTIPLIER: u64 = 30;
 
     /// Denominator to handle decimal points for fees.

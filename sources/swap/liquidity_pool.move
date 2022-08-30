@@ -456,6 +456,14 @@ module liquidswap::liquidity_pool {
         pool.locked = false;
     }
 
+    // Private functions.
+
+    /// Get reserves after fees.
+    /// * `x_reserve` - reserve X.
+    /// * `y_reserve` - reserve Y.
+    /// * `x_in_val` - amount of X coins added to reserves.
+    /// * `y_in_val` - amount of Y coins added to reserves.
+    /// Returns both X and Y reserves after fees.
     fun new_reserves_after_fees_scaled(
         x_reserve: u64,
         y_reserve: u64,
@@ -479,6 +487,11 @@ module liquidswap::liquidity_pool {
         (x_res_new_after_fee, y_res_new_after_fee)
     }
 
+    /// Depositing part of fees to DAO Storage.
+    /// * `pool` - pool to extract coins.
+    /// * `pool_addr` - address of pool.
+    /// * `x_in_val` - how much X coins was deposited to pool.
+    /// * `y_in_val` - how much Y coins was deposited to pool.
     fun split_third_of_fee_to_dao<X, Y, LP>(
         pool: &mut LiquidityPool<X, Y, LP>,
         pool_addr: address,
@@ -581,6 +594,8 @@ module liquidswap::liquidity_pool {
     fun assert_pool_locked<X, Y, LP>(pool_addr: address) acquires LiquidityPool {
         assert!(is_pool_locked<X, Y, LP>(pool_addr) == false, ERR_POOL_IS_LOCKED);
     }
+
+    // Getters.
 
     /// Check if pool is locked.
     /// * `pool_addr` - pool owner address.

@@ -122,18 +122,19 @@ module liquidswap::bribe {
         (math::min(now, coin_config.period_finish))
     }
 
-    fun reward_per_token<CoinType>(coin_cofig: &CoinConfig<CoinType>, bribe_config: &BribeConfig): u64 {
+    fun reward_per_token<CoinType>(coin_config: &CoinConfig<CoinType>, bribe_config: &BribeConfig): u64 {
         if (bribe_config.total_supply == 0) {
-            return coin_cofig.reward_per_token_stored
+            return coin_config.reward_per_token_stored
         };
-        coin_cofig.reward_per_token_stored + math::mul_div (
-            last_time_reward_applicable(coin_cofig) - coin_cofig.last_update_time,
-            coin_cofig.reward_rate * math::pow_10(coin::decimals<CoinType>()),
+        coin_config.reward_per_token_stored + math::mul_div (
+            last_time_reward_applicable(coin_config) - coin_config.last_update_time,
+            coin_config.reward_rate * math::pow_10(coin::decimals<CoinType>()),
             bribe_config.total_supply
         )
     }
 
     fun earned<CoinType>(coin_config: &mut CoinConfig<CoinType>, bribe_config: &BribeConfig, token_id: u64): u64 {
+        let reward = reward_per_token(coin_config, bribe_config);
         let token_config = table::borrow_mut_with_default(
             &mut coin_config.tokens,
             token_id,
@@ -144,7 +145,7 @@ module liquidswap::bribe {
             balance = *table::borrow(&bribe_config.balances, token_id);
         math::mul_div(
             balance,
-            reward_per_token(coin_config, bribe_config) - token_config.reward_paid,
+            reward - token_config.reward_paid,
             math::pow_10(coin::decimals<CoinType>())
         ) + token_config.reward
     }
@@ -188,7 +189,8 @@ module liquidswap::bribe {
 
         let balance = table::borrow_mut_with_default(&mut bribe.config.balances, token_id, 0);
         if (coin_val <= *balance) {
-            bribe.config.total_supply = bribe.config.total_supply - coin_val;
+
+            (&mut bribe.config).total_supply = (&mut bribe.config).total_supply - coin_val;
             *balance = *balance - coin_val;
 
             let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
@@ -304,12 +306,13 @@ module liquidswap::bribe {
         coin_config.last_update_time = last_time_reward_applicable(coin_config);
 
         if (token_id != 0) {
+            let earned_val = earned(coin_config, bribe_config, token_id);
             let token_config = table::borrow_mut_with_default(
                 &mut coin_config.tokens,
                 token_id,
                 zero_token_config()
             );
-            token_config.reward = earned(coin_config, bribe_config, token_id);
+            token_config.reward = earned_val;
             token_config.reward_paid = coin_config.reward_per_token_stored;
         }
     }

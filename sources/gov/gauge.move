@@ -130,12 +130,12 @@ module liquidswap::gauge {
         update_reward(gauge, token_id);
 
         let coin_val = coin::value(&coin_in);
-        let token_cofig = table::borrow_mut_with_default(
+        let token_config = table::borrow_mut_with_default(
             &mut gauge.tokens,
             token_id,
             zero_token_config()
         );
-        token_cofig.balance = token_cofig.balance + coin_val;
+        token_config.balance = token_config.balance + coin_val;
         gauge.total_supply = gauge.total_supply + coin_val;
 
         coin::merge(&mut gauge.coin_stake, coin_in);
@@ -156,14 +156,14 @@ module liquidswap::gauge {
 
         update_reward(gauge, token_id);
 
-        let token_cofig = table::borrow_mut_with_default(
+        let token_config = table::borrow_mut_with_default(
             &mut gauge.tokens,
             token_id,
             zero_token_config()
         );
-        gauge.total_supply = gauge.total_supply - token_cofig.balance;
-        let coin_out = coin::extract(&mut gauge.coin_stake, token_cofig.balance);
-        token_cofig.balance = 0;
+        gauge.total_supply = gauge.total_supply - token_config.balance;
+        let coin_out = coin::extract(&mut gauge.coin_stake, token_config.balance);
+        token_config.balance = 0;
 
         let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
         event::emit_event(
@@ -188,17 +188,17 @@ module liquidswap::gauge {
         update_reward(gauge, token_id);
 
         let coin_out = coin::zero();
-        let token_cofig = table::borrow_mut_with_default(
+        let token_config = table::borrow_mut_with_default(
             &mut gauge.tokens,
             token_id,
             zero_token_config()
         );
-        if (token_cofig.reward > 0) {
+        if (token_config.reward > 0) {
             coin::merge(
                 &mut coin_out,
-                coin::extract(&mut gauge.coin_reward, token_cofig.reward)
+                coin::extract(&mut gauge.coin_reward, token_config.reward)
             );
-            token_cofig.reward = 0;
+            token_config.reward = 0;
 
             let events_store = borrow_global_mut<EventsStore<X, Y, LP>>(pool_addr);
             event::emit_event(
@@ -260,10 +260,10 @@ module liquidswap::gauge {
         )
     }
 
-    fun earned<X, Y, LP>(gauge: &Gauge<X, Y, LP>, token_config: &TokenConfig): u64 {
+    fun earned(token_config: &TokenConfig, reward_per_token_stored: u64): u64 {
         math::mul_div(
             token_config.derived_balance,
-            reward_per_token(gauge) - token_config.reward_paid,
+            reward_per_token_stored - token_config.reward_paid,
             math::pow_10(coin::decimals<LAMM>())
         ) + token_config.reward
     }
@@ -274,39 +274,41 @@ module liquidswap::gauge {
         let nft_point = ve::get_nft_history_point(ve_nft, ve::get_nft_epoch(ve_nft));
         let nft_votes = ve::get_voting_power(&nft_point);
 
-        let token_cofig = table::borrow_mut_with_default(
+        let token_config = table::borrow_mut_with_default(
             &mut gauge.tokens,
             ve::get_nft_id(ve_nft),
             zero_token_config()
         );
-        let derived = token_cofig.balance * 40 / 100;
+        let derived = token_config.balance * 40 / 100;
         let adjusted = (gauge.total_supply * nft_votes / ve_supply) * 60 / 100;
-        math::min(derived + adjusted, token_cofig.balance)
+        math::min(derived + adjusted, token_config.balance)
     }
 
     fun kick<X, Y, LP>(gauge: &mut Gauge<X, Y, LP>, ve_nft: &VE_NFT) {
-        let token_cofig = table::borrow_mut_with_default(
+        let derived = derived_balance(gauge, ve_nft);
+        let token_config = table::borrow_mut_with_default(
             &mut gauge.tokens,
             ve::get_nft_id(ve_nft),
             zero_token_config()
         );
 
-        gauge.derived_supply = gauge.derived_supply - token_cofig.derived_balance;
-        token_cofig.derived_balance = derived_balance(gauge, ve_nft);
+        gauge.derived_supply = gauge.derived_supply - token_config.derived_balance;
+        token_config.derived_balance = derived;
     }
 
     fun update_reward<X, Y, LP>(gauge: &mut Gauge<X, Y, LP>, token_id: u64) {
-        gauge.reward_per_token_stored = reward_per_token(gauge);
+        let reward_per_token_stored = reward_per_token(gauge);
+        gauge.reward_per_token_stored = reward_per_token_stored;
         gauge.last_update_time = last_time_reward_applicable(gauge);
 
         if (token_id != 0) {
-            let token_cofig = table::borrow_mut_with_default(
+            let token_config = table::borrow_mut_with_default(
                 &mut gauge.tokens,
                 token_id,
                 zero_token_config()
             );
-            token_cofig.reward = earned(gauge, token_cofig);
-            token_cofig.reward_paid = gauge.reward_per_token_stored;
+            token_config.reward = earned(token_config, reward_per_token_stored);
+            token_config.reward_paid = gauge.reward_per_token_stored;
         }
     }
 

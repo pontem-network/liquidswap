@@ -10,11 +10,10 @@ module liquidswap::gauge {
 
     use liquidswap::bribe;
     use liquidswap::liquid::LAMM;
-    use liquidswap::liquidity_pool;
     use liquidswap::math;
     use liquidswap::ve::{Self, VE_NFT};
 
-    friend liquidswap::router;
+    friend liquidswap::liquidity_pool;
     friend liquidswap::voter;
 
     const WEEK: u64 = 604800;
@@ -85,6 +84,12 @@ module liquidswap::gauge {
         move_to(owner, events_store);
     }
 
+    public(friend) fun deposit_fees<X, Y, LP>(pool_addr: address, x_fee: Coin<X>, y_fee: Coin<Y>) acquires Gauge {
+        let gauge = borrow_global_mut<Gauge<X, Y, LP>>(pool_addr);
+        coin::merge(&mut gauge.x_fee, x_fee);
+        coin::merge(&mut gauge.y_fee, y_fee);
+    }
+
     public fun claim_voting_fees<X, Y, LP>(pool_addr: address) acquires Gauge, EventsStore {
         assert!(exists<Gauge<X, Y, LP>>(pool_addr), ERR_NOT_REGISTERED);
         claim_voting_fees_internal<X, Y, LP>(pool_addr);
@@ -92,24 +97,18 @@ module liquidswap::gauge {
 
     fun claim_voting_fees_internal<X, Y, LP>(pool_addr: address) acquires Gauge, EventsStore {
         let gauge = borrow_global_mut<Gauge<X, Y, LP>>(pool_addr);
-        let (x_fee, y_fee) = liquidity_pool::claim_fees<X, Y, LP>(pool_addr);
-        let x_fee_val = coin::value(&x_fee);
-        let y_fee_val = coin::value(&y_fee);
-        coin::merge(&mut gauge.x_fee, x_fee);
-        coin::merge(&mut gauge.y_fee, y_fee);
+        let x_fee_val = coin::value(&gauge.x_fee);
+        let y_fee_val = coin::value(&gauge.y_fee);
         if (x_fee_val > 0 || y_fee_val > 0) {
-            let x_fee_total_val = coin::value(&gauge.x_fee);
-            let y_fee_total_val = coin::value(&gauge.y_fee);
-
             let (x_left_val, y_left_val) = bribe::left<X, Y, LP>(pool_addr);
 
             let x_reward = coin::zero<X>();
             let y_reward = coin::zero<Y>();
-            if (x_fee_total_val > x_left_val && x_fee_total_val / WEEK > 0) {
-                coin::merge(&mut x_reward, coin::extract(&mut gauge.x_fee, x_fee_total_val));
+            if (x_fee_val > x_left_val && x_fee_val / WEEK > 0) {
+                coin::merge(&mut x_reward, coin::extract(&mut gauge.x_fee, x_fee_val));
             };
-            if (y_fee_total_val > y_left_val && y_fee_total_val / WEEK > 0) {
-                coin::merge(&mut y_reward, coin::extract(&mut gauge.y_fee, y_fee_total_val));
+            if (y_fee_val > y_left_val && y_fee_val / WEEK > 0) {
+                coin::merge(&mut y_reward, coin::extract(&mut gauge.y_fee, y_fee_val));
             };
 
             bribe::notify_reward_amount<X, Y, LP>(pool_addr, x_reward, y_reward);

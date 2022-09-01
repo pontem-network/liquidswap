@@ -4,9 +4,7 @@ module liquidswap::router {
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
 
-    use liquidswap::bribe;
     use liquidswap::coin_helper::{Self, supply};
-    use liquidswap::gauge;
     use liquidswap::liquidity_pool;
     use liquidswap::math;
     use liquidswap::stable_curve;
@@ -46,13 +44,9 @@ module liquidswap::router {
         if (coin_helper::is_sorted<X, Y>()) {
             let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
             liquidity_pool::register<X, Y, LP>(account, lp_name, lp_symbol, curve_type);
-            gauge::register<X, Y, LP>(account);
-            bribe::register<X, Y, LP>(account);
         } else {
             let (lp_name, lp_symbol) = coin_helper::generate_lp_name<Y, X>();
             liquidity_pool::register<Y, X, LP>(account, lp_name, lp_symbol, curve_type);
-            gauge::register<Y, X, LP>(account);
-            bribe::register<Y, X, LP>(account);
         }
     }
 
@@ -399,12 +393,7 @@ module liquidswap::router {
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curve_type == STABLE_CURVE) {
-            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
-            let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
-                (coin_in_val_scaled / (fee_scale as u128)) + 1
-            } else {
-                coin_in_val_scaled / (fee_scale as u128)
-            };
+            let coin_in_val_after_fees = coin_in - math::mul_div(coin_in, fee_pct, fee_scale);
 
             (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),

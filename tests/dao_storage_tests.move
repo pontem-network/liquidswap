@@ -183,7 +183,7 @@ module liquidswap::dao_storage_tests {
             );
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_res == 100999, 2);
+        assert!(x_res == 100997, 2);
         assert!(y_res == 99040, 3);
 
         let (dao_x, dao_y) = dao_storage::get_storage_size<BTC, USDT, LP>(pool_owner_addr);

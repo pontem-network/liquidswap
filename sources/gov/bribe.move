@@ -10,7 +10,7 @@ module liquidswap::bribe {
     use liquidswap::math;
     use liquidswap::ve::{Self, VE_NFT};
 
-    friend liquidswap::router;
+    friend liquidswap::liquidity_pool;
     friend liquidswap::voter;
 
     const WEEK: u64 = 604800;

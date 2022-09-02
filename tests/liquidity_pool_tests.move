@@ -1948,12 +1948,12 @@ module liquidswap::liquidity_pool_tests {
         let (btc_coins, usdt_zero) =
             liquidity_pool::swap<BTC, USDT, LP>(
                 pool_owner_addr,
-                coin::zero<BTC>(), 52521904,
+                coin::zero<BTC>(), 52503143,
                 usdt_coins_to_exchange, 0
             );
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_res == 13027423749, 22);
+        assert!(x_res == 13027442510, 22);
         assert!(y_res == 2483795263547, 23);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
@@ -1967,18 +1967,18 @@ module liquidswap::liquidity_pool_tests {
             pool_owner_addr,
             lp_coins_user,
         );
-        assert!(coin::value(&btc_earned_user) == 908890029, 27);
+        assert!(coin::value(&btc_earned_user) == 908891337, 27);
         assert!(coin::value(&usdt_earned_user) == 173288041643, 28);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_res == 12118533720, 29);
+        assert!(x_res == 12118551173, 29);
         assert!(y_res == 2310507221904, 30);
 
         let (btc_earned_initial, usdt_earned_initial) = liquidity_pool::burn<BTC, USDT, LP>(
             pool_owner_addr,
             lp_coins_initial,
         );
-        assert!(coin::value(&btc_earned_initial) == 12118533720, 31);
+        assert!(coin::value(&btc_earned_initial) == 12118551173, 31);
         assert!(coin::value(&usdt_earned_initial) == 2310507221904, 32);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
@@ -1986,8 +1986,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 0, 34);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 43815527014483461544138800, 35);
-        assert!(y_cum_price == 936604532069516491200, 36);
+        assert!(x_cum_price == 43815508780720859871879600, 35);
+        assert!(y_cum_price == 936605033675157798000, 36);
         assert!(ts == 1660556365, 37);
 
         coin::destroy_zero(btc_zero);
@@ -2101,12 +2101,12 @@ module liquidswap::liquidity_pool_tests {
         let (btc_coins, usdt_zero) =
             liquidity_pool::swap<BTC, USDT, LP>(
                 pool_owner_addr,
-                coin::zero<BTC>(), 52521904,
+                coin::zero<BTC>(), 52503143,
                 usdt_coins_to_exchange, 0
             );
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_res == 13027423749, 23);
+        assert!(x_res == 13027442510, 23);
         assert!(y_res == 2483795263547, 24);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
@@ -2122,14 +2122,14 @@ module liquidswap::liquidity_pool_tests {
             pool_owner_addr,
             lp_coins_user,
         );
-        assert!(coin::value(&btc_earned_user) == 908890029, 28);
+        assert!(coin::value(&btc_earned_user) == 908891337, 28);
         assert!(coin::value(&usdt_earned_user) == 173288041643, 29);
 
         let (btc_earned_initial, usdt_earned_initial) = liquidity_pool::burn<BTC, USDT, LP>(
             pool_owner_addr,
             lp_coins_initial,
         );
-        assert!(coin::value(&btc_earned_initial) == 12118533720, 30);
+        assert!(coin::value(&btc_earned_initial) == 12118551173, 30);
         assert!(coin::value(&usdt_earned_initial) == 2310507221904, 31);
 
         emergency::resume(&emergency_acc);
@@ -2139,8 +2139,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 0, 33);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
-        assert!(x_cum_price == 43815527014483461544138800, 34);
-        assert!(y_cum_price == 936604532069516491200, 35);
+        assert!(x_cum_price == 43815508780720859871879600, 34);
+        assert!(y_cum_price == 936605033675157798000, 35);
         assert!(ts == 1660556365, 36);
 
         coin::destroy_zero(btc_zero);

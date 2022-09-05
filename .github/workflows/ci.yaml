@@ -28,3 +28,6 @@ jobs:
 
       - name: Test
         run: aptos move test
+
+      - name: Prove math.move
+        run: aptos move prove --filter math

@@ -22,6 +22,7 @@ jobs:
         with:
           version: latest
           token: ${{ secrets.GITHUB_TOKEN }}
+          prover: true
 
       - name: Build
         run: aptos move compile

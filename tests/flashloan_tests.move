@@ -23,7 +23,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -65,7 +65,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -102,7 +102,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -137,7 +137,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -182,7 +182,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -231,7 +231,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -276,7 +276,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -323,7 +323,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -364,7 +364,7 @@ module liquidswap::flashloan_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );

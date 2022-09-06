@@ -1,4 +1,4 @@
-/// LiquidSwap liquidity pool module.
+/// Liquidswap liquidity pool module.
 /// Implements mint/burn liquidity, swap of coins.
 module liquidswap::liquidity_pool {
     use std::string::String;

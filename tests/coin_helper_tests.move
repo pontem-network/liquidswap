@@ -2,6 +2,7 @@
 module liquidswap::coin_helper_tests {
     use std::string::utf8;
 
+    use aptos_std::comparator;
     use aptos_framework::genesis;
 
     use liquidswap::coin_helper;
@@ -34,11 +35,11 @@ module liquidswap::coin_helper_tests {
         assert!(!coin_helper::is_sorted<USDT, BTC>(), 4);
 
         let cmp = coin_helper::compare<BTC, USDT>();
-        assert!(cmp == 1, 5);
+        assert!(comparator::is_smaller_than(&cmp), 5);
         cmp = coin_helper::compare<BTC, BTC>();
-        assert!(cmp == 0, 6);
+        assert!(comparator::is_equal(&cmp), 6);
         cmp = coin_helper::compare<USDT, BTC>();
-        assert!(cmp == 2, 7);
+        assert!(comparator::is_greater_than(&cmp), 7);
     }
 
     #[test]

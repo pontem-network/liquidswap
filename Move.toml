@@ -7,6 +7,7 @@ liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9
 dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 staking_pool = "0x42"
+gov_admin = "0x43"
 
 # Addresses for tests.
 test_coin_admin = "0x11"

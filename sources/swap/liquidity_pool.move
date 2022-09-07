@@ -16,6 +16,8 @@ module liquidswap::liquidity_pool {
     use liquidswap::coin_helper;
     use liquidswap::coin_helper::assert_is_coin;
     use liquidswap::dao_storage;
+    use liquidswap::bribe;
+    use liquidswap::gauge;
     use liquidswap::math;
     use liquidswap::stable_curve;
     use liquidswap::emergency::assert_no_emergency;
@@ -159,6 +161,8 @@ module liquidswap::liquidity_pool {
         move_to(owner, pool);
 
         dao_storage::register<X, Y, LP>(owner);
+        gauge::register<X, Y, LP>(owner);
+        bribe::register<X, Y, LP>(owner);
 
         let events_store = EventsStore<X, Y, LP> {
             pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, LP>>(owner),
@@ -327,6 +331,7 @@ module liquidswap::liquidity_pool {
         );
 
         split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
+        split_two_thirds_of_fee_to_gauge(pool, pool_addr, x_in_val, y_in_val);
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
 
@@ -449,6 +454,8 @@ module liquidswap::liquidity_pool {
         );
         // third of all fees goes into DAO
         split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
+        // two-thirds of all fees goes into gauge
+        split_two_thirds_of_fee_to_gauge(pool, pool_addr, x_in_val, y_in_val);
 
         // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
 
@@ -507,6 +514,28 @@ module liquidswap::liquidity_pool {
         let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
         let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
         dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
+    }
+
+    /// Depositing part of fees to gauge.
+    /// * `pool` - pool to extract coins.
+    /// * `pool_addr` - address of pool.
+    /// * `x_in_val` - how much X coins was deposited to pool.
+    /// * `y_in_val` - how much Y coins was deposited to pool.
+    fun split_two_thirds_of_fee_to_gauge<X, Y, LP>(
+        pool: &mut LiquidityPool<X, Y, LP>,
+        pool_addr: address,
+        x_in_val: u64,
+        y_in_val: u64
+    ) {
+        // Split 66% of fee multiplier of provided coins to the gauge
+        // x_in_val * (fee / fee_scale), ie. for 0.2% it's (20 / 10000)
+        let gauge_fee_multiplier = 2 * FEE_MULTIPLIER / 3;
+        let gauge_x_fee_val = math::mul_div(x_in_val, gauge_fee_multiplier, FEE_SCALE);
+        let gauge_y_fee_val = math::mul_div(y_in_val, gauge_fee_multiplier, FEE_SCALE);
+
+        let gauge_x_in = coin::extract(&mut pool.coin_x_reserve, gauge_x_fee_val);
+        let gauge_y_in = coin::extract(&mut pool.coin_y_reserve, gauge_y_fee_val);
+        gauge::deposit_fees<X, Y, LP>(pool_addr, gauge_x_in, gauge_y_in);
     }
 
     /// Compute and verify LP value after and before swap, in nutshell, _k function.

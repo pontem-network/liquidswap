@@ -393,12 +393,7 @@ module liquidswap::router {
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curve_type == STABLE_CURVE) {
-            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
-            let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
-                (coin_in_val_scaled / (fee_scale as u128)) + 1
-            } else {
-                coin_in_val_scaled / (fee_scale as u128)
-            };
+            let coin_in_val_after_fees = coin_in - math::mul_div(coin_in, fee_pct, fee_scale);
 
             (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),

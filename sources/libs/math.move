@@ -11,15 +11,15 @@ module liquidswap::math {
     const MAX_U64: u128 = 18446744073709551615;
 
     /// Maximum of u128 number.
-    const MAX_u128: u128 = 340282366920938463463374607431768211455;
+    const MAX_U128: u128 = 340282366920938463463374607431768211455;
 
     /// Adds two u128 and makes overflow possible.
     public fun overflow_add(a: u128, b: u128): u128 {
-        let r = MAX_u128 - b;
+        let r = MAX_U128 - b;
         if (r < a) {
             return a - r - 1
         };
-        r = MAX_u128 - a;
+        r = MAX_U128 - a;
         if (r < b) {
             return b - r - 1
         };

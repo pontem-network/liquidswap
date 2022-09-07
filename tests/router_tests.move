@@ -173,12 +173,12 @@ module liquidswap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) = router::add_liquidity<USDT, BTC, LP>(
-                pool_addr,
-                usdt_coins,
-                9000,
-                btc_coins,
-                102,
-            );
+            pool_addr,
+            usdt_coins,
+            9000,
+            btc_coins,
+            102,
+        );
 
         coin::deposit(pool_addr, coin_x);
         coin::deposit(pool_addr, coin_y);
@@ -201,12 +201,12 @@ module liquidswap::router_tests {
         let pool_addr = signer::address_of(&pool_owner);
 
         let (coin_y, coin_x, lp_coins) = router::add_liquidity<USDT, BTC, LP>(
-                pool_addr,
-                usdt_coins,
-                10000,
-                btc_coins,
-                101,
-            );
+            pool_addr,
+            usdt_coins,
+            10000,
+            btc_coins,
+            101,
+        );
 
         coin::deposit(pool_addr, coin_x);
         coin::deposit(pool_addr, coin_y);
@@ -524,7 +524,7 @@ module liquidswap::router_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=206)]
+    #[expected_failure(abort_code = 206)]
     fun test_swap_coin_for_exact_coin_router_check_fails(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1686,7 +1686,7 @@ module liquidswap::router_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=105)]
+    #[expected_failure(abort_code = 105)]
     fun test_swap_coin_for_coin_unchecked_fails(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1739,7 +1739,7 @@ module liquidswap::router_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=203)]
+    #[expected_failure(abort_code = 203)]
     fun test_calc_optimal_coin_values_1(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1787,7 +1787,7 @@ module liquidswap::router_tests {
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    #[expected_failure(abort_code=202)]
+    #[expected_failure(abort_code = 202)]
     fun test_calc_optimal_coin_values_4(coin_admin: signer, pool_owner: signer) {
         genesis::setup();
 
@@ -1807,6 +1807,4 @@ module liquidswap::router_tests {
 
         let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 0, 2800000000);
     }
-
-
 }

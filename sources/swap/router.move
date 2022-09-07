@@ -462,7 +462,7 @@ module liquidswap::router {
                 scale_in,
                 (reserve_out as u128),
                 (reserve_in as u128),
-                ) as u64) + 1;
+            ) as u64) + 1;
 
             (coin_in * fee_scale / fee_multiplier) + 1
         } else if (curve_type == UNCORRELATED_CURVE) {

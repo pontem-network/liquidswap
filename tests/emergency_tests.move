@@ -22,20 +22,20 @@ module liquidswap::emergency_tests {
     }
 
     #[test(emergency_acc = @0x13)]
-    #[expected_failure(abort_code=4000)]
+    #[expected_failure(abort_code = 4000)]
     public fun test_wrong_account_fails(emergency_acc: signer) {
         emergency::pause(&emergency_acc);
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     public fun test_emergency_second_time_fails(emergency_acc: signer) {
         emergency::pause(&emergency_acc);
         emergency::pause(&emergency_acc);
     }
 
     #[test(emergency_acc = @emergency_admin, tmp = @0x13)]
-    #[expected_failure(abort_code=4000)]
+    #[expected_failure(abort_code = 4000)]
     public fun test_resume_wrong_account_fails(emergency_acc: signer, tmp: signer) {
         emergency::pause(&emergency_acc);
         assert!(emergency::is_emergency() == true, 1);
@@ -43,13 +43,13 @@ module liquidswap::emergency_tests {
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4003)]
+    #[expected_failure(abort_code = 4003)]
     public fun test_resume_fails(emergency_acc: signer) {
         emergency::resume(&emergency_acc);
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4001)]
+    #[expected_failure(abort_code = 4001)]
     public fun test_emergency_assert_fails(emergency_acc: signer) {
         emergency::pause(&emergency_acc);
         emergency::assert_no_emergency();
@@ -84,7 +84,7 @@ module liquidswap::emergency_tests {
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4002)]
+    #[expected_failure(abort_code = 4002)]
     public fun test_resume_after_disable_fails(emergency_acc: signer) {
         emergency::pause(&emergency_acc);
         emergency::disable_forever(&emergency_acc);
@@ -92,21 +92,21 @@ module liquidswap::emergency_tests {
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4002)]
+    #[expected_failure(abort_code = 4002)]
     public fun test_pause_after_disable_fails(emergency_acc: signer) {
         emergency::disable_forever(&emergency_acc);
         emergency::pause(&emergency_acc);
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code=4002)]
+    #[expected_failure(abort_code = 4002)]
     public fun test_disable_fails(emergency_acc: signer) {
         emergency::disable_forever(&emergency_acc);
         emergency::disable_forever(&emergency_acc);
     }
 
     #[test(emergency_acc = @0x13)]
-    #[expected_failure(abort_code=4000)]
+    #[expected_failure(abort_code = 4000)]
     public fun test_disable_wrong_account_fails(emergency_acc: signer) {
         emergency::disable_forever(&emergency_acc);
     }

@@ -22,9 +22,13 @@ jobs:
         with:
           version: latest
           token: ${{ secrets.GITHUB_TOKEN }}
+          prover: true
 
       - name: Build
         run: aptos move compile
 
       - name: Test
         run: aptos move test
+
+      - name: Prove math.move
+        run: aptos move prove --filter math

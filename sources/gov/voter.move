@@ -50,6 +50,10 @@ module liquidswap::voter {
         });
     }
 
+    /// Vote for gauge with weight.
+    /// * `pool_addr` - pool owner address.
+    /// * `ve_nft` - reference to `VE_NFT`.
+    /// * `weight` - voting weight `VE_NFT` for gauge.
     public fun vote<X, Y, LP>(pool_addr: address, ve_nft: &VE_NFT, weight: u64) acquires Voter {
         assert!(exists<Voter>(@gov_admin), ERR_NOT_REGISTERED);
 
@@ -84,6 +88,10 @@ module liquidswap::voter {
         bribe::deposit<X, Y, LP>(pool_addr, ve_nft, votes);
     }
 
+    /// Claim bribe.
+    /// * `pool_addr` - pool owner address.
+    /// * `ve_nft` - reference to `VE_NFT`.
+    /// Returns both rewarded X and Y coins: `(Coin<X>, Coin<Y>)`.
     public fun claim_bribe<X, Y, LP>(pool_addr: address, ve_nft: &VE_NFT): (Coin<X>, Coin<Y>) {
         bribe::get_reward<X, Y, LP>(pool_addr, ve_nft)
     }

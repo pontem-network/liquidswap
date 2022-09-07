@@ -49,6 +49,7 @@ module liquidswap::bribe {
         config: BribeConfig,
     }
 
+    /// Register bribe when registering a liquidity pool.
     public(friend) fun register<X, Y, LP>(owner: &signer) {
         let now = timestamp::now_seconds();
         let bribe = Bribe<X, Y, LP> {
@@ -201,6 +202,7 @@ module liquidswap::bribe {
         }
     }
 
+    /// Add reward to bribe
     public fun notify_reward_amount<X, Y, LP>(
         pool_addr: address,
         coin_x: Coin<X>,
@@ -252,6 +254,7 @@ module liquidswap::bribe {
         coin_config.period_finish = now + WEEK;
     }
 
+    /// Claim reward from bribe
     public(friend) fun get_reward<X, Y, LP>(
         pool_addr: address,
         ve_nft: &VE_NFT

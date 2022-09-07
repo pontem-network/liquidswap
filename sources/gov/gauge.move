@@ -50,6 +50,7 @@ module liquidswap::gauge {
         y_fee: Coin<Y>,
     }
 
+    /// Register gauge when registering a liquidity pool.
     public(friend) fun register<X, Y, LP>(owner: &signer) {
         let t = timestamp::now_seconds() / WEEK * WEEK;
 
@@ -84,12 +85,18 @@ module liquidswap::gauge {
         move_to(owner, events_store);
     }
 
+    /// Deposit fees for each swap.
+    /// * `pool_addr` - pool owner address.
+    /// * `x_fee` - X coin fee.
+    /// * `y_fee` - Y coin fee.
     public(friend) fun deposit_fees<X, Y, LP>(pool_addr: address, x_fee: Coin<X>, y_fee: Coin<Y>) acquires Gauge {
         let gauge = borrow_global_mut<Gauge<X, Y, LP>>(pool_addr);
         coin::merge(&mut gauge.x_fee, x_fee);
         coin::merge(&mut gauge.y_fee, y_fee);
     }
 
+    /// Claim fees from gauge and transfer to bribe.
+    /// * `pool_addr` - pool owner address.
     public fun claim_voting_fees<X, Y, LP>(pool_addr: address) acquires Gauge, EventsStore {
         assert!(exists<Gauge<X, Y, LP>>(pool_addr), ERR_NOT_REGISTERED);
         claim_voting_fees_internal<X, Y, LP>(pool_addr);
@@ -179,6 +186,7 @@ module liquidswap::gauge {
         coin_out
     }
 
+    /// Claim reward from gauge
     public fun get_reward<X, Y, LP>(pool_addr: address, ve_nft: &VE_NFT): Coin<LAMM> acquires Gauge, EventsStore {
         assert!(exists<Gauge<X, Y, LP>>(pool_addr), ERR_NOT_REGISTERED);
         let gauge = borrow_global_mut<Gauge<X, Y, LP>>(pool_addr);
@@ -211,6 +219,7 @@ module liquidswap::gauge {
         coin_out
     }
 
+    /// Add reward to gauge
     public fun notify_reward_amount<X, Y, LP>(pool_addr: address, coin_in: Coin<LAMM>) acquires Gauge, EventsStore {
         assert!(exists<Gauge<X, Y, LP>>(pool_addr), ERR_NOT_REGISTERED);
         let gauge = borrow_global_mut<Gauge<X, Y, LP>>(pool_addr);

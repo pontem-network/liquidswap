@@ -62,7 +62,7 @@ module liquidswap::liquidity_pool {
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Current fee is 0.03%
+    /// Current fee is 0.3%
     const FEE_MULTIPLIER: u64 = 30;
 
     /// Denominator to handle decimal points for fees.
@@ -309,58 +309,18 @@ module liquidswap::liquidity_pool {
         let x_swapped = coin::extract(&mut pool.coin_x_reserve, x_out);
         let y_swapped = coin::extract(&mut pool.coin_y_reserve, y_out);
 
-        // Get new reserves.
-        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
-        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
-
-        // !!IMPORTANT!! TO !!!AUDITOR!!!
-        // Double check this part, as on previous lines we getting new reserves sizes,
-        // and on the next lines we are withdrawing part of funds to DAO Treasury from reserves, so reserves changed,
-        // but not updated in variable.
-        //
-        // So the Curve Math (compute_and_verify_lp_value) has really no idea we withdrew something already,
-        // means it still thinks we have that DAO Treasury percent in reserves, what seems doesn't break any logic
-        // and don't affect persons who swap tokens but affect LP providers. At least logic it was initially
-        // planned so.
-
-        let x_fee_val = math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE);
-        let y_fee_val = math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE);
-
-        // Split 33% of fee multiplier of provided coins to the DAOStorage
-        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
-        let dao_x_fee_val = x_fee_val / 3;
-        let dao_y_fee_val = y_fee_val / 3;
-
-        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
-        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
-        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
-
-        // Split 66% of fee multiplier of provided coins to the Bribe
-        let bribe_x_fee_val = x_fee_val - dao_x_fee_val;
-        let bribe_y_fee_val = y_fee_val - dao_y_fee_val;
-
-        let bribe_x_fee = coin::extract(&mut pool.coin_x_reserve, bribe_x_fee_val);
-        let bribe_y_fee = coin::extract(&mut pool.coin_y_reserve, bribe_y_fee_val);
-        gauge::deposit_fees<X, Y, LP>(pool_addr, bribe_x_fee, bribe_y_fee);
-
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
-        // and make sure lp_value doesn't decrease:
-        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
-        // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(x_reserve_size_new, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
-        } else {
-            ((x_reserve_size_new - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
-        };
-
-        let y_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(y_reserve_size_new, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
-        } else {
-            ((y_reserve_size_new - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
-        };
-
-        compute_and_verify_lp_value(
+        // and make sure lp_value doesn't decrease
+        let (x_res_new_after_fee, y_res_new_after_fee) =
+            new_reserves_after_fees_scaled(
+                coin::value(&pool.coin_x_reserve),
+                coin::value(&pool.coin_y_reserve),
+                x_in_val,
+                y_in_val,
+                pool.curve_type
+            );
+        assert_lp_value_is_increased(
             pool.x_scale,
             pool.y_scale,
             pool.curve_type,
@@ -369,6 +329,9 @@ module liquidswap::liquidity_pool {
             (x_res_new_after_fee as u128),
             (y_res_new_after_fee as u128),
         );
+
+        split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
+        split_two_thirds_of_fee_to_gauge(pool, pool_addr, x_in_val, y_in_val);
 
         update_oracle<X, Y, LP>(pool, pool_addr, x_reserve_size, y_reserve_size);
 
@@ -447,7 +410,7 @@ module liquidswap::liquidity_pool {
     ) acquires LiquidityPool {
         assert_no_emergency();
 
-        let Flashloan {pool_addr, x_loan, y_loan} = loan;
+        let Flashloan { pool_addr, x_loan, y_loan } = loan;
 
         assert!(exists<LiquidityPool<X, Y, LP>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
 
@@ -469,64 +432,110 @@ module liquidswap::liquidity_pool {
         coin::merge(&mut pool.coin_x_reserve, x_in);
         coin::merge(&mut pool.coin_y_reserve, y_in);
 
-        // Get new reserves.
-        let x_reserve_size_new = coin::value(&pool.coin_x_reserve);
-        let y_reserve_size_new = coin::value(&pool.coin_y_reserve);
-
-        // !!IMPORTANT!! TO !!!AUDITOR!!!
-        // This is the same logic as in swap, for flashloans, so would be good to double check it.
-
-        let x_fee_val = math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE);
-        let y_fee_val = math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE);
-
-        // Split 33% of fee multiplier of provided coins to the DAOStorage
-        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
-        let dao_x_fee_val = x_fee_val / 3;
-        let dao_y_fee_val = y_fee_val / 3;
-
-        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
-        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
-        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
-
-        // Split 66% of fee multiplier of provided coins to the Bribe
-        let bribe_x_fee_val = x_fee_val - dao_x_fee_val;
-        let bribe_y_fee_val = y_fee_val - dao_y_fee_val;
-
-        let bribe_x_fee = coin::extract(&mut pool.coin_x_reserve, bribe_x_fee_val);
-        let bribe_y_fee = coin::extract(&mut pool.coin_y_reserve, bribe_y_fee_val);
-        gauge::deposit_fees<X, Y, LP>(pool_addr, bribe_x_fee, bribe_y_fee);
-
         // Confirm that lp_value for the pool hasn't been reduced.
         // For that, we compute lp_value with old reserves and lp_value with reserves after swap is done,
-        // and make sure lp_value doesn't decrease:
-        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
-        // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(x_reserve_size_new, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
-        } else {
-            ((x_reserve_size_new - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
-        };
-
-        let y_res_new_after_fee = if (pool.curve_type == UNCORRELATED_CURVE) {
-            math::mul_to_u128(y_reserve_size_new, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
-        } else {
-            ((y_reserve_size_new - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
-        };
-
-        compute_and_verify_lp_value(
+        // and make sure lp_value doesn't decrease
+        let (x_res_new_after_fee, y_res_new_after_fee) =
+            new_reserves_after_fees_scaled(
+                coin::value(&pool.coin_x_reserve),
+                coin::value(&pool.coin_y_reserve),
+                x_in_val,
+                y_in_val,
+                pool.curve_type
+            );
+        assert_lp_value_is_increased(
             pool.x_scale,
             pool.y_scale,
             pool.curve_type,
             (x_reserve_size as u128),
             (y_reserve_size as u128),
-            (x_res_new_after_fee as u128),
-            (y_res_new_after_fee as u128),
+            x_res_new_after_fee,
+            y_res_new_after_fee,
         );
+        // third of all fees goes into DAO
+        split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
+        // two-thirds of all fees goes into gauge
+        split_two_thirds_of_fee_to_gauge(pool, pool_addr, x_in_val, y_in_val);
 
         // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
 
         // The pool will be unlocked after payment.
         pool.locked = false;
+    }
+
+    // Private functions.
+
+    /// Get reserves after fees.
+    /// * `x_reserve` - reserve X.
+    /// * `y_reserve` - reserve Y.
+    /// * `x_in_val` - amount of X coins added to reserves.
+    /// * `y_in_val` - amount of Y coins added to reserves.
+    /// Returns both X and Y reserves after fees.
+    fun new_reserves_after_fees_scaled(
+        x_reserve: u64,
+        y_reserve: u64,
+        x_in_val: u64,
+        y_in_val: u64,
+        curve_type: u8
+    ): (u128, u128) {
+        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
+        // (all of it scaled to 1000 to be able to achieve this math in integers)
+        let x_res_new_after_fee = if (curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
+        } else {
+            ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
+
+        let y_res_new_after_fee = if (curve_type == UNCORRELATED_CURVE) {
+            math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
+        } else {
+            ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        };
+        (x_res_new_after_fee, y_res_new_after_fee)
+    }
+
+    /// Depositing part of fees to DAO Storage.
+    /// * `pool` - pool to extract coins.
+    /// * `pool_addr` - address of pool.
+    /// * `x_in_val` - how much X coins was deposited to pool.
+    /// * `y_in_val` - how much Y coins was deposited to pool.
+    fun split_third_of_fee_to_dao<X, Y, LP>(
+        pool: &mut LiquidityPool<X, Y, LP>,
+        pool_addr: address,
+        x_in_val: u64,
+        y_in_val: u64
+    ) {
+        // Split 33% of fee multiplier of provided coins to the DAOStorage
+        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
+        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
+        let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
+        let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
+
+        let dao_x_in = coin::extract(&mut pool.coin_x_reserve, dao_x_fee_val);
+        let dao_y_in = coin::extract(&mut pool.coin_y_reserve, dao_y_fee_val);
+        dao_storage::deposit<X, Y, LP>(pool_addr, dao_x_in, dao_y_in);
+    }
+
+    /// Depositing part of fees to gauge.
+    /// * `pool` - pool to extract coins.
+    /// * `pool_addr` - address of pool.
+    /// * `x_in_val` - how much X coins was deposited to pool.
+    /// * `y_in_val` - how much Y coins was deposited to pool.
+    fun split_two_thirds_of_fee_to_gauge<X, Y, LP>(
+        pool: &mut LiquidityPool<X, Y, LP>,
+        pool_addr: address,
+        x_in_val: u64,
+        y_in_val: u64
+    ) {
+        // Split 66% of fee multiplier of provided coins to the gauge
+        // x_in_val * (fee / fee_scale), ie. for 0.2% it's (20 / 10000)
+        let gauge_fee_multiplier = 2 * FEE_MULTIPLIER / 3;
+        let gauge_x_fee_val = math::mul_div(x_in_val, gauge_fee_multiplier, FEE_SCALE);
+        let gauge_y_fee_val = math::mul_div(y_in_val, gauge_fee_multiplier, FEE_SCALE);
+
+        let gauge_x_in = coin::extract(&mut pool.coin_x_reserve, gauge_x_fee_val);
+        let gauge_y_in = coin::extract(&mut pool.coin_y_reserve, gauge_y_fee_val);
+        gauge::deposit_fees<X, Y, LP>(pool_addr, gauge_x_in, gauge_y_in);
     }
 
     /// Compute and verify LP value after and before swap, in nutshell, _k function.
@@ -538,7 +547,7 @@ module liquidswap::liquidity_pool {
     /// * `x_res_with_fees` - X reserves after swap.
     /// * `y_res_with_fees` - Y reserves after swap.
     /// Aborts if swap can't be done.
-    fun compute_and_verify_lp_value(
+    fun assert_lp_value_is_increased(
         x_scale: u64,
         y_scale: u64,
         curve_type: u8,
@@ -557,7 +566,7 @@ module liquidswap::liquidity_pool {
             let lp_value_before_swap = x_res * y_res;
             let lp_value_before_swap_u256 = u256::mul(
                 u256::from_u128(lp_value_before_swap),
-                u256::from_u128(100000000)
+                u256::from_u64(FEE_SCALE * FEE_SCALE)
             );
             let lp_value_after_swap_and_fee = u256::mul(
                 u256::from_u128(x_res_with_fees),
@@ -614,6 +623,8 @@ module liquidswap::liquidity_pool {
     fun assert_pool_locked<X, Y, LP>(pool_addr: address) acquires LiquidityPool {
         assert!(is_pool_locked<X, Y, LP>(pool_addr) == false, ERR_POOL_IS_LOCKED);
     }
+
+    // Getters.
 
     /// Check if pool is locked.
     /// * `pool_addr` - pool owner address.
@@ -755,7 +766,7 @@ module liquidswap::liquidity_pool {
         x_res_new: u128,
         y_res_new: u128,
     ) {
-        compute_and_verify_lp_value(
+        assert_lp_value_is_increased(
             x_scale,
             y_scale,
             curve_type,

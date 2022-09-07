@@ -1579,7 +1579,7 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&usdc_coins) == 9969, 0);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, LP>(pool_owner_addr);
-        assert!(y_res == 100996902, 1);
+        assert!(y_res == 100996903, 1);
         assert!(x_res == 990031, 2);
 
         coin::destroy_zero(zero);

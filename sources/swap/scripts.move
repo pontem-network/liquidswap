@@ -1,4 +1,4 @@
-/// The current module contains pre-deplopyed scripts for LiquidSwap.
+/// The current module contains pre-deplopyed scripts for Liquidswap.
 module liquidswap::scripts {
     use std::signer;
 

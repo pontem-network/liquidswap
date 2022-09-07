@@ -68,7 +68,7 @@ module liquidswap::coin_helper_tests {
         test_coins::register_coins(&coin_admin);
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name<BTC, USDT>();
-        assert!(lp_name == utf8(b"LiquidSwap LP"), 0);
+        assert!(lp_name == utf8(b"Liquidswap LP"), 0);
         assert!(lp_symbol == utf8(b"LP-BTC-USDT"), 1);
     }
 }

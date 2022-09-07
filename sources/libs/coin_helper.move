@@ -59,6 +59,6 @@ module liquidswap::coin_helper {
         vector::push_back(&mut symbol, 0x2d);
         vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
 
-        (string::utf8(b"LiquidSwap LP"), string::utf8(symbol))
+        (string::utf8(b"Liquidswap LP"), string::utf8(symbol))
     }
 }

@@ -29,7 +29,7 @@ module liquidswap::liquidity_pool_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let pool_curve_type = 2;
-        let pool_lp_name = utf8(b"LiquidSwap LP");
+        let pool_lp_name = utf8(b"Liquidswap LP");
         let pool_lp_symbol = utf8(b"LP-BTC-USDT");
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -81,7 +81,7 @@ module liquidswap::liquidity_pool_tests {
         test_coins::register_coins(&coin_admin);
 
         let pool_curve_type = 2;
-        let pool_lp_name = utf8(b"LiquidSwap LP");
+        let pool_lp_name = utf8(b"Liquidswap LP");
         let pool_lp_symbol = utf8(b"LP-BTC-USDT");
 
         emergency::pause(&emergency_acc);
@@ -104,7 +104,7 @@ module liquidswap::liquidity_pool_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let pool_curve_type = 1;
-        let pool_lp_name = utf8(b"LiquidSwap LP");
+        let pool_lp_name = utf8(b"Liquidswap LP");
         let pool_lp_symbol = utf8(b"LP-BTC-USDT");
 
         liquidity_pool::register<BTC, USDT, LP>(
@@ -156,7 +156,7 @@ module liquidswap::liquidity_pool_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -178,7 +178,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -196,7 +196,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -215,7 +215,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -233,14 +233,14 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -258,7 +258,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             0
         );
@@ -276,7 +276,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             3
         );
@@ -294,7 +294,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -340,7 +340,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -371,7 +371,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -401,7 +401,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -440,7 +440,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -472,7 +472,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -542,7 +542,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -578,7 +578,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -620,7 +620,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -685,7 +685,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -725,7 +725,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -765,7 +765,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -809,7 +809,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -849,7 +849,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -887,7 +887,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -961,7 +961,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1001,7 +1001,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1038,7 +1038,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1082,7 +1082,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1121,7 +1121,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1168,7 +1168,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1215,7 +1215,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1253,7 +1253,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1295,7 +1295,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1337,7 +1337,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1379,7 +1379,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1421,7 +1421,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1464,7 +1464,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1507,7 +1507,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1549,7 +1549,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1591,7 +1591,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1638,7 +1638,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1684,7 +1684,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1723,7 +1723,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<USDC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-USDC-USDT"),
             1
         );
@@ -1768,7 +1768,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1790,7 +1790,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1811,7 +1811,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1831,7 +1831,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -1855,7 +1855,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );
@@ -2005,7 +2005,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, LP>(
             &pool_owner,
-            utf8(b"LiquidSwap LP"),
+            utf8(b"Liquidswap LP"),
             utf8(b"LP-BTC-USDT"),
             2
         );

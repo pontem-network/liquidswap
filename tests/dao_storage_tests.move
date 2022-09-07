@@ -20,9 +20,9 @@ module liquidswap::dao_storage_tests {
 
         create_account(&pool_owner);
 
-        dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
+        dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
-        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
+        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT>(signer::address_of(&pool_owner));
         assert!(x_val == 0, 0);
         assert!(y_val == 0, 1);
     }
@@ -40,13 +40,13 @@ module liquidswap::dao_storage_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
-        dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
-        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
+        dao_storage::register_for_test<BTC, USDT>(&pool_owner);
+        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT>(signer::address_of(&pool_owner));
         assert!(x_val == 0, 0);
         assert!(y_val == 0, 1);
 
-        dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-        (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
+        dao_storage::deposit_for_test<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
+        (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT>(signer::address_of(&pool_owner));
         assert!(x_val == 100000000, 2);
         assert!(y_val == 1000000, 3);
     }
@@ -65,7 +65,7 @@ module liquidswap::dao_storage_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
-        dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        dao_storage::deposit_for_test<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
     }
 
     #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner, dao_admin_acc = @dao_admin)]
@@ -82,15 +82,15 @@ module liquidswap::dao_storage_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
-        dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
-        dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        dao_storage::register_for_test<BTC, USDT>(&pool_owner);
+        dao_storage::deposit_for_test<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
+            dao_storage::withdraw<BTC, USDT>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
         assert!(coin::value(&x) == 100000000, 0);
         assert!(coin::value(&y) == 0, 1);
 
-        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT, LP>(signer::address_of(&pool_owner));
+        let (x_val, y_val) = dao_storage::get_storage_size<BTC, USDT>(signer::address_of(&pool_owner));
         assert!(x_val == 0, 2);
         assert!(y_val == 1000000, 3);
 
@@ -113,11 +113,11 @@ module liquidswap::dao_storage_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
-        dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
-        dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        dao_storage::register_for_test<BTC, USDT>(&pool_owner);
+        dao_storage::deposit_for_test<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 200000000, 0);
+            dao_storage::withdraw<BTC, USDT>(&dao_admin_acc, pool_owner_addr, 200000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
@@ -138,11 +138,11 @@ module liquidswap::dao_storage_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1000000);
 
-        dao_storage::register_for_test<BTC, USDT, LP>(&pool_owner);
-        dao_storage::deposit_for_test<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+        dao_storage::register_for_test<BTC, USDT>(&pool_owner);
+        dao_storage::deposit_for_test<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
+            dao_storage::withdraw<BTC, USDT>(&dao_admin_acc, pool_owner_addr, 100000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
@@ -163,35 +163,35 @@ module liquidswap::dao_storage_tests {
         test_coins::register_coins(&coin_admin);
 
         // 0.3% fee
-        router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
+        router::register_pool<BTC, USDT>(&pool_owner, 2);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000);
 
         let lp_coins =
-            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
+            liquidity_pool::mint<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
         coin::register<LP>(&pool_owner);
         coin::deposit(pool_owner_addr, lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<BTC, USDT, LP>(
+            liquidity_pool::swap<BTC, USDT>(
                 pool_owner_addr,
                 btc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 960
             );
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 100999, 2);
         assert!(y_res == 99040, 3);
 
-        let (dao_x, dao_y) = dao_storage::get_storage_size<BTC, USDT, LP>(pool_owner_addr);
+        let (dao_x, dao_y) = dao_storage::get_storage_size<BTC, USDT>(pool_owner_addr);
         assert!(dao_x == 1, 4);
         assert!(dao_y == 0, 5);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, LP>(&dao_admin_acc, pool_owner_addr, 1, 0);
+            dao_storage::withdraw<BTC, USDT>(&dao_admin_acc, pool_owner_addr, 1, 0);
         assert!(coin::value(&x) == 1, 6);
         assert!(coin::value(&y) == 0, 7);
 

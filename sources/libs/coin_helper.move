@@ -1,13 +1,11 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module liquidswap::coin_helper {
-    use std::bcs;
-    use std::string::{Self, String, bytes};
     use std::option;
+    use std::string::{Self, String, bytes};
     use std::vector;
 
     use aptos_framework::coin;
-
-    use liquidswap::compare;
+    use aptos_std::comparator::{Self, Result};
 
     // Errors codes.
 
@@ -33,18 +31,18 @@ module liquidswap::coin_helper {
 
     /// Compare two coins, `X` and `Y`, using names.
     /// Caller should call this function to determine the order of A, B.
-    public fun compare<X, Y>(): u8 {
-        let x_bytes = bcs::to_bytes<String>(&coin::symbol<X>());
-        let y_bytes = bcs::to_bytes<String>(&coin::symbol<Y>());
-        compare::cmp_bcs_bytes(&x_bytes, &y_bytes)
+    public fun compare<X, Y>(): Result {
+        let x_symbol = coin::symbol<X>();
+        let y_symbol = coin::symbol<Y>();
+        comparator::compare(&x_symbol, &y_symbol)
     }
 
     /// Check that coins generics `X`, `Y` are sorted in correct ordering.
     /// X != Y && X.symbol < Y.symbol
     public fun is_sorted<X, Y>(): bool {
         let order = compare<X, Y>();
-        assert!(order != EQUAL, ERR_CANNOT_BE_THE_SAME_COIN);
-        order == LESS_THAN
+        assert!(!comparator::is_equal(&order), ERR_CANNOT_BE_THE_SAME_COIN);
+        comparator::is_smaller_than(&order)
     }
 
     /// Get supply for `CoinType`.

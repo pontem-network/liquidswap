@@ -70,11 +70,16 @@ module liquidswap::math {
     public fun pow_10(degree: u8): u64 {
         let res = 1;
         let i = 0;
-        while (i < degree) {
+        while ({
+            spec {
+                invariant res == spec_pow(10, i);
+                invariant 0 <= i && i <= degree;
+            };
+            i < degree
+        }) {
             res = res * 10;
             i = i + 1;
         };
-
         res
     }
 }

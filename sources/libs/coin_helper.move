@@ -6,6 +6,7 @@ module liquidswap::coin_helper {
 
     use aptos_framework::coin;
     use aptos_std::comparator::{Self, Result};
+    use aptos_std::type_info;
 
     // Errors codes.
 
@@ -32,9 +33,9 @@ module liquidswap::coin_helper {
     /// Compare two coins, `X` and `Y`, using names.
     /// Caller should call this function to determine the order of A, B.
     public fun compare<X, Y>(): Result {
-        let x_symbol = coin::symbol<X>();
-        let y_symbol = coin::symbol<Y>();
-        comparator::compare(&x_symbol, &y_symbol)
+        let x_type = type_info::type_name<X>();
+        let y_type = type_info::type_name<Y>();
+        comparator::compare(&x_type, &y_type)
     }
 
     /// Check that coins generics `X`, `Y` are sorted in correct ordering.

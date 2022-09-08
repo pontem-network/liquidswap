@@ -25,4 +25,16 @@ spec liquidswap::math {
     spec mul_to_u128 {
         ensures result == x * y;
     }
+
+    spec fun spec_pow(y: u64, x: u64): u64 {
+        if (x == 0) {
+            1
+        } else {
+            y * spec_pow(y, x-1)
+        }
+    }
+    spec pow_10 {
+        ensures degree == 0 ==> result == 1;
+        ensures result == spec_pow(10, degree);
+    }
 }

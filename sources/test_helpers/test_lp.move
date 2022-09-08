@@ -3,6 +3,9 @@ module test_pool_owner::test_lp {
     use std::string::utf8;
 
     use aptos_framework::coin::{Self, MintCapability, BurnCapability};
+    use aptos_framework::account;
+    use aptos_framework::genesis;
+    use test_coin_admin::test_coins;
 
     struct LP {}
 
@@ -31,5 +34,17 @@ module test_pool_owner::test_lp {
         coin::destroy_freeze_cap(freeze_cap);
 
         move_to(pool_owner, Capabilities<LP> { mint_cap, burn_cap });
+    }
+
+    public fun create_pool_owner(): signer {
+        let pool_owner = account::create_account_for_test(@test_pool_owner);
+        pool_owner
+    }
+
+    public fun setup_coins_and_pool_owner(): (signer, signer) {
+        genesis::setup();
+        let coin_admin = test_coins::create_admin_with_coins();
+        let pool_owner = create_pool_owner();
+        (coin_admin, pool_owner)
     }
 }

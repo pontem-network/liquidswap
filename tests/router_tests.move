@@ -3,58 +3,54 @@ module liquidswap::router_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use aptos_framework::genesis;
     use aptos_framework::timestamp;
 
     use liquidswap::liquidity_pool;
     use liquidswap::router;
-
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_pool_owner::test_lp::LP;
-    use test_helpers::test_account::create_account;
+    use test_pool_owner::test_lp::{Self, LP};
 
     const MAX_U64: u64 = 18446744073709551615;
 
-    fun register_pool_with_liquidity(coin_admin: &signer,
-                                     pool_owner: &signer,
-                                     x_val: u64, y_val: u64) {
-        router::register_pool<BTC, USDT, LP>(pool_owner, 2);
+    fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
+        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        
+        router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
 
-        let pool_owner_addr = signer::address_of(pool_owner);
+        let pool_owner_addr = signer::address_of(&pool_owner);
         if (x_val != 0 && y_val != 0) {
-            let btc_coins = test_coins::mint<BTC>(coin_admin, x_val);
-            let usdt_coins = test_coins::mint<USDT>(coin_admin, y_val);
+            let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
+            let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
                 liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-            coin::register<LP>(pool_owner);
+            coin::register<LP>(&pool_owner);
             coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
+
+        (coin_admin, pool_owner)
     }
 
-    fun register_stable_pool_with_liquidity(coin_admin: &signer, pool_owner: &signer, x_val: u64, y_val: u64) {
-        router::register_pool<USDC, USDT, LP>(pool_owner, 1);
+    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
+        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let pool_owner_addr = signer::address_of(pool_owner);
+        router::register_pool<USDC, USDT, LP>(&pool_owner, 1);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
         if (x_val != 0 && y_val != 0) {
-            let usdc_coins = test_coins::mint<USDC>(coin_admin, x_val);
-            let usdt_coins = test_coins::mint<USDT>(coin_admin, y_val);
+            let usdc_coins = test_coins::mint<USDC>(&coin_admin, x_val);
+            let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
                 liquidity_pool::mint<USDC, USDT, LP>(pool_owner_addr, usdc_coins, usdt_coins);
-            coin::register<LP>(pool_owner);
+            coin::register<LP>(&pool_owner);
             coin::deposit<LP>(pool_owner_addr, lp_coins);
         };
+
+        (coin_admin, pool_owner)
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_initial_liquidity(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+    #[test]
+    fun test_add_initial_liquidity() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint(&coin_admin, 10100);
@@ -83,16 +79,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_liquidity_to_pool(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_add_liquidity_to_pool() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
@@ -120,16 +109,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_add_liquidity_to_pool_reverse(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_add_liquidity_to_pool_reverse() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
@@ -157,16 +139,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 202)]
-    fun test_add_liquidity_to_fail_with_insufficient_y_coins(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-        test_coins::register_coins(&coin_admin);
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+    fun test_add_liquidity_to_fail_with_insufficient_y_coins() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
@@ -185,16 +161,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 203)]
-    fun test_add_liquidity_to_fail_with_insufficient_x_coins(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 0, 0);
+    fun test_add_liquidity_to_fail_with_insufficient_x_coins() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
@@ -213,16 +183,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, lp_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_remove_liquidity(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_remove_liquidity() {
+        let (_, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         let pool_addr = signer::address_of(&pool_owner);
@@ -249,17 +212,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 205)]
-    fun test_remove_liquidity_to_fail_if_less_than_minimum_x(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_x() {
+        let (_, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         let pool_addr = signer::address_of(&pool_owner);
@@ -276,17 +232,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 205)]
-    fun test_remove_liquidity_to_fail_if_less_than_minimum_y(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_remove_liquidity_to_fail_if_less_than_minimum_y() {
+        let (_, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         let pool_addr = signer::address_of(&pool_owner);
@@ -303,16 +252,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_addr, coin_y);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_exact_coin_for_coin() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_swap_val = 1;
@@ -329,16 +271,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 1230000000, 147600000000);
+    #[test]
+    fun test_swap_exact_coin_for_coin_1() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(1230000000, 147600000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_to_swap_val = 572123800;
@@ -356,16 +291,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+    #[test]
+    fun test_swap_exact_coin_for_coin_2() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_to_swap_val = 257817560;
@@ -383,16 +311,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_exact_coin_for_coin_reverse(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_exact_coin_for_coin_reverse() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 110);
@@ -407,17 +328,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, btc_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 205)]
-    fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_swap_val = 1;
@@ -433,16 +347,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_coin_for_exact_coin() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
@@ -461,16 +368,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 50000000000, 13500000000000);
+    #[test]
+    fun test_swap_coin_for_exact_coin_1() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(50000000000, 13500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -492,16 +392,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+    #[test]
+    fun test_swap_coin_for_exact_coin_2() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_to_get = 185200481;
@@ -523,17 +416,10 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 206)]
-    fun test_swap_coin_for_exact_coin_router_check_fails(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+    fun test_swap_coin_for_exact_coin_router_check_fails() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_to_swap_val = 100000000;
@@ -554,16 +440,9 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_exact_coin_reverse(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_coin_for_exact_coin_reverse() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 1114);
@@ -582,17 +461,10 @@ module liquidswap::router_tests {
         coin::destroy_zero(remainder);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 205)]
-    fun test_fail_if_price_fell_behind_threshold(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_fail_if_price_fell_behind_threshold() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coin_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
@@ -608,17 +480,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 104)]
-    fun test_fail_if_swap_zero_coin(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_fail_if_swap_zero_coin() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 0);
@@ -634,16 +499,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_returned_usdt_proportially_decrease_for_big_swaps(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_returned_usdt_proportially_decrease_for_big_swaps() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 200);
@@ -665,14 +523,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_pool_exists(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
+    #[test]
+    fun test_pool_exists() {
+        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
         router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
 
@@ -680,15 +533,9 @@ module liquidswap::router_tests {
         assert!(router::pool_exists_at<USDT, BTC, LP>(signer::address_of(&pool_owner)), 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_cumulative_prices_after_swaps(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_cumulative_prices_after_swaps() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
         coin::register<USDT>(&pool_owner);
 
         let pool_addr = signer::address_of(&pool_owner);
@@ -735,15 +582,9 @@ module liquidswap::router_tests {
         assert!(last_timestamp == 4, 8);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_swap_exact() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -766,15 +607,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_1(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&aptos_framework);
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_swap_exact_1() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -796,15 +631,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_2(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&aptos_framework);
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_swap_exact_2() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -826,15 +655,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(aptos_framework = @aptos_framework, coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_3(aptos_framework: signer, coin_admin: signer, pool_owner: signer) {
-        timestamp::set_time_has_started_for_testing(&aptos_framework);
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 2930000000000, 293000000000000);
+    #[test]
+    fun test_stable_curve_swap_exact_3() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -856,15 +679,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_vice_versa(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_swap_exact_vice_versa() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -886,15 +703,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_swap_exact_vice_versa_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_swap_exact_vice_versa_1() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -915,15 +726,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_exact_swap() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -949,15 +754,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdc_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_versa(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_exact_swap_vice_versa() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -983,285 +782,171 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_in() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, 67279092);
         assert!(amount_in == 674816, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10828583259, 2764800200409);
+    #[test]
+    fun test_get_amount_in() {
+        let (_, pool_owner) = register_pool_with_liquidity(10828583259, 2764800200409);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDT, BTC, LP>(pool_owner_addr, 158202011);
         assert!(amount_in == 41115034299, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10828583259, 2764800200409);
+    #[test]
+    fun test_get_amount_in_1() {
+        let (_, pool_owner) = register_pool_with_liquidity(10828583259, 2764800200409);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<BTC, USDT, LP>(pool_owner_addr, 28253021000);
         assert!(amount_in == 112134290, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_in_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10828583259, 2764800200409);
+    #[test]
+    fun test_get_amount_in_2() {
+        let (_, pool_owner) = register_pool_with_liquidity(10828583259, 2764800200409);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDT, BTC, LP>(pool_owner_addr, 1);
         assert!(amount_in == 257, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 20000000000, 1000000000000);
+    #[test]
+    fun test_stable_get_amount_in_1() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(20000000000, 1000000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, 67279092);
         assert!(amount_in == 726737, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_in_2() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDC, USDT, LP>(pool_owner_addr, 15000);
         assert!(amount_in == 152, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_3(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_in_3() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDT, USDC, LP>(pool_owner_addr, 158282982);
         assert!(amount_in == 15875935305, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_4(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_in_4() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDT, USDC, LP>(pool_owner_addr, 1);
         assert!(amount_in == 102, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_in_5(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 2930000000000, 293000000000000);
+    #[test]
+    fun test_stable_get_amount_in_5() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_in = router::get_amount_in<USDT, USDC, LP>(pool_owner_addr, 57212828231);
         assert!(amount_in == 5738519680397, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_out() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDC, USDT, LP>(pool_owner_addr, 674816);
         assert!(amount_out == 67279199, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 18000000000, 4680000000000);
+    #[test]
+    fun test_get_amount_out() {
+        let (_, pool_owner) = register_pool_with_liquidity(18000000000, 4680000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDT, BTC, LP>(pool_owner_addr, 1500000000);
         assert!(amount_out == 5750085, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 18000000000, 4680000000000);
+    #[test]
+    fun test_get_amount_out_1() {
+        let (_, pool_owner) = register_pool_with_liquidity(18000000000, 4680000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<BTC, USDT, LP>(pool_owner_addr, 100000000);
         assert!(amount_out == 25779211810, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_amount_out_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 18000000000, 4680000000000);
+    #[test]
+    fun test_get_amount_out_2() {
+        let (_, pool_owner) = register_pool_with_liquidity(18000000000, 4680000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<BTC, USDT, LP>(pool_owner_addr, 1);
         assert!(amount_out == 259, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 25000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_out_1() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(25000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDC, USDT, LP>(pool_owner_addr, 323859);
         assert!(amount_out == 31295205, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_out_2() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDC, USDT, LP>(pool_owner_addr, 58201);
         assert!(amount_out == 5802699, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_3(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_out_3() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDT, USDC, LP>(pool_owner_addr, 15000);
         assert!(amount_out == 149, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_4(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_get_amount_out_4() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDT, USDC, LP>(pool_owner_addr, 1);
         assert!(amount_out == 0, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_get_amount_out_5(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 2930000000000, 293000000000000);
+    #[test]
+    fun test_stable_get_amount_out_5() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let amount_out = router::get_amount_out<USDT, USDC, LP>(pool_owner_addr, 572123482812);
         assert!(amount_out == 5704071102, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_vera_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_exact_swap_vice_vera_1() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -1287,15 +972,9 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_swapped);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_curve_exact_swap_vice_versa_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_stable_curve_exact_swap_vice_versa_2() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -1351,48 +1030,27 @@ module liquidswap::router_tests {
         router::convert_with_current_price(1, 1, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_curve_type_stables(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_get_curve_type_stables() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         assert!(router::get_curve_type<USDC, USDT, LP>(pool_owner_address) == 1, 0);
         assert!(router::get_curve_type<USDT, USDC, LP>(pool_owner_address) == 1, 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_curve_type_uncorrelated(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_get_curve_type_uncorrelated() {
+        let (_, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         assert!(router::get_curve_type<BTC, USDT, LP>(pool_owner_address) == 2, 0);
         assert!(router::get_curve_type<USDT, BTC, LP>(pool_owner_address) == 2, 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_decimals_scales_stables(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 15000000000, 1500000000000);
+    #[test]
+    fun test_get_decimals_scales_stables() {
+        let (_, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         let (x, y) = router::get_decimals_scales<USDC, USDT, LP>(pool_owner_address);
@@ -1403,16 +1061,9 @@ module liquidswap::router_tests {
         assert!(y == 1000000, 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_get_decimals_scales_uncorrelated(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_get_decimals_scales_uncorrelated() {
+        let (_, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_address = signer::address_of(&pool_owner);
         let (x, y) = router::get_decimals_scales<BTC, USDT, LP>(pool_owner_address);
@@ -1422,16 +1073,9 @@ module liquidswap::router_tests {
     }
 
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_coin_for_coin_unchecked() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins_swap_val = 1;
@@ -1448,16 +1092,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_swap_coin_for_coin_unchecked(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 150000000, 15000000000);
+    #[test]
+    fun test_stable_swap_coin_for_coin_unchecked() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdc_coins_swap_val = 100;
@@ -1474,16 +1111,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_stable_swap_coin_for_coin_unchecked_reverse(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 150000000, 15000000000);
+    #[test]
+    fun test_stable_swap_coin_for_coin_unchecked_reverse() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_to_swap_val = 10000;
@@ -1500,16 +1130,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_reverse(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    #[test]
+    fun test_swap_coin_for_coin_unchecked_reverse() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 110);
@@ -1524,16 +1147,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, btc_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 1230000000, 147600000000);
+    #[test]
+    fun test_swap_coin_for_coin_unchecked_1() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(1230000000, 147600000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_to_swap_val = 572123800;
@@ -1551,16 +1167,9 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_swap_coin_for_coin_unchecked_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+    #[test]
+    fun test_swap_coin_for_coin_unchecked_2() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_to_swap_val = 257817560;
@@ -1578,17 +1187,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 105)]
-    fun test_fail_if_price_fell_behind_threshold_unchecked(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 101, 10100);
+    fun test_fail_if_price_fell_behind_threshold_unchecked() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(101, 10100);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coin_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
@@ -1604,17 +1206,10 @@ module liquidswap::router_tests {
         coin::deposit(pool_owner_addr, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 150000000, 15000000000);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdc_coins_swap_val = 100;
@@ -1631,17 +1226,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 150000000, 15000000000);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdc_coins_swap_val = 999999;
@@ -1658,17 +1246,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 105)]
-    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_stable_pool_with_liquidity(&coin_admin, &pool_owner, 150000000, 15000000000);
+    fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdc_coins_to_get = 999999;
@@ -1685,17 +1266,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdc_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 105)]
-    fun test_swap_coin_for_coin_unchecked_fails(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+    fun test_swap_coin_for_coin_unchecked_fails() {
+        let (coin_admin, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let usdt_to_swap_val = 257817560;
@@ -1713,17 +1287,10 @@ module liquidswap::router_tests {
         test_coins::burn(&coin_admin, usdt_coins);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_calc_optimal_coin_values(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
+    #[test]
+    fun test_calc_optimal_coin_values() {
         // 100 BTC, 2,800,000 USDT
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+        let (_, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
@@ -1738,18 +1305,11 @@ module liquidswap::router_tests {
         assert!(y_value == y_desired, 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 203)]
-    fun test_calc_optimal_coin_values_1(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
+    fun test_calc_optimal_coin_values_1() {
         // 100 BTC, 2,800,000 USDT
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 2800000000000);
+        let (_, pool_owner) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
@@ -1760,17 +1320,10 @@ module liquidswap::router_tests {
         let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, LP>(pool_owner_address, x_desired, y_desired, 5000000000, 0);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
-    fun test_calc_optimal_coin_values_3(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
+    #[test]
+    fun test_calc_optimal_coin_values_3() {
         // 100 BTC, 28000 USDT
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
+        let (_, pool_owner) = register_pool_with_liquidity(10000000000, 28000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 
@@ -1786,18 +1339,11 @@ module liquidswap::router_tests {
         assert!(y_value == x_desired * y_res / x_res, 1);
     }
 
-    #[test(coin_admin = @test_coin_admin, pool_owner = @test_pool_owner)]
+    #[test]
     #[expected_failure(abort_code = 202)]
-    fun test_calc_optimal_coin_values_4(coin_admin: signer, pool_owner: signer) {
-        genesis::setup();
-
-        create_account(&coin_admin);
-        create_account(&pool_owner);
-
-        test_coins::register_coins(&coin_admin);
-
+    fun test_calc_optimal_coin_values_4() {
         // 100 BTC, 28000 USDT
-        register_pool_with_liquidity(&coin_admin, &pool_owner, 10000000000, 28000000000);
+        let (_, pool_owner) = register_pool_with_liquidity(10000000000, 28000000000);
 
         let pool_owner_address = signer::address_of(&pool_owner);
 

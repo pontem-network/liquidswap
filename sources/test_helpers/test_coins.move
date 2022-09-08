@@ -4,6 +4,7 @@ module test_coin_admin::test_coins {
     use std::signer;
 
     use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability};
+    use aptos_framework::account;
 
     struct BTC {}
 
@@ -31,6 +32,16 @@ module test_coin_admin::test_coins {
             mint_cap,
             burn_cap,
         });
+    }
+
+    public fun create_coin_admin(): signer {
+        account::create_account_for_test(@test_coin_admin)
+    }
+
+    public fun create_admin_with_coins(): signer {
+        let coin_admin = create_coin_admin();
+        register_coins(&coin_admin);
+        coin_admin
     }
 
     // Register all known coins in one func.

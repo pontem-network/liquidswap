@@ -41,6 +41,12 @@ module test_pool_owner::test_lp {
         pool_owner
     }
 
+    public fun create_coin_admin_and_pool_owner(): (signer, signer) {
+        let coin_admin = test_coins::create_coin_admin();
+        let pool_owner = create_pool_owner();
+        (coin_admin, pool_owner)
+    }
+
     public fun setup_coins_and_pool_owner(): (signer, signer) {
         genesis::setup();
         let coin_admin = test_coins::create_admin_with_coins();

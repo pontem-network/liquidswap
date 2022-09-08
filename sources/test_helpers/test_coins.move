@@ -34,8 +34,12 @@ module test_coin_admin::test_coins {
         });
     }
 
+    public fun create_coin_admin(): signer {
+        account::create_account_for_test(@test_coin_admin)
+    }
+
     public fun create_admin_with_coins(): signer {
-        let coin_admin = account::create_account_for_test(@test_coin_admin);
+        let coin_admin = create_coin_admin();
         register_coins(&coin_admin);
         coin_admin
     }

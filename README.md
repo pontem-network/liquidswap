@@ -25,7 +25,7 @@ rev = 'v0.2.7'
 
 [dependencies.LiquidswapLP]
 git = 'https://github.com/pontem-network/liquidswap-lp.git'
-rev = 'v0.4.7'
+rev = 'v0.4.11'
 ```
 
 And use in code:

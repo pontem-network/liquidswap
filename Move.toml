@@ -14,23 +14,23 @@ test_helpers = "0x12"
 
 [dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
+rev = "cfa664ce072cfc5346aae82ce0f52bb35e5ab3f8"
 subdir = "aptos-move/framework/move-stdlib"
 
 [dependencies.AptosStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
+rev = "cfa664ce072cfc5346aae82ce0f52bb35e5ab3f8"
 subdir = "aptos-move/framework/aptos-stdlib"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "f18cc2cac521b2a2eae5a5f08f1b787f61a2279d"
+rev = "cfa664ce072cfc5346aae82ce0f52bb35e5ab3f8"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.3.5"
+rev = "v0.3.6"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.3.5"
+rev = "v0.3.6"

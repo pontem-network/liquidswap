@@ -1,5 +1,5 @@
 #[test_only]
-module test_pool_owner::test_pool {
+module test_helpers::test_pool {
     use aptos_framework::account;
     use aptos_framework::genesis;
 
@@ -18,13 +18,13 @@ module test_pool_owner::test_pool {
         admin
     }
 
-    public fun create_coin_admin_and_pool_owner(): (signer, signer) {
+    public fun create_coin_admin_and_lp_owner(): (signer, signer) {
         let coin_admin = test_coins::create_coin_admin();
         let pool_owner = create_pool_owner();
         (coin_admin, pool_owner)
     }
 
-    public fun setup_coins_and_pool_owner(): (signer, signer) {
+    public fun setup_coins_and_lp_owner(): (signer, signer) {
         genesis::setup();
 
         let liquidswap_admin = account::create_account_for_test(@liquidswap);

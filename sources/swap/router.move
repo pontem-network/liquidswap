@@ -43,11 +43,11 @@ module liquidswap::router {
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
-    public fun register_pool<X, Y>(account: &signer, curve_type: u8) {
+    public fun register_pool<X, Y>(account: &signer, curve_type: u8): address {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
-        liquidity_pool::register<X, Y>(account, lp_name, lp_symbol, curve_type);
+        liquidity_pool::register<X, Y>(account, lp_name, lp_symbol, curve_type)
     }
 
     /// Add liquidity to pool `X`/`Y` with rationality checks.

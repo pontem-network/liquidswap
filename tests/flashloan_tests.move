@@ -8,21 +8,22 @@ module liquidswap::flashloan_tests {
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC};
-    use test_pool_owner::test_lp::{Self, LP};
+    use test_pool_owner::test_lp;
+    use lp_coin_account::lp_coin::LP;
 
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
         let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        router::register_pool<BTC, USDT, LP>(&pool_owner, 2);
+        router::register_pool<BTC, USDT>(&pool_owner, 2);
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         if (x_val != 0 && y_val != 0) {
             let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
             let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
-                liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins, usdt_coins);
-            coin::register<LP>(&pool_owner);
-            coin::deposit<LP>(pool_owner_addr, lp_coins);
+                liquidity_pool::mint<BTC, USDT>(pool_owner_addr, btc_coins, usdt_coins);
+            coin::register<LP<BTC, USDT>>(&pool_owner);
+            coin::deposit<LP<BTC, USDT>>(pool_owner_addr, lp_coins);
         };
 
         (coin_admin, pool_owner)
@@ -35,7 +36,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
@@ -44,7 +45,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 100999000, 2);
         assert!(y_res == 27723595751, 3);
     }
@@ -56,7 +57,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 270);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 270);
         assert!(coin::value(&usdt_coins) == 270, 1);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1);
@@ -65,7 +66,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 100999001, 2);
         assert!(y_res == 27723595481, 3);
     }
@@ -77,7 +78,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (btc_coins, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 100999001, 27723595481);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 100999001, 27723595481);
         assert!(coin::value(&btc_coins) == 100999001, 1);
         assert!(coin::value(&usdt_coins) == 27723595481, 2);
 
@@ -87,7 +88,7 @@ module liquidswap::flashloan_tests {
         coin::merge(&mut usdt_coins, usdt_coins_to_add);
         liquidity_pool::pay_flashloan(btc_coins, usdt_coins, loan);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 101201608, 3);
         assert!(y_res == 27779209515, 4);
     }
@@ -99,7 +100,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 90);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 90);
         assert!(coin::value(&usdt_coins) == 90, 1);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100);
@@ -108,7 +109,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 1101, 2);
         assert!(y_res == 911, 3);
     }
@@ -120,7 +121,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 1);
         assert!(coin::value(&usdt_coins) == 1, 1);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -129,7 +130,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 1103, 2);
         assert!(y_res == 910, 3);
     }
@@ -141,7 +142,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (btc_coins, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 1103, 910);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 1103, 910);
         assert!(coin::value(&btc_coins) == 1103, 1);
         assert!(coin::value(&usdt_coins) == 910, 2);
 
@@ -151,7 +152,7 @@ module liquidswap::flashloan_tests {
         coin::merge(&mut usdt_coins, usdt_coins_to_add);
         liquidity_pool::pay_flashloan(btc_coins, usdt_coins, loan);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 1106, 3);
         assert!(y_res == 913, 4);
     }
@@ -164,7 +165,7 @@ module liquidswap::flashloan_tests {
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 10000000000);
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 9970000000);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 9970000000);
         assert!(coin::value(&usdt_coins) == 9970000000, 1);
 
         liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
@@ -172,7 +173,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 18446744073699551615, 2);
         assert!(y_res == 18446744063739551615, 3);
     }
@@ -184,7 +185,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 1);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 1);
         assert!(coin::value(&usdt_coins) == 1, 1);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -193,7 +194,7 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
         assert!(x_res == 18446744073699551617, 2);
         assert!(y_res == 18446744063739551614, 3);
     }
@@ -208,7 +209,7 @@ module liquidswap::flashloan_tests {
         emergency::pause(&emergency_acc);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
 
         liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
 
@@ -223,7 +224,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 0);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 0);
 
         liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
 
@@ -238,7 +239,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 999999);
         liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
@@ -255,7 +256,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 280000000);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 280000000);
 
         liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
 
@@ -270,7 +271,7 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 28000000001);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 28000000001);
 
         liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
 
@@ -285,14 +286,14 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 280000000);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 280000000);
         assert!(coin::value(&usdt_coins) == 280000000, 1);
 
         // mint when pool is locked
         let btc_coins_mint = test_coins::mint<BTC>(&coin_admin, 1000000);
         let usdt_coins_mint = test_coins::mint<USDT>(&coin_admin, 280000000);
         let lp_coins_mint =
-            liquidity_pool::mint<BTC, USDT, LP>(pool_owner_addr, btc_coins_mint, usdt_coins_mint);
+            liquidity_pool::mint<BTC, USDT>(pool_owner_addr, btc_coins_mint, usdt_coins_mint);
         coin::deposit(pool_owner_addr, lp_coins_mint);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
@@ -310,13 +311,13 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         // swap when pool is locked
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
         let (zero_swap, usdt_coins_swap) =
-            liquidity_pool::swap<BTC, USDT, LP>(
+            liquidity_pool::swap<BTC, USDT>(
                 pool_owner_addr,
                 btc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 276404249
@@ -339,13 +340,13 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         // burn when pool is locked
-        let lp_coins = coin::withdraw<LP>(&pool_owner, 16733190);
+        let lp_coins = coin::withdraw<LP<BTC, USDT>>(&pool_owner, 16733190);
         let (btc_return, usdt_return) =
-            liquidity_pool::burn<BTC, USDT, LP>(pool_owner_addr, lp_coins);
+            liquidity_pool::burn<BTC, USDT>(pool_owner_addr, lp_coins);
         test_coins::burn(&coin_admin, btc_return);
         test_coins::burn(&coin_admin, usdt_return);
 
@@ -364,12 +365,12 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         // flashloan when pool is locked
         let (zero_test, usdt_coins_test, loan_test) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         let btc_coins_to_exchange_test = test_coins::mint<BTC>(&coin_admin, 1000000);
         liquidity_pool::pay_flashloan(btc_coins_to_exchange_test, coin::zero<USDT>(), loan_test);
         coin::destroy_zero(zero_test);
@@ -390,11 +391,11 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         // get reserves when pool is locked
-        let (_, _) = liquidity_pool::get_reserves_size<BTC, USDT, LP>(pool_owner_addr);
+        let (_, _) = liquidity_pool::get_reserves_size<BTC, USDT>(pool_owner_addr);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
         liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
@@ -411,11 +412,11 @@ module liquidswap::flashloan_tests {
         let pool_owner_addr = signer::address_of(&pool_owner);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<BTC, USDT, LP>(pool_owner_addr, 0, 276404249);
+            liquidity_pool::flashloan<BTC, USDT>(pool_owner_addr, 0, 276404249);
         assert!(coin::value(&usdt_coins) == 276404249, 1);
 
         // get cumulative prices when pool is locked
-        let (_, _, _) = liquidity_pool::get_cumulative_prices<BTC, USDT, LP>(pool_owner_addr);
+        let (_, _, _) = liquidity_pool::get_cumulative_prices<BTC, USDT>(pool_owner_addr);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
         liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);

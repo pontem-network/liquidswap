@@ -1,0 +1,11 @@
+[package]
+name = 'LPCoin'
+version = '1.0.0'
+
+[addresses]
+lp_coin_account = "0x1f75caf9d18a294ae0734c31beec1bb7c329f32a8866b7368e7a32b96b04e45e"
+
+[dev-dependencies.MoveStdlib]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
+subdir = "aptos-move/framework/move-stdlib"

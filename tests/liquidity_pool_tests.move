@@ -13,7 +13,6 @@ module liquidswap::liquidity_pool_tests {
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_pool_owner::test_lp;
     use lp_coin_account::lp_coin::LP;
-    use liquidswap::lp_account;
 
     fun setup_btc_usdt_pool(): (signer, signer) {
         let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
@@ -1953,14 +1952,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1982,14 +1974,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_1() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -2011,14 +1996,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_2() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -2040,14 +2018,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_3() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(3600);
 
@@ -2069,14 +2040,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_max_time() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 
@@ -2098,14 +2062,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_overflow() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1);
 
@@ -2127,14 +2084,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_overflow_1() {
         let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
 
-        let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT>();
-        coin::destroy_mint_cap(mint_cap);
-        coin::destroy_burn_cap(burn_cap);
-
-        // test_lp::register_lp_for_fails(&pool_owner);
-
-        // let pool_owner_addr = signer::address_of(&pool_owner);
+        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 

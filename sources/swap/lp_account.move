@@ -51,10 +51,8 @@ module liquidswap::lp_account {
     }
 
     #[test_only]
-    public fun register_lp_coin_test<X, Y>(): (MintCapability<LP<X, Y>>, BurnCapability<LP<X, Y>>)
+    public fun register_lp_coin_test<X, Y>(lp_name: String, lp_symbol: String): (MintCapability<LP<X, Y>>, BurnCapability<LP<X, Y>>)
     acquires LPCapability {
-        let lp_name = generate_lp_name<X, Y>();
-        let lp_symbol = generate_lp_name<X, Y>();
         register_lp_coin<X, Y>(lp_name, lp_symbol)
     }
 
@@ -62,6 +60,7 @@ module liquidswap::lp_account {
         coin::is_coin_initialized<LP<X, Y>>()
     }
 
+    #[test_only]
     public fun generate_lp_name<X, Y>(): String {
         let lp_name = string::utf8(b"LP");
         string::append(&mut lp_name, string::utf8(b"<"));

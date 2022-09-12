@@ -5,27 +5,8 @@ module test_pool_owner::test_lp {
 
     use liquidswap::lp_account;
     use test_coin_admin::test_coins;
-
-    // struct LP {}
-
-    // struct Capabilities<phantom CoinType> has key {
-    //     mint_cap: MintCapability<CoinType>,
-    //     burn_cap: BurnCapability<CoinType>,
-    // }
-    //
-    // public fun register_lp_for_fails(pool_owner: &signer) {
-    //     let (burn_cap, freeze_cap, mint_cap) =
-    //         coin::initialize<LP<BTC, USDT>>(
-    //             pool_owner,
-    //             utf8(b"LP"),
-    //             utf8(b"LP"),
-    //             6,
-    //             true
-    //         );
-    //     coin::destroy_freeze_cap(freeze_cap);
-    //
-    //     move_to(pool_owner, Capabilities<LP<BTC, USDT>> { mint_cap, burn_cap });
-    // }
+    use liquidswap::lp_account::generate_lp_name;
+    use aptos_framework::coin;
 
     public fun create_pool_owner(): signer {
         let pool_owner = account::create_account_for_test(@test_pool_owner);
@@ -59,5 +40,14 @@ module test_pool_owner::test_lp {
         let coin_admin = test_coins::create_admin_with_coins();
         let pool_owner = create_pool_owner();
         (coin_admin, pool_owner)
+    }
+
+    public fun register_lp_coin_drop_caps<X, Y>() {
+        let lp_name = generate_lp_name<X, Y>();
+        let lp_symbol = generate_lp_name<X, Y>();
+        let (mint_cap, burn_cap) =
+            lp_account::register_lp_coin_test<X, Y>(lp_name, lp_symbol);
+        coin::destroy_mint_cap(mint_cap);
+        coin::destroy_burn_cap(burn_cap);
     }
 }

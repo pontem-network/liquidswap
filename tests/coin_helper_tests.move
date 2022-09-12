@@ -8,6 +8,7 @@ module liquidswap::coin_helper_tests {
     use liquidswap::coin_helper;
 
     use test_coin_admin::test_coins::{Self, BTC, USDT};
+    use liquidswap::liquidity_pool::Uncorrelated;
 
     #[test]
     fun test_end_to_end() {
@@ -63,8 +64,8 @@ module liquidswap::coin_helper_tests {
 
         test_coins::create_admin_with_coins();
 
-        let (lp_name, lp_symbol) = coin_helper::generate_lp_name<BTC, USDT>();
+        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<BTC, USDT, Uncorrelated>();
         assert!(lp_name == utf8(b"Liquidswap LP"), 0);
-        assert!(lp_symbol == utf8(b"LP-BTC-USDT"), 1);
+        assert!(lp_symbol == utf8(b"LP-BTC-USDT-Uncorrelated"), 1);
     }
 }

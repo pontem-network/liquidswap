@@ -9,8 +9,8 @@ module liquidswap::scripts {
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
-    public entry fun register_pool<X, Y>(account: &signer, curve_type: u8) {
-        router::register_pool<X, Y>(account, curve_type);
+    public entry fun register_pool<X, Y, Curve>(account: &signer) {
+        router::register_pool<X, Y, Curve>(account);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
@@ -19,17 +19,16 @@ module liquidswap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    public entry fun register_pool_and_add_liquidity<X, Y>(
+    public entry fun register_pool_and_add_liquidity<X, Y, Curve>(
         account: &signer,
-        curve_type: u8,
         coin_x_val: u64,
         coin_x_val_min: u64,
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        let pool_addr = router::register_pool<X, Y>(account, curve_type);
+        let pool_addr = router::register_pool<X, Y, Curve>(account);
 
-        add_liquidity<X, Y>(
+        add_liquidity<X, Y, Curve>(
             account,
             pool_addr,
             coin_x_val,
@@ -45,7 +44,7 @@ module liquidswap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
-    public entry fun add_liquidity<X, Y>(
+    public entry fun add_liquidity<X, Y, Curve>(
         account: &signer,
         pool_addr: address,
         coin_x_val: u64,
@@ -57,7 +56,7 @@ module liquidswap::scripts {
         let coin_y = coin::withdraw<Y>(account, coin_y_val);
 
         let (coin_x_remainder, coin_y_remainder, lp_coins) =
-            router::add_liquidity<X, Y>(
+            router::add_liquidity<X, Y, Curve>(
                 pool_addr,
                 coin_x,
                 coin_x_val_min,
@@ -67,8 +66,8 @@ module liquidswap::scripts {
 
         let account_addr = signer::address_of(account);
 
-        if (!coin::is_account_registered<LP<X, Y>>(account_addr)) {
-            coin::register<LP<X, Y>>(account);
+        if (!coin::is_account_registered<LP<X, Y, Curve>>(account_addr)) {
+            coin::register<LP<X, Y, Curve>>(account);
         };
 
         coin::deposit(account_addr, coin_x_remainder);
@@ -81,16 +80,16 @@ module liquidswap::scripts {
     /// * `lp_val` - amount of `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of X coins to get.
     /// * `min_y_out_val` - minimum amount of Y coins to get.
-    public entry fun remove_liquidity<X, Y>(
+    public entry fun remove_liquidity<X, Y, Curve>(
         account: &signer,
         pool_addr: address,
         lp_val: u64,
         min_x_out_val: u64,
         min_y_out_val: u64,
     ) {
-        let lp_coins = coin::withdraw<LP<X, Y>>(account, lp_val);
+        let lp_coins = coin::withdraw<LP<X, Y, Curve>>(account, lp_val);
 
-        let (coin_x, coin_y) = router::remove_liquidity<X, Y>(
+        let (coin_x, coin_y) = router::remove_liquidity<X, Y, Curve>(
             pool_addr,
             lp_coins,
             min_x_out_val,
@@ -106,7 +105,7 @@ module liquidswap::scripts {
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_val` - amount of coins `X` to swap.
     /// * `coin_out_min_val` - minimum expected amount of coins `Y` to get.
-    public entry fun swap<X, Y>(
+    public entry fun swap<X, Y, Curve>(
         account: &signer,
         pool_addr: address,
         coin_val: u64,
@@ -114,7 +113,7 @@ module liquidswap::scripts {
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val);
 
-        let coin_y = router::swap_exact_coin_for_coin<X, Y>(
+        let coin_y = router::swap_exact_coin_for_coin<X, Y, Curve>(
             pool_addr,
             coin_x,
             coin_out_min_val,
@@ -128,7 +127,7 @@ module liquidswap::scripts {
     /// * `pool_addr` - address of account registered pool.
     /// * `coin_val_max` - how much of coins `X` can be used to get `Y` coin.
     /// * `coin_out` - how much of coins `Y` should be returned.
-    public entry fun swap_into<X, Y>(
+    public entry fun swap_into<X, Y, Curve>(
         account: &signer,
         pool_addr: address,
         coin_val_max: u64,
@@ -136,7 +135,7 @@ module liquidswap::scripts {
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val_max);
 
-        let (coin_x, coin_y) = router::swap_coin_for_exact_coin<X, Y>(
+        let (coin_x, coin_y) = router::swap_coin_for_exact_coin<X, Y, Curve>(
             pool_addr,
             coin_x,
             coin_out,

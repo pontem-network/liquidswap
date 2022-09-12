@@ -6,6 +6,7 @@ module liquidswap::coin_helper {
 
     use aptos_framework::coin;
     use aptos_std::comparator::{Self, Result};
+    use aptos_std::type_info;
 
     // Errors codes.
 
@@ -53,11 +54,13 @@ module liquidswap::coin_helper {
 
     /// Generate LP coin name for pair `X`/`Y`.
     /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
-    public fun generate_lp_name<X, Y>(): (String, String) {
+    public fun generate_lp_name_and_symbol<X, Y, Curve>(): (String, String) {
         let symbol = b"LP-";
         vector::append(&mut symbol, *bytes(&coin::symbol<X>()));
         vector::push_back(&mut symbol, 0x2d);
         vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
+        vector::push_back(&mut symbol, 0x2d);
+        vector::append(&mut symbol, type_info::struct_name(&type_info::type_of<Curve>()));
 
         (string::utf8(b"Liquidswap LP"), string::utf8(symbol))
     }

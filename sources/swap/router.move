@@ -9,6 +9,7 @@ module liquidswap::router {
     use liquidswap::math;
     use liquidswap::stable_curve;
     use lp_coin_account::lp_coin::LP;
+    use liquidswap::liquidity_pool::{is_stable_curve, is_uncorrelated_curve};
 
     // Errors codes.
 
@@ -43,11 +44,11 @@ module liquidswap::router {
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
-    public fun register_pool<X, Y>(account: &signer, curve_type: u8): address {
+    public fun register_pool<X, Y, Curve>(account: &signer): address {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
 
-        let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
-        liquidity_pool::register<X, Y>(account, lp_name, lp_symbol, curve_type)
+        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
+        liquidity_pool::register<X, Y, Curve>(account, lp_name, lp_symbol)
     }
 
     /// Add liquidity to pool `X`/`Y` with rationality checks.
@@ -56,14 +57,14 @@ module liquidswap::router {
     /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
     /// * `coin_y` - coin Y to add as liquidity.
     /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
-    /// Returns reminders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y>>)`.
-    public fun add_liquidity<X, Y>(
+    /// Returns reminders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>)`.
+    public fun add_liquidity<X, Y, Curve>(
         pool_addr: address,
         coin_x: Coin<X>,
         min_coin_x_val: u64,
         coin_y: Coin<Y>,
         min_coin_y_val: u64,
-    ): (Coin<X>, Coin<Y>, Coin<LP<X, Y>>) {
+    ): (Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>) {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
 
         let coin_x_val = coin::value(&coin_x);
@@ -73,7 +74,7 @@ module liquidswap::router {
         assert!(coin_y_val >= min_coin_y_val, ERR_INSUFFICIENT_Y_AMOUNT);
 
         let (optimal_x, optimal_y) =
-            calc_optimal_coin_values<X, Y>(
+            calc_optimal_coin_values<X, Y, Curve>(
                 pool_addr,
                 coin_x_val,
                 coin_y_val,
@@ -84,7 +85,7 @@ module liquidswap::router {
         let coin_x_opt = coin::extract(&mut coin_x, optimal_x);
         let coin_y_opt = coin::extract(&mut coin_y, optimal_y);
 
-        let lp_coins = liquidity_pool::mint<X, Y>(pool_addr, coin_x_opt, coin_y_opt);
+        let lp_coins = liquidity_pool::mint<X, Y, Curve>(pool_addr, coin_x_opt, coin_y_opt);
         (coin_x, coin_y, lp_coins)
     }
 
@@ -94,15 +95,15 @@ module liquidswap::router {
     /// * `min_x_out_val` - minimum amount of `X` coins must be out.
     /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
     /// Returns both `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
-    public fun remove_liquidity<X, Y>(
+    public fun remove_liquidity<X, Y, Curve>(
         pool_addr: address,
-        lp_coins: Coin<LP<X, Y>>,
+        lp_coins: Coin<LP<X, Y, Curve>>,
         min_x_out_val: u64,
         min_y_out_val: u64,
     ): (Coin<X>, Coin<Y>) {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
 
-        let (x_out, y_out) = liquidity_pool::burn<X, Y>(pool_addr, lp_coins);
+        let (x_out, y_out) = liquidity_pool::burn<X, Y, Curve>(pool_addr, lp_coins);
 
         assert!(
             coin::value(&x_out) >= min_x_out_val,
@@ -120,20 +121,20 @@ module liquidswap::router {
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_min_val` - minimum amount of coin Y to get out.
     /// Returns `Coin<Y>`.
-    public fun swap_exact_coin_for_coin<X, Y>(
+    public fun swap_exact_coin_for_coin<X, Y, Curve>(
         pool_addr: address,
         coin_in: Coin<X>,
         coin_out_min_val: u64,
     ): Coin<Y> {
         let coin_in_val = coin::value(&coin_in);
-        let coin_out_val = get_amount_out<X, Y>(pool_addr, coin_in_val);
+        let coin_out_val = get_amount_out<X, Y, Curve>(pool_addr, coin_in_val);
 
         assert!(
             coin_out_val >= coin_out_min_val,
             ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM,
         );
 
-        let coin_out = swap_coin_for_coin_unchecked<X, Y>(pool_addr, coin_in, coin_out_val);
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, Curve>(pool_addr, coin_in, coin_out_val);
         coin_out
     }
 
@@ -142,12 +143,12 @@ module liquidswap::router {
     /// * `coin_max_in` - maximum amount of coin X to swap to get `coin_out_val` of coins Y.
     /// * `coin_out_val` - exact amount of coin Y to get.
     /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
-    public fun swap_coin_for_exact_coin<X, Y>(
+    public fun swap_coin_for_exact_coin<X, Y, Curve>(
         pool_addr: address,
         coin_max_in: Coin<X>,
         coin_out_val: u64,
     ): (Coin<X>, Coin<Y>) {
-        let coin_in_val_needed = get_amount_in<X, Y>(pool_addr, coin_out_val);
+        let coin_in_val_needed = get_amount_in<X, Y, Curve>(pool_addr, coin_out_val);
 
         let coin_val_max = coin::value(&coin_max_in);
         assert!(
@@ -156,7 +157,7 @@ module liquidswap::router {
         );
 
         let coin_in = coin::extract(&mut coin_max_in, coin_in_val_needed);
-        let coin_out = swap_coin_for_coin_unchecked<X, Y>(pool_addr, coin_in, coin_out_val);
+        let coin_out = swap_coin_for_coin_unchecked<X, Y, Curve>(pool_addr, coin_in, coin_out_val);
 
         (coin_max_in, coin_out)
     }
@@ -167,16 +168,16 @@ module liquidswap::router {
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_val` - amount of coin Y to get out.
     /// Returns `Coin<Y>`.
-    public fun swap_coin_for_coin_unchecked<X, Y>(
+    public fun swap_coin_for_coin_unchecked<X, Y, Curve>(
         pool_addr: address,
         coin_in: Coin<X>,
         coin_out_val: u64,
     ): Coin<Y> {
         let (zero, coin_out);
         if (coin_helper::is_sorted<X, Y>()) {
-            (zero, coin_out) = liquidity_pool::swap<X, Y>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
+            (zero, coin_out) = liquidity_pool::swap<X, Y, Curve>(pool_addr, coin_in, 0, coin::zero(), coin_out_val);
         } else {
-            (coin_out, zero) = liquidity_pool::swap<Y, X>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
+            (coin_out, zero) = liquidity_pool::swap<Y, X, Curve>(pool_addr, coin::zero(), coin_out_val, coin_in, 0);
         };
         coin::destroy_zero(zero);
 
@@ -188,11 +189,11 @@ module liquidswap::router {
     /// Get decimals scales for stable curve, for uncorrelated curve would return zeros.
     /// * `pool_addr` - pool owner address.
     /// Returns `X` and `Y` coins decimals scales.
-    public fun get_decimals_scales<X, Y>(pool_addr: address): (u64, u64) {
+    public fun get_decimals_scales<X, Y, Curve>(pool_addr: address): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::get_decimals_scales<X, Y>(pool_addr)
+            liquidity_pool::get_decimals_scales<X, Y, Curve>(pool_addr)
         } else {
-            let (y, x) = liquidity_pool::get_decimals_scales<Y, X>(pool_addr);
+            let (y, x) = liquidity_pool::get_decimals_scales<Y, X, Curve>(pool_addr);
             (x, y)
         }
     }
@@ -200,34 +201,23 @@ module liquidswap::router {
     /// Get current cumulative prices in liquidity pool `X`/`Y`.
     /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
-    public fun get_cumulative_prices<X, Y>(pool_addr: address): (u128, u128, u64) {
+    public fun get_cumulative_prices<X, Y, Curve>(pool_addr: address): (u128, u128, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::get_cumulative_prices<X, Y>(pool_addr)
+            liquidity_pool::get_cumulative_prices<X, Y, Curve>(pool_addr)
         } else {
-            let (y, x, t) = liquidity_pool::get_cumulative_prices<Y, X>(pool_addr);
+            let (y, x, t) = liquidity_pool::get_cumulative_prices<Y, X, Curve>(pool_addr);
             (x, y, t)
-        }
-    }
-
-    /// Get pool curve type (stable/uncorrelated).
-    /// * `pool_addr` - pool owner address.
-    /// Returns 1 = stable or 2 = uncorrelated.
-    public fun get_curve_type<X, Y>(pool_addr: address): u8 {
-        if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::get_curve_type<X, Y>(pool_addr)
-        } else {
-            liquidity_pool::get_curve_type<Y, X>(pool_addr)
         }
     }
 
     /// Get reserves of liquidity pool (`X` and `Y`).
     /// * `pool_addr` - pool owner address.
     /// Returns current reserves (`X`, `Y`).
-    public fun get_reserves_size<X, Y>(pool_addr: address): (u64, u64) {
+    public fun get_reserves_size<X, Y, Curve>(pool_addr: address): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::get_reserves_size<X, Y>(pool_addr)
+            liquidity_pool::get_reserves_size<X, Y, Curve>(pool_addr)
         } else {
-            let (y_res, x_res) = liquidity_pool::get_reserves_size<Y, X>(pool_addr);
+            let (y_res, x_res) = liquidity_pool::get_reserves_size<Y, X, Curve>(pool_addr);
             (x_res, y_res)
         }
     }
@@ -235,11 +225,11 @@ module liquidswap::router {
     /// Check liquidity pool exists for coins `X` and `Y` at owner address.
     /// * `pool_addr` - pool owner address.
     /// If pool exists returns true, otherwise false.
-    public fun pool_exists_at<X, Y>(pool_addr: address): bool {
+    public fun pool_exists_at<X, Y, Curve>(pool_addr: address): bool {
         if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::pool_exists_at<X, Y>(pool_addr)
+            liquidity_pool::pool_exists_at<X, Y, Curve>(pool_addr)
         } else {
-            liquidity_pool::pool_exists_at<Y, X>(pool_addr)
+            liquidity_pool::pool_exists_at<Y, X, Curve>(pool_addr)
         }
     }
 
@@ -252,14 +242,14 @@ module liquidswap::router {
     /// * `x_min` - minimum of coins X expected.
     /// * `y_min` - minimum of coins Y expected.
     /// Returns both `X` and `Y` coins amounts.
-    public fun calc_optimal_coin_values<X, Y>(
+    public fun calc_optimal_coin_values<X, Y, Curve>(
         pool_addr: address,
         x_desired: u64,
         y_desired: u64,
         x_min: u64,
         y_min: u64
     ): (u64, u64) {
-        let (reserves_x, reserves_y) = get_reserves_size<X, Y>(pool_addr);
+        let (reserves_x, reserves_y) = get_reserves_size<X, Y, Curve>(pool_addr);
 
         if (reserves_x == 0 && reserves_y == 0) {
             return (x_desired, y_desired)
@@ -295,12 +285,12 @@ module liquidswap::router {
     /// * `pool_addr` - pool owner address.
     /// * `lp_to_burn_val` - amount of `LP` coins to burn.
     /// Returns both `X` and `Y` coins amounts.
-    public fun get_reserves_for_lp_coins<X, Y>(
+    public fun get_reserves_for_lp_coins<X, Y, Curve>(
         pool_addr: address,
         lp_to_burn_val: u64
     ): (u64, u64) {
-        let (x_reserve, y_reserve) = get_reserves_size<X, Y>(pool_addr);
-        let lp_coins_total = supply<LP<X, Y>>();
+        let (x_reserve, y_reserve) = get_reserves_size<X, Y, Curve>(pool_addr);
+        let lp_coins_total = supply<LP<X, Y, Curve>>();
 
         let x_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
         let y_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
@@ -317,18 +307,15 @@ module liquidswap::router {
     /// * `pool_addr` - pool owner address.
     /// * `amount_x` - amount to swap.
     /// Returns amount of `Y` coins getting after swap.
-    public fun get_amount_out<X, Y>(pool_addr: address, amount_in: u64): u64 {
-        let (reserve_x, reserve_y) = get_reserves_size<X, Y>(pool_addr);
-        let (scale_x, scale_y) = get_decimals_scales<X, Y>(pool_addr);
-        let curve_type = get_curve_type<X, Y>(pool_addr);
-
-        get_coin_out_with_fees(
+    public fun get_amount_out<X, Y, Curve>(pool_addr: address, amount_in: u64): u64 {
+        let (reserve_x, reserve_y) = get_reserves_size<X, Y, Curve>(pool_addr);
+        let (scale_x, scale_y) = get_decimals_scales<X, Y, Curve>(pool_addr);
+        get_coin_out_with_fees<Curve>(
             amount_in,
             reserve_x,
             reserve_y,
             scale_x,
             scale_y,
-            curve_type
         )
     }
 
@@ -340,18 +327,15 @@ module liquidswap::router {
     /// * `pool_addr` - pool owner address.
     /// * `amount_x` - amount to swap.
     /// Returns amount of `X` coins needed.
-    public fun get_amount_in<X, Y>(pool_addr: address, amount_out: u64): u64 {
-        let (reserve_x, reserve_y) = get_reserves_size<X, Y>(pool_addr);
-        let (scale_x, scale_y) = get_decimals_scales<X, Y>(pool_addr);
-        let curve_type = get_curve_type<X, Y>(pool_addr);
-
-        get_coin_in_with_fees(
+    public fun get_amount_in<X, Y, Curve>(pool_addr: address, amount_out: u64): u64 {
+        let (reserve_x, reserve_y) = get_reserves_size<X, Y, Curve>(pool_addr);
+        let (scale_x, scale_y) = get_decimals_scales<X, Y, Curve>(pool_addr);
+        get_coin_in_with_fees<Curve>(
             amount_out,
             reserve_y,
             reserve_x,
             scale_y,
             scale_x,
-            curve_type,
         )
     }
 
@@ -365,18 +349,17 @@ module liquidswap::router {
     /// * `scale_out` - 10 pow by decimals amount of coin we going to get.
     /// * `curve_type` - type of curve (1 = stable, 2 = uncorrelated).
     /// Returns amount of coins out after swap.
-    fun get_coin_out_with_fees(
+    fun get_coin_out_with_fees<Curve>(
         coin_in: u64,
         reserve_in: u64,
         reserve_out: u64,
         scale_in: u64,
         scale_out: u64,
-        curve_type: u8
     ): u64 {
         let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
         let fee_multiplier = fee_scale - fee_pct;
 
-        if (curve_type == STABLE_CURVE) {
+        if (is_stable_curve<Curve>()) {
             let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
             let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
                 (coin_in_val_scaled / (fee_scale as u128)) + 1
@@ -391,7 +374,7 @@ module liquidswap::router {
                 (reserve_in as u128),
                 (reserve_out as u128)
             ) as u64)
-        } else if (curve_type == UNCORRELATED_CURVE) {
+        } else if (is_uncorrelated_curve<Curve>()) {
             let coin_in_val_after_fees = coin_in * fee_multiplier;
             // x_reserve size after adding amount_in (scaled to 1000)
             let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees;
@@ -425,19 +408,18 @@ module liquidswap::router {
     ///  For stable curve math described in `coin_in` func into `../libs/StableCurve.move`.
     ///
     /// Returns amount of coins needed for swap.
-    fun get_coin_in_with_fees(
+    fun get_coin_in_with_fees<Curve>(
         coin_out: u64,
         reserve_out: u64,
         reserve_in: u64,
         scale_out: u64,
         scale_in: u64,
-        curve_type: u8
     ): u64 {
         let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;  // 997
 
-        if (curve_type == STABLE_CURVE) {
+        if (is_stable_curve<Curve>()) {
             // !!!FOR AUDITOR!!!
             // Double check it.
             let coin_in = (stable_curve::coin_in(
@@ -449,7 +431,7 @@ module liquidswap::router {
             ) as u64) + 1;
 
             (coin_in * fee_scale / fee_multiplier) + 1
-        } else if (curve_type == UNCORRELATED_CURVE) {
+        } else if (is_uncorrelated_curve<Curve>()) {
             // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
 
@@ -466,8 +448,8 @@ module liquidswap::router {
     }
 
     #[test_only]
-    public fun current_price<X, Y>(pool_addr: address): u128 {
-        let (x_reserve, y_reserve) = get_reserves_size<X, Y>(pool_addr);
+    public fun current_price<X, Y, Curve>(pool_addr: address): u128 {
+        let (x_reserve, y_reserve) = get_reserves_size<X, Y, Curve>(pool_addr);
         ((x_reserve / y_reserve) as u128)
     }
 }

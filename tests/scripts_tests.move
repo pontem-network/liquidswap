@@ -11,32 +11,29 @@ module liquidswap::scripts_tests {
     use lp_coin_account::lp_coin::LP;
     use test_helpers::test_pool;
 
-    fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer) {
+    fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        router::register_pool<BTC, USDT>(&lp_owner, 2);
+        let pool_addr = router::register_pool<BTC, USDT>(&lp_owner, 2);
 
-        let lp_owner_addr = signer::address_of(&lp_owner);
         if (x_val != 0 && y_val != 0) {
             let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
             let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
-                liquidity_pool::mint<BTC, USDT>(lp_owner_addr, btc_coins, usdt_coins);
+                liquidity_pool::mint<BTC, USDT>(pool_addr, btc_coins, usdt_coins);
             coin::register<LP<BTC, USDT>>(&lp_owner);
-            coin::deposit<LP<BTC, USDT>>(lp_owner_addr, lp_coins);
+            coin::deposit<LP<BTC, USDT>>(signer::address_of(&lp_owner), lp_coins);
         };
-        (coin_admin, lp_owner)
+        (coin_admin, lp_owner, pool_addr)
     }
 
     #[test]
     public entry fun test_register_pool_with_script() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let lp_owner_addr = signer::address_of(&lp_owner);
-
         scripts::register_pool<BTC, USDT>(&lp_owner, 2);
 
-        assert!(liquidity_pool::pool_exists_at<BTC, USDT>(lp_owner_addr), 1);
+        assert!(liquidity_pool::pool_exists_at<BTC, USDT>(@test_pool_addr), 1);
     }
 
     #[test]
@@ -46,9 +43,10 @@ module liquidswap::scripts_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
 
-        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins);
         coin::deposit(lp_owner_addr, usdt_coins);
 
@@ -61,7 +59,7 @@ module liquidswap::scripts_tests {
             10100,
         );
 
-        assert!(liquidity_pool::pool_exists_at<BTC, USDT>(lp_owner_addr), 1);
+        assert!(liquidity_pool::pool_exists_at<BTC, USDT>(@test_pool_addr), 1);
 
         assert!(coin::balance<BTC>(lp_owner_addr) == 0, 2);
         assert!(coin::balance<USDT>(lp_owner_addr) == 0, 3);
@@ -70,15 +68,15 @@ module liquidswap::scripts_tests {
 
     #[test]
     public entry fun test_add_liquidity() {
-        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(0, 0);
-
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let (coin_admin, lp_owner, pool_addr) = register_pool_with_existing_liquidity(0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
 
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins);
         coin::deposit(lp_owner_addr, usdt_coins);
 
@@ -86,7 +84,7 @@ module liquidswap::scripts_tests {
 
         scripts::add_liquidity<BTC, USDT>(
             &lp_owner,
-            lp_owner_addr,
+            pool_addr,
             101,
             101,
             10100,
@@ -100,16 +98,14 @@ module liquidswap::scripts_tests {
 
     #[test]
     public entry fun test_remove_liquidity() {
-        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(0, 0);
-
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let (coin_admin, lp_owner, pool_addr) = register_pool_with_existing_liquidity(0, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
 
         let (btc, usdt, lp) =
             router::add_liquidity<BTC, USDT>(
-                lp_owner_addr,
+                pool_addr,
                 btc_coins,
                 101,
                 usdt_coins,
@@ -118,13 +114,15 @@ module liquidswap::scripts_tests {
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
         coin::register<LP<BTC, USDT>>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc);
         coin::deposit(lp_owner_addr, usdt);
         coin::deposit(lp_owner_addr, lp);
 
         scripts::remove_liquidity<BTC, USDT>(
             &lp_owner,
-            lp_owner_addr,
+            pool_addr,
             10,
             98,
             10000,
@@ -137,18 +135,18 @@ module liquidswap::scripts_tests {
 
     #[test]
     public entry fun test_swap_exact_btc_for_usdt() {
-        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
-
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let (coin_admin, lp_owner, pool_addr) = register_pool_with_existing_liquidity(101, 10100);
 
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
         scripts::swap<BTC, USDT>(
             &lp_owner,
-            lp_owner_addr,
+            pool_addr,
             10,
             900,
         );
@@ -159,18 +157,18 @@ module liquidswap::scripts_tests {
 
     #[test]
     public entry fun test_swap_btc_for_exact_usdt() {
-        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
-
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let (coin_admin, lp_owner, pool_addr) = register_pool_with_existing_liquidity(101, 10100);
 
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
         scripts::swap_into<BTC, USDT>(
             &lp_owner,
-            lp_owner_addr,
+            pool_addr,
             10,
             700,
         );

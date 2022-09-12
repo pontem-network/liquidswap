@@ -27,12 +27,11 @@ module liquidswap::scripts {
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        let acc_addr = signer::address_of(account);
-        router::register_pool<X, Y>(account, curve_type);
+        let pool_addr = router::register_pool<X, Y>(account, curve_type);
 
         add_liquidity<X, Y>(
             account,
-            acc_addr,
+            pool_addr,
             coin_x_val,
             coin_x_val_min,
             coin_y_val,

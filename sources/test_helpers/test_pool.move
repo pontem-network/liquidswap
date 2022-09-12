@@ -8,8 +8,8 @@ module test_helpers::test_pool {
     use liquidswap::lp_account::generate_lp_name;
     use aptos_framework::coin;
 
-    public fun create_pool_owner(): signer {
-        let pool_owner = account::create_account_for_test(@test_pool_owner);
+    public fun create_lp_owner(): signer {
+        let pool_owner = account::create_account_for_test(@test_lp_owner);
         pool_owner
     }
 
@@ -20,8 +20,8 @@ module test_helpers::test_pool {
 
     public fun create_coin_admin_and_lp_owner(): (signer, signer) {
         let coin_admin = test_coins::create_coin_admin();
-        let pool_owner = create_pool_owner();
-        (coin_admin, pool_owner)
+        let lp_owner = create_lp_owner();
+        (coin_admin, lp_owner)
     }
 
     public fun setup_coins_and_lp_owner(): (signer, signer) {
@@ -38,8 +38,8 @@ module test_helpers::test_pool {
         );
 
         let coin_admin = test_coins::create_admin_with_coins();
-        let pool_owner = create_pool_owner();
-        (coin_admin, pool_owner)
+        let lp_owner = create_lp_owner();
+        (coin_admin, lp_owner)
     }
 
     public fun register_lp_coin_drop_caps<X, Y>() {

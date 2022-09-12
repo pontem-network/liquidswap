@@ -9,8 +9,10 @@ emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d501
 
 # Addresses for tests.
 test_coin_admin = "0x11"
-test_pool_owner = "0x12"
 test_helpers = "0x12"
+
+test_lp_owner = "0x12"
+test_pool_addr = "0x98c053307e6f9bc3d3fb35768b08ea6c530187bf7b43fd0326ea59b9c9f9ef7d"
 
 [dependencies.LPCoin]
 local = "./lp_coin/"

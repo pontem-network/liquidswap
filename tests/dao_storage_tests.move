@@ -9,12 +9,12 @@ module liquidswap::dao_storage_tests {
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
-    use test_pool_owner::test_lp;
+    use test_pool_owner::test_pool;
     use lp_coin_account::lp_coin::LP;
 
     #[test]
     fun test_register() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
@@ -25,7 +25,7 @@ module liquidswap::dao_storage_tests {
 
     #[test]
     fun test_deposit() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
@@ -46,7 +46,7 @@ module liquidswap::dao_storage_tests {
     #[test]
     #[expected_failure(abort_code = 401)]
     fun test_deposit_fail_if_not_registered() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -57,7 +57,7 @@ module liquidswap::dao_storage_tests {
 
     #[test(dao_admin_acc = @dao_admin)]
     fun test_withdraw(dao_admin_acc: signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
@@ -85,7 +85,7 @@ module liquidswap::dao_storage_tests {
     #[test(dao_admin_acc = @dao_admin)]
     #[expected_failure(abort_code = 65542)]
     fun test_withdraw_fail_if_more_deposited(dao_admin_acc: signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
@@ -107,7 +107,7 @@ module liquidswap::dao_storage_tests {
     #[test(dao_admin_acc = @0xca)]
     #[expected_failure(abort_code = 402)]
     fun test_withdraw_fail_if_not_dao_admin(dao_admin_acc: signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         dao_storage::register_for_test<BTC, USDT>(&pool_owner);
 
@@ -128,7 +128,7 @@ module liquidswap::dao_storage_tests {
 
     #[test(dao_admin_acc = @dao_admin)]
     fun test_split_third_of_fees_into_dao_storage_account(dao_admin_acc: signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         create_account(&dao_admin_acc);
 

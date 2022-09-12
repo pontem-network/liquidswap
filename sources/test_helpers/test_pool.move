@@ -1,5 +1,5 @@
 #[test_only]
-module test_pool_owner::test_lp {
+module test_pool_owner::test_pool {
     use aptos_framework::account;
     use aptos_framework::genesis;
 

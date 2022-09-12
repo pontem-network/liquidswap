@@ -9,12 +9,12 @@ module liquidswap::router_tests {
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use lp_coin_account::lp_coin::LP;
-    use test_pool_owner::test_lp;
+    use test_pool_owner::test_pool;
 
     const MAX_U64: u64 = 18446744073709551615;
 
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
         
         router::register_pool<BTC, USDT>(&pool_owner, 2);
 
@@ -32,7 +32,7 @@ module liquidswap::router_tests {
     }
 
     fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         router::register_pool<USDC, USDT>(&pool_owner, 1);
 
@@ -526,7 +526,7 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_pool_exists() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         router::register_pool<BTC, USDT>(&pool_owner, 2);
 

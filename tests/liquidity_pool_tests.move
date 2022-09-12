@@ -11,11 +11,11 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_pool_owner::test_lp;
+    use test_pool_owner::test_pool;
     use lp_coin_account::lp_coin::LP;
 
     fun setup_btc_usdt_pool(): (signer, signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
             utf8(b"Liquidswap LP"),
@@ -26,7 +26,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     fun setup_usdc_usdt_pool(): (signer, signer) {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
         liquidity_pool::register<USDC, USDT>(
             &pool_owner,
             utf8(b"Liquidswap LP"),
@@ -40,7 +40,7 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_create_empty_pool() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -92,7 +92,7 @@ module liquidswap::liquidity_pool_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     fun test_create_pool_emergency_fails(emergency_acc: signer) {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         let pool_curve_type = 2;
         let pool_lp_name = utf8(b"Liquidswap LP");
@@ -109,7 +109,7 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_create_empty_pool_stable() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         let pool_owner_addr = signer::address_of(&pool_owner);
 
@@ -160,7 +160,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 100)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         let pool_owner_addr = signer::address_of(&pool_owner);
         liquidity_pool::register<BTC, USDT>(
@@ -178,7 +178,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 3001)]
     fun test_fail_if_x_is_not_coin() {
-        let (coin_admin, pool_owner) = test_lp::create_coin_admin_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::create_coin_admin_and_pool_owner();
 
         test_coins::register_coin<USDT>(&coin_admin, b"USDT", b"USDT", 6);
 
@@ -193,7 +193,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 3001)]
     fun test_fail_if_y_is_not_coin() {
-        let (coin_admin, pool_owner) = test_lp::create_coin_admin_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::create_coin_admin_and_pool_owner();
 
         test_coins::register_coin<BTC>(&coin_admin, b"BTC", b"BTC", 8);
 
@@ -208,7 +208,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 101)]
     fun test_fail_if_pool_already_exists() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -228,7 +228,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 110)]
     fun test_fail_if_wrong_curve() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -241,7 +241,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 110)]
     fun test_fail_if_wrong_curve_1() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -254,7 +254,7 @@ module liquidswap::liquidity_pool_tests {
     // Add liquidity tests.
     #[test]
     fun test_add_liquidity_to_empty_pool() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -295,7 +295,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 102)]
     fun test_add_liquidity_less_than_minimal() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -321,7 +321,7 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 102)]
     fun test_add_liquidity_zero_initially() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -346,7 +346,7 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_add_liquidity_minimal() {
-        let (coin_admin, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (coin_admin, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
         liquidity_pool::register<BTC, USDT>(
             &pool_owner,
@@ -1950,9 +1950,9 @@ module liquidswap::liquidity_pool_tests {
     // Update cumulative price itself.
     #[test]
     fun test_cumulative_price() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1972,9 +1972,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_1() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1994,9 +1994,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_2() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -2016,9 +2016,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_3() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(3600);
 
@@ -2038,9 +2038,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_max_time() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 
@@ -2060,9 +2060,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_overflow() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::fast_forward_seconds(1);
 
@@ -2082,9 +2082,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_overflow_1() {
-        let (_, pool_owner) = test_lp::setup_coins_and_pool_owner();
+        let (_, pool_owner) = test_pool::setup_coins_and_pool_owner();
 
-        test_lp::register_lp_coin_drop_caps<BTC, USDT>();
+        test_pool::register_lp_coin_drop_caps<BTC, USDT>();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 

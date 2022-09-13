@@ -4,7 +4,7 @@ module liquidswap::router {
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
 
-    use lp_coin_account::lp_coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::coin_helper::{Self, supply};
     use liquidswap::curves;

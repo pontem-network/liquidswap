@@ -6,7 +6,7 @@ module liquidswap::liquidity_pool_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
-    use lp_coin_account::lp_coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::coin_helper::supply;
     use liquidswap::curves::{Uncorrelated, Stable};

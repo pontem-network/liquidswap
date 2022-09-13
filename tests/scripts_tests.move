@@ -3,7 +3,7 @@ module liquidswap::scripts_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use lp_coin_account::lp_coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::liquidity_pool;

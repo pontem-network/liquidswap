@@ -8,7 +8,7 @@ module liquidswap::liquidity_pool {
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
 
-    use lp_coin_account::lp_coin::LP;
+    use liquidswap_lp::lp_coin::LP;
     use u256::u256;
     use uq64x64::uq64x64;
 

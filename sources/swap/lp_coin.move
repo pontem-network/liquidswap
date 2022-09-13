@@ -10,18 +10,6 @@ module liquidswap::lp_coin {
 
     const ERR_NO_PERMISSIONS: u64 = 902;
 
-    // struct CoinInfo<phantom CoinType> has key { decimals_scale: u64 }
-
-    // public(friend) fun cache_decimals_scale<CoinType>(pool_account: &signer) {
-    //     let decimals_scale = math::pow_10(coin::decimals<CoinType>());
-    //     move_to(pool_account, CoinInfo<>)
-    // }
-
-    // public fun get_cached_decimals_scale<CoinType>(): u64 acquires CoinInfo {
-    //     let coin_info = borrow_global<CoinInfo<CoinType>>(@liquidswap_pool_account);
-    //     coin_info.decimals_scale
-    // }
-
     public(friend) fun register_lp_coin<X, Y, Curve>(
         pool_account: &signer,
         lp_name: String,

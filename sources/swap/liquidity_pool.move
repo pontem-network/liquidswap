@@ -4,7 +4,6 @@ module liquidswap::liquidity_pool {
     use std::signer;
 
     use aptos_std::event;
-    use aptos_std::type_info;
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
@@ -19,6 +18,9 @@ module liquidswap::liquidity_pool {
     use liquidswap::lp;
     use liquidswap::math;
     use liquidswap::stable_curve;
+    #[test_only]
+    use liquidswap::curves::Uncorrelated;
+    use liquidswap::curves;
 
     // Error codes.
 
@@ -66,19 +68,7 @@ module liquidswap::liquidity_pool {
     /// Denominator to handle decimal points for fees.
     const FEE_SCALE: u64 = 10000;
 
-    // Curve types.
-
-    /// Stable curve (like Solidly).
-    const STABLE_CURVE: u8 = 1;
-
-    /// Uncorrelated curve (Uniswap like).
-    const UNCORRELATED_CURVE: u8 = 2;
-
     // Public functions.
-
-    // Marker structures to use in LiquidityPool third generic.
-    struct Uncorrelated {}
-    struct Stable {}
 
     /// Liquidity pool with reserves.
     struct LiquidityPool<phantom X, phantom Y, phantom Curve> has key {
@@ -119,7 +109,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
         assert!(
-            is_stable_curve<Curve>() || is_uncorrelated_curve<Curve>(),
+            curves::is_stable_curve<Curve>() || curves::is_uncorrelated_curve<Curve>(),
             ERR_INVALID_CURVE
         );
         assert!(!lp::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
@@ -131,7 +121,7 @@ module liquidswap::liquidity_pool {
         let x_scale = 0;
         let y_scale = 0;
 
-        if (is_stable_curve<Curve>()) {
+        if (curves::is_stable_curve<Curve>()) {
             x_scale = math::pow_10(coin::decimals<X>());
             y_scale = math::pow_10(coin::decimals<Y>());
         };
@@ -468,13 +458,13 @@ module liquidswap::liquidity_pool {
     ): (u128, u128) {
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = if (is_uncorrelated_curve<Curve>()) {
+        let x_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
             math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
         } else {
             ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
         };
 
-        let y_res_new_after_fee = if (is_uncorrelated_curve<Curve>()) {
+        let y_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
             math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
         } else {
             ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
@@ -521,13 +511,13 @@ module liquidswap::liquidity_pool {
         x_res_with_fees: u128,
         y_res_with_fees: u128,
     ) {
-        if (is_stable_curve<Curve>()) {
+        if (curves::is_stable_curve<Curve>()) {
             let lp_value_before_swap = stable_curve::lp_value(x_res, x_scale, y_res, y_scale);
             let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
             assert!(cmp == 2, ERR_INCORRECT_SWAP);
-        } else if (is_uncorrelated_curve<Curve>()) {
+        } else if (curves::is_uncorrelated_curve<Curve>()) {
             let lp_value_before_swap = x_res * y_res;
             let lp_value_before_swap_u256 = u256::mul(
                 u256::from_u128(lp_value_before_swap),
@@ -581,14 +571,6 @@ module liquidswap::liquidity_pool {
         };
 
         pool.last_block_timestamp = block_timestamp;
-    }
-
-    public fun is_uncorrelated_curve<Curve>(): bool {
-        type_info::type_of<Curve>() == type_info::type_of<Uncorrelated>()
-    }
-
-    public fun is_stable_curve<Curve>(): bool {
-        type_info::type_of<Curve>() == type_info::type_of<Stable>()
     }
 
     /// Aborts if pool is locked.

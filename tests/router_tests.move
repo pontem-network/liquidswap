@@ -4,13 +4,13 @@ module liquidswap::router_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
+    use lp_coin_account::lp_coin::LP;
 
+    use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use lp_coin_account::lp_coin::LP;
     use test_helpers::test_pool;
-    use liquidswap::liquidity_pool::{Stable, Uncorrelated};
 
     const MAX_U64: u64 = 18446744073709551615;
 

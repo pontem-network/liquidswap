@@ -3,14 +3,14 @@ module liquidswap::scripts_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use lp_coin_account::lp_coin::LP;
 
+    use liquidswap::curves::Uncorrelated;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use liquidswap::scripts;
     use test_coin_admin::test_coins::{Self, USDT, BTC};
-    use lp_coin_account::lp_coin::LP;
     use test_helpers::test_pool;
-    use liquidswap::liquidity_pool::Uncorrelated;
 
     fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();

@@ -6,15 +6,15 @@ module liquidswap::liquidity_pool_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
+    use lp_coin_account::lp_coin::LP;
 
     use liquidswap::coin_helper::supply;
+    use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;
+    use liquidswap::lp;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
-    use lp_coin_account::lp_coin::LP;
-    use liquidswap::lp;
-    use liquidswap::liquidity_pool::{Uncorrelated, Stable};
 
     fun setup_btc_usdt_pool(): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();

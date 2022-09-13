@@ -3,11 +3,11 @@ module liquidswap::flashloan_tests {
     use std::signer;
 
     use aptos_framework::coin;
-
     use lp_coin_account::lp_coin::LP;
 
+    use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
-    use liquidswap::liquidity_pool::{Self, Uncorrelated, Stable};
+    use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;

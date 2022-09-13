@@ -2,13 +2,12 @@
 module liquidswap::coin_helper_tests {
     use std::string::utf8;
 
-    use aptos_std::comparator;
     use aptos_framework::genesis;
+    use aptos_std::comparator;
 
     use liquidswap::coin_helper;
-
+    use liquidswap::curves::Uncorrelated;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
-    use liquidswap::liquidity_pool::Uncorrelated;
 
     #[test]
     fun test_end_to_end() {

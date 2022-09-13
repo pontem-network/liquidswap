@@ -3,7 +3,8 @@ module liquidswap::lp_account_tests {
     use aptos_framework::coin;
 
     use liquidswap::coin_helper;
-    use liquidswap::liquidity_pool::{Self, Uncorrelated};
+    use liquidswap::curves::Uncorrelated;
+    use liquidswap::liquidity_pool;
     use liquidswap::lp;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_helpers::test_pool;

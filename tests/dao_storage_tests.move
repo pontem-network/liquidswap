@@ -3,15 +3,15 @@ module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use lp_coin_account::lp_coin::LP;
 
+    use liquidswap::curves::Uncorrelated;
     use liquidswap::dao_storage;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
-    use lp_coin_account::lp_coin::LP;
-    use liquidswap::liquidity_pool::Uncorrelated;
 
     #[test]
     fun test_register() {

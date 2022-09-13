@@ -4,12 +4,12 @@ module liquidswap::router {
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
 
+    use lp_coin_account::lp_coin::LP;
+
     use liquidswap::coin_helper::{Self, supply};
-    use liquidswap::liquidity_pool;
+    use liquidswap::liquidity_pool::{Self, is_stable_curve, is_uncorrelated_curve};
     use liquidswap::math;
     use liquidswap::stable_curve;
-    use lp_coin_account::lp_coin::LP;
-    use liquidswap::liquidity_pool::{is_stable_curve, is_uncorrelated_curve};
 
     // Errors codes.
 
@@ -44,11 +44,10 @@ module liquidswap::router {
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
-    public fun register_pool<X, Y, Curve>(account: &signer): address {
+    public fun register_pool<X, Y, Curve>(account: &signer, pool_account_seed: vector<u8>): address {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
 
-        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
-        liquidity_pool::register<X, Y, Curve>(account, lp_name, lp_symbol)
+        liquidity_pool::register<X, Y, Curve>(account, pool_account_seed)
     }
 
     /// Add liquidity to pool `X`/`Y` with rationality checks.
@@ -57,7 +56,9 @@ module liquidswap::router {
     /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
     /// * `coin_y` - coin Y to add as liquidity.
     /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
-    /// Returns reminders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>)`.
+    /// Returns remainders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>)`.
+    ///
+    /// Note: X, Y generic coin parameteres should be sorted.
     public fun add_liquidity<X, Y, Curve>(
         pool_addr: address,
         coin_x: Coin<X>,
@@ -95,6 +96,8 @@ module liquidswap::router {
     /// * `min_x_out_val` - minimum amount of `X` coins must be out.
     /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
     /// Returns both `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
+    ///
+    /// Note: X, Y generic coin parameteres should be sorted.
     public fun remove_liquidity<X, Y, Curve>(
         pool_addr: address,
         lp_coins: Coin<LP<X, Y, Curve>>,

@@ -9,8 +9,8 @@ module liquidswap::scripts {
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
-    public entry fun register_pool<X, Y, Curve>(account: &signer) {
-        router::register_pool<X, Y, Curve>(account);
+    public entry fun register_pool<X, Y, Curve>(account: &signer, pool_account_seed: vector<u8>) {
+        router::register_pool<X, Y, Curve>(account, pool_account_seed);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
@@ -21,12 +21,13 @@ module liquidswap::scripts {
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
     public entry fun register_pool_and_add_liquidity<X, Y, Curve>(
         account: &signer,
+        pool_account_seed: vector<u8>,
         coin_x_val: u64,
         coin_x_val_min: u64,
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        let pool_addr = router::register_pool<X, Y, Curve>(account);
+        let pool_addr = router::register_pool<X, Y, Curve>(account, pool_account_seed);
 
         add_liquidity<X, Y, Curve>(
             account,

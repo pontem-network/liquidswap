@@ -1,14 +1,12 @@
 #[test_only]
 module liquidswap::lp_account_tests {
-    use std::string::utf8;
+    use aptos_framework::coin;
 
-    use liquidswap::liquidity_pool;
+    use liquidswap::coin_helper;
+    use liquidswap::liquidity_pool::{Self, Uncorrelated};
+    use liquidswap::lp;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_helpers::test_pool;
-    use liquidswap::lp;
-    use liquidswap::coin_helper;
-    use liquidswap::liquidity_pool::Uncorrelated;
-    use aptos_framework::coin;
 
     #[test]
     #[expected_failure(abort_code = 101)]
@@ -23,8 +21,7 @@ module liquidswap::lp_account_tests {
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT")
+            b"pool_seed"
         );
     }
 }

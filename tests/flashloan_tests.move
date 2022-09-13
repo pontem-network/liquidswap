@@ -15,7 +15,7 @@ module liquidswap::flashloan_tests {
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         if (x_val != 0 && y_val != 0) {

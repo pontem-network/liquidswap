@@ -15,7 +15,7 @@ module liquidswap::scripts_tests {
     fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         if (x_val != 0 && y_val != 0) {
             let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
@@ -32,7 +32,7 @@ module liquidswap::scripts_tests {
     public entry fun test_register_pool_with_script() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        scripts::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        scripts::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         assert!(liquidity_pool::pool_exists_at<BTC, USDT, Uncorrelated>(@test_pool_addr), 1);
     }
@@ -53,6 +53,7 @@ module liquidswap::scripts_tests {
 
         scripts::register_pool_and_add_liquidity<BTC, USDT, Uncorrelated>(
             &lp_owner,
+            b"pool_seed",
             101,
             101,
             10100,

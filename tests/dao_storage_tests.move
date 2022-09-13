@@ -134,7 +134,7 @@ module liquidswap::dao_storage_tests {
         create_account(&dao_admin_acc);
 
         // 0.3% fee
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000);

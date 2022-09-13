@@ -3,7 +3,7 @@ name = 'LPInit'
 version = '1.0.0'
 
 [addresses]
-liquidswap = "0x2d7ae95e4f067836b540771b95531ea87f8f30dfd6c1667c496875f1ba65738f"
+liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

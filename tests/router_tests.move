@@ -17,7 +17,7 @@ module liquidswap::router_tests {
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         if (x_val != 0 && y_val != 0) {
@@ -35,7 +35,7 @@ module liquidswap::router_tests {
     fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let pool_addr = router::register_pool<USDC, USDT, Stable>(&lp_owner);
+        let pool_addr = router::register_pool<USDC, USDT, Stable>(&lp_owner, b"pool_seed");
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         if (x_val != 0 && y_val != 0) {
@@ -513,7 +513,7 @@ module liquidswap::router_tests {
     fun test_pool_exists() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
 
         assert!(router::pool_exists_at<BTC, USDT, Uncorrelated>(pool_addr), 0);
         assert!(router::pool_exists_at<USDT, BTC, Uncorrelated>(pool_addr), 1);

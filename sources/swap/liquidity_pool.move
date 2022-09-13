@@ -2,7 +2,6 @@
 /// Implements mint/burn liquidity, swap of coins.
 module liquidswap::liquidity_pool {
     use std::signer;
-    use std::string::String;
 
     use aptos_std::event;
     use aptos_std::type_info;
@@ -108,13 +107,10 @@ module liquidswap::liquidity_pool {
 
     /// Register liquidity pool `X`/`Y`.
     /// Parameters:
-    /// * `lp_name` - LP coin name.
-    /// * `lp_symbol` - LP coin symbol.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, Curve>(
         owner: &signer,
-        lp_name: String,
-        lp_symbol: String,
+        pool_account_seed: vector<u8>
     ): address {
         assert_no_emergency();
 
@@ -128,6 +124,7 @@ module liquidswap::liquidity_pool {
         );
         assert!(!lp::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
 
+        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
         let (lp_mint_cap, lp_burn_cap) =
             lp::register_lp_coin<X, Y, Curve>(lp_name, lp_symbol);
 
@@ -152,10 +149,8 @@ module liquidswap::liquidity_pool {
             locked: false,
         };
 
-        // TODO: make a parameter
-        let pool_account_seed = b"12345";
-        // TODO: what to do with SignerCapability here
-        let (pool_acc, _signer_cap) = account::create_resource_account(owner, pool_account_seed);
+        // drop SignerCapability, won't be needed anymore
+        let (pool_acc, _) = account::create_resource_account(owner, pool_account_seed);
         move_to(&pool_acc, pool);
 
         dao_storage::register<X, Y, Curve>(&pool_acc);

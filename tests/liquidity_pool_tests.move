@@ -20,8 +20,7 @@ module liquidswap::liquidity_pool_tests {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         let pool_addr = liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed",
         );
         (coin_admin, lp_owner, pool_addr)
     }
@@ -30,8 +29,7 @@ module liquidswap::liquidity_pool_tests {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         let pool_addr = liquidity_pool::register<USDC, USDT, Stable>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-USDC-USDT"),
+            b"pool_seed"
         );
         (coin_admin, lp_owner, pool_addr)
     }
@@ -43,12 +41,11 @@ module liquidswap::liquidity_pool_tests {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
         let pool_lp_name = utf8(b"Liquidswap LP");
-        let pool_lp_symbol = utf8(b"LP-BTC-USDT");
+        let pool_lp_symbol = utf8(b"LP-BTC-USDT-Uncorrelated");
 
         let pool_addr = liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            pool_lp_name,
-            pool_lp_symbol,
+            b"pool_seed"
         );
 
         assert!(lp::is_lp_coin_registered<BTC, USDT, Uncorrelated>(), 10);
@@ -91,14 +88,10 @@ module liquidswap::liquidity_pool_tests {
     fun test_create_pool_emergency_fails(emergency_acc: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        let pool_lp_name = utf8(b"Liquidswap LP");
-        let pool_lp_symbol = utf8(b"LP-BTC-USDT");
-
         emergency::pause(&emergency_acc);
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            pool_lp_name,
-            pool_lp_symbol,
+            b"pool_seed"
         );
     }
 
@@ -111,8 +104,7 @@ module liquidswap::liquidity_pool_tests {
 
         let pool_addr = liquidity_pool::register<USDC, USDT, Stable>(
             &lp_owner,
-            pool_lp_name,
-            pool_lp_symbol,
+            b"pool_seed"
         );
 
         let (x_res_val, y_res_val) =
@@ -154,8 +146,7 @@ module liquidswap::liquidity_pool_tests {
         
         let pool_addr = liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed"
         );
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
@@ -172,8 +163,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed"
         );
     }
 
@@ -186,8 +176,7 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed"
         );
     }
 
@@ -198,14 +187,12 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed"
         );
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner,
-            utf8(b"Liquidswap LP"),
-            utf8(b"LP-BTC-USDT"),
+            b"pool_seed"
         );
     }
 

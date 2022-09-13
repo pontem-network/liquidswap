@@ -3,7 +3,7 @@ name = 'LPCoin'
 version = '1.0.0'
 
 [addresses]
-lp_coin_account = "0x35e1873b2a1ae8c609598114c527b57d31ff5274f646ea3ff6ecad86c56d2cf8"
+lp_coin_account = "0x385068db10693e06512ed54b1e6e8f1fb9945bb7a78c28a45585939ce953f99e"
 
 [dev-dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

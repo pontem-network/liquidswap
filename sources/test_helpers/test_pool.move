@@ -5,7 +5,7 @@ module test_helpers::test_pool {
 
     use liquidswap::lp_init;
     use test_coin_admin::test_coins;
-    use liquidswap::lp;
+    use liquidswap::lp_coin;
 
     public fun create_lp_owner(): signer {
         let pool_owner = account::create_account_for_test(@test_lp_owner);
@@ -36,7 +36,7 @@ module test_helpers::test_pool {
             lp_coin_code
         );
         // retrieves SignerCapability from lp_init package
-        lp::initialize(&liquidswap_admin);
+        lp_coin::initialize(&liquidswap_admin);
 
         let coin_admin = test_coins::create_admin_with_coins();
         let lp_owner = create_lp_owner();

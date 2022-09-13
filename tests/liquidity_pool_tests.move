@@ -12,7 +12,7 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;
-    use liquidswap::lp;
+    use liquidswap::lp_coin;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
 
@@ -48,9 +48,9 @@ module liquidswap::liquidity_pool_tests {
             b"pool_seed"
         );
 
-        assert!(lp::is_lp_coin_registered<BTC, USDT, Uncorrelated>(), 10);
+        assert!(lp_coin::is_lp_coin_registered<BTC, USDT, Uncorrelated>(), 10);
         assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 11);
-        assert!(!lp::is_lp_coin_registered<USDT, BTC, Uncorrelated>(), 12);
+        assert!(!lp_coin::is_lp_coin_registered<USDT, BTC, Uncorrelated>(), 12);
         assert!(!coin::is_coin_initialized<LP<USDT, BTC, Uncorrelated>>(), 13);
 
         let (x_res_val, y_res_val) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>(pool_addr);

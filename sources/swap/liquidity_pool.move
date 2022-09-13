@@ -4,21 +4,20 @@ module liquidswap::liquidity_pool {
     use std::signer;
 
     use aptos_std::event;
-    use aptos_framework::account;
+    use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
 
-    use liquidswap_lp::lp::LP;
     use u256::u256;
     use uq64x64::uq64x64;
 
     use liquidswap::coin_helper::{Self, assert_is_coin};
+    use liquidswap::curves;
     use liquidswap::dao_storage;
     use liquidswap::emergency::assert_no_emergency;
-    use liquidswap::lp;
+    use liquidswap::lp_coin::{Self, LP};
     use liquidswap::math;
     use liquidswap::stable_curve;
-    use liquidswap::curves;
 
     // Error codes.
 
@@ -54,6 +53,9 @@ module liquidswap::liquidity_pool {
 
     /// When invalid curve passed as argument.
     const ERR_INVALID_CURVE: u64 = 110;
+
+    /// When `initialize()` transaction is signed with any account other than @liquidswap.
+    const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 111;
 
     // Constants.
 
@@ -93,13 +95,19 @@ module liquidswap::liquidity_pool {
         y_loan: u64
     }
 
+    struct PoolCapability has key { signer_cap: SignerCapability }
+
+    public fun initialize(liquidswap_admin: &signer) {
+        assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
+        let (pool_acc, signer_cap) =
+            account::create_resource_account(liquidswap_admin, b"liquidswap_resource_account");
+        move_to(&pool_acc, PoolCapability { signer_cap });
+    }
+
     /// Register liquidity pool `X`/`Y`.
     /// Parameters:
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
-    public fun register<X, Y, Curve>(
-        owner: &signer,
-        pool_account_seed: vector<u8>
-    ): address {
+    public fun register<X, Y, Curve>(acc: &signer) acquires PoolCapability {
         assert_no_emergency();
 
         assert_is_coin<X>();
@@ -110,11 +118,15 @@ module liquidswap::liquidity_pool {
             curves::is_stable_curve<Curve>() || curves::is_uncorrelated_curve<Curve>(),
             ERR_INVALID_CURVE
         );
-        assert!(!lp::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
+        // TODO: change into check for LiquidityPool existence
+        assert!(!lp_coin::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
+
+        let pool_cap = borrow_global<PoolCapability>(@liquidswap);
+        let pool_acc = account::create_signer_with_capability(&pool_cap.signer_cap);
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
         let (lp_mint_cap, lp_burn_cap) =
-            lp::register_lp_coin<X, Y, Curve>(lp_name, lp_symbol);
+            lp_coin::register_lp_coin<X, Y, Curve>(&pool_acc, lp_name, lp_symbol);
 
         let x_scale = 0;
         let y_scale = 0;
@@ -136,14 +148,10 @@ module liquidswap::liquidity_pool {
             y_scale,
             locked: false,
         };
-
-        // drop SignerCapability, won't be needed anymore
-        let (pool_acc, _) = account::create_resource_account(owner, pool_account_seed);
         move_to(&pool_acc, pool);
 
         dao_storage::register<X, Y, Curve>(&pool_acc);
 
-        let pool_address = signer::address_of(&pool_acc);
         let events_store = EventsStore<X, Y, Curve> {
             pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, Curve>>(&pool_acc),
             liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, Curve>>(&pool_acc),
@@ -155,13 +163,10 @@ module liquidswap::liquidity_pool {
         event::emit_event(
             &mut events_store.pool_created_handle,
             PoolCreatedEvent<X, Y, Curve> {
-                creator: signer::address_of(owner),
-                pool_address,
+                creator: signer::address_of(acc)
             },
         );
-
         move_to(&pool_acc, events_store);
-        pool_address
     }
 
     /// Mint new liquidity coins.
@@ -185,7 +190,7 @@ module liquidswap::liquidity_pool {
         let y_provided_val = coin::value<Y>(&coin_y);
 
         let provided_liq = if (lp_coins_total == 0) {
-            let initial_liq = math::sqrt(math::mul_to_u128(x_provided_val, y_provided_val));
+            let initial_liq = math::sqrt(math::mul_to_u128(y_provided_val, x_provided_val));
             assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liq - MINIMAL_LIQUIDITY
         } else {
@@ -205,7 +210,7 @@ module liquidswap::liquidity_pool {
 
         let lp_coins = coin::mint<LP<X, Y, Curve>>(provided_liq, &pool.lp_mint_cap);
 
-        update_oracle<X, Y, Curve>(pool, pool_addr, x_reserve_size, y_reserve_size);
+        update_oracle<X, Y, Curve>(pool, x_reserve_size, y_reserve_size);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(pool_addr);
         event::emit_event(
@@ -244,7 +249,7 @@ module liquidswap::liquidity_pool {
         let x_coin_to_return = coin::extract(&mut pool.coin_x_reserve, x_to_return_val);
         let y_coin_to_return = coin::extract(&mut pool.coin_y_reserve, y_to_return_val);
 
-        update_oracle<X, Y, Curve>(pool, pool_addr, x_reserve_val, y_reserve_val);
+        update_oracle<X, Y, Curve>(pool, x_reserve_val, y_reserve_val);
         coin::burn(lp_coins, &pool.lp_burn_cap);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(pool_addr);
@@ -314,7 +319,7 @@ module liquidswap::liquidity_pool {
 
         split_third_of_fee_to_dao(pool, pool_addr, x_in_val, y_in_val);
 
-        update_oracle<X, Y, Curve>(pool, pool_addr, x_reserve_size, y_reserve_size);
+        update_oracle<X, Y, Curve>(pool, x_reserve_size, y_reserve_size);
 
         let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(pool_addr);
         event::emit_event(
@@ -367,7 +372,7 @@ module liquidswap::liquidity_pool {
                 y_loan,
             });
 
-        update_oracle(pool, pool_addr, reserve_x, reserve_y);
+        update_oracle(pool, reserve_x, reserve_y);
 
         // Return loaned amount.
         (x_loaned, y_loaned, Flashloan<X, Y, Curve> {
@@ -542,7 +547,6 @@ module liquidswap::liquidity_pool {
     /// * `y_reserve` - coin Y reserves.
     fun update_oracle<X, Y, Curve>(
         pool: &mut LiquidityPool<X, Y, Curve>,
-        pool_addr: address,
         x_reserve: u64,
         y_reserve: u64
     ) acquires EventsStore {
@@ -559,7 +563,7 @@ module liquidswap::liquidity_pool {
             pool.last_price_x_cumulative = math::overflow_add(pool.last_price_x_cumulative, last_price_x_cumulative);
             pool.last_price_y_cumulative = math::overflow_add(pool.last_price_y_cumulative, last_price_y_cumulative);
 
-            let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(pool_addr);
+            let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(@liquidswap);
             event::emit_event(
                 &mut events_store.oracle_updated_handle,
                 OracleUpdatedEvent<X, Y, Curve> {
@@ -663,7 +667,6 @@ module liquidswap::liquidity_pool {
 
     struct PoolCreatedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
         creator: address,
-        pool_address: address,
     }
 
     struct LiquidityAddedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
@@ -722,20 +725,15 @@ module liquidswap::liquidity_pool {
         prev_last_price_y_cumulative: u128,
         x_reserve: u64,
         y_reserve: u64,
-    ): (u128, u128, u64) acquires EventsStore, LiquidityPool {
-        let pool_addr = register<X, Y, curves::Uncorrelated>(test_account, b"12345");
+    ): (u128, u128, u64) acquires EventsStore, LiquidityPool, PoolCapability {
+        register<X, Y, curves::Uncorrelated>(test_account);
 
-        let pool = borrow_global_mut<LiquidityPool<X, Y, curves::Uncorrelated>>(pool_addr);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, curves::Uncorrelated>>(@liquidswap);
         pool.last_block_timestamp = prev_last_block_timestamp;
         pool.last_price_x_cumulative = prev_last_price_x_cumulative;
         pool.last_price_y_cumulative = prev_last_price_y_cumulative;
 
-        update_oracle(
-            pool,
-            pool_addr,
-            x_reserve,
-            y_reserve
-        );
+        update_oracle(pool, x_reserve, y_reserve);
 
         (pool.last_price_x_cumulative, pool.last_price_y_cumulative, pool.last_block_timestamp)
     }

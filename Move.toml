@@ -14,11 +14,11 @@ test_helpers = "0x12"
 test_lp_owner = "0x12"
 test_pool_addr = "0x2540b6f8a87ac1cff2de9f5f742854b448cd4521e96f840eda05e63e4e944ed6"
 
-[dependencies.LiquidswapLP]
-local = "./lp/"
-
-[dependencies.LPInit]
-local = "./lp_init/"
+#[dependencies.LiquidswapLP]
+#local = "./lp/"
+#
+#[dependencies.LPInit]
+#local = "./lp_init/"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

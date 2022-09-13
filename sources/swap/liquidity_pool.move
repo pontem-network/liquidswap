@@ -18,8 +18,6 @@ module liquidswap::liquidity_pool {
     use liquidswap::lp;
     use liquidswap::math;
     use liquidswap::stable_curve;
-    #[test_only]
-    use liquidswap::curves::Uncorrelated;
     use liquidswap::curves;
 
     // Error codes.
@@ -718,70 +716,27 @@ module liquidswap::liquidity_pool {
 
     #[test_only]
     public fun update_cumulative_price_for_test<X, Y>(
-        account: &signer,
-        last_block_timestamp: u64,
-        last_price_x_cumulative: u128,
-        last_price_y_cumulative: u128,
+        test_account: &signer,
+        prev_last_block_timestamp: u64,
+        prev_last_price_x_cumulative: u128,
+        prev_last_price_y_cumulative: u128,
         x_reserve: u64,
         y_reserve: u64,
-    ): (u128, u128, u64) acquires EventsStore {
-        // just in case
-        let addr = signer::address_of(account);
-        assert!(addr == @0x12, 0);
+    ): (u128, u128, u64) acquires EventsStore, LiquidityPool {
+        let pool_addr = register<X, Y, curves::Uncorrelated>(test_account, b"12345");
 
-        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Uncorrelated>();
-        let (lp_mint_cap, lp_burn_cap) =
-            lp::register_lp_coin<X, Y, Uncorrelated>(lp_name, lp_symbol);
-
-        let pool = LiquidityPool<X, Y, Uncorrelated> {
-            coin_x_reserve: coin::zero<X>(),
-            coin_y_reserve: coin::zero<Y>(),
-            last_block_timestamp,
-            last_price_x_cumulative,
-            last_price_y_cumulative,
-            lp_mint_cap,
-            lp_burn_cap,
-            x_scale: 0,
-            y_scale: 0,
-            locked: false,
-        };
-
-        let events_store = EventsStore<X, Y, Uncorrelated> {
-            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, Uncorrelated>>(account),
-            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, Uncorrelated>>(account),
-            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, Uncorrelated>>(account),
-            swap_handle: account::new_event_handle<SwapEvent<X, Y, Uncorrelated>>(account),
-            loan_handle: account::new_event_handle<FlashloanEvent<X, Y, Uncorrelated>>(account),
-            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, Uncorrelated>>(account),
-        };
-
-        move_to(account, events_store);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, curves::Uncorrelated>>(pool_addr);
+        pool.last_block_timestamp = prev_last_block_timestamp;
+        pool.last_price_x_cumulative = prev_last_price_x_cumulative;
+        pool.last_price_y_cumulative = prev_last_price_y_cumulative;
 
         update_oracle(
-            &mut pool,
-            addr,
+            pool,
+            pool_addr,
             x_reserve,
             y_reserve
         );
 
-        let LiquidityPool {
-            coin_x_reserve,
-            coin_y_reserve,
-            last_block_timestamp,
-            last_price_x_cumulative,
-            last_price_y_cumulative,
-            lp_mint_cap,
-            lp_burn_cap,
-            x_scale: _,
-            y_scale: _,
-            locked: _,
-        } = pool;
-
-        coin::destroy_zero(coin_x_reserve);
-        coin::destroy_zero(coin_y_reserve);
-        coin::destroy_mint_cap(lp_mint_cap);
-        coin::destroy_burn_cap(lp_burn_cap);
-
-        (last_price_x_cumulative, last_price_y_cumulative, last_block_timestamp)
+        (pool.last_price_x_cumulative, pool.last_price_y_cumulative, pool.last_block_timestamp)
     }
 }

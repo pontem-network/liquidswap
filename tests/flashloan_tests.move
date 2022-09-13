@@ -7,10 +7,10 @@ module liquidswap::flashloan_tests {
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
-    use test_coin_admin::test_coins::{Self, USDT, BTC};
+    use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
     use lp_coin_account::lp_coin::LP;
-    use liquidswap::liquidity_pool::Uncorrelated;
+    use liquidswap::liquidity_pool::{Uncorrelated, Stable};
 
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
@@ -28,6 +28,24 @@ module liquidswap::flashloan_tests {
         };
 
         (coin_admin, lp_owner, pool_addr)
+    }
+
+    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
+        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+
+        router::register_pool<USDC, USDT, Stable>(&lp_owner, b"pool_seed");
+
+        let pool_owner_addr = signer::address_of(&lp_owner);
+        if (x_val != 0 && y_val != 0) {
+            let usdc_coins = test_coins::mint<USDC>(&coin_admin, x_val);
+            let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
+            let lp_coins =
+                liquidity_pool::mint<USDC, USDT, Stable>(pool_owner_addr, usdc_coins, usdt_coins);
+            coin::register<LP<USDC, USDT, Stable>>(&lp_owner);
+            coin::deposit<LP<USDC, USDT, Stable>>(pool_owner_addr, lp_coins);
+        };
+
+        (coin_admin, lp_owner)
     }
 
     #[test]
@@ -182,6 +200,154 @@ module liquidswap::flashloan_tests {
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>(pool_addr);
         assert!(x_res == 18446744073699551617, 2);
         assert!(y_res == 18446744063739551614, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_normal_reserves_and_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99699999);
+        assert!(coin::value(&usdt_coins) == 99699999, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1000000);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 15000999000, 2);
+        assert!(y_res == 1499900300001, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_normal_reserves_and_min_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000999000, 1499900300001);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99);
+        assert!(coin::value(&usdt_coins) == 99, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 15000999001, 2);
+        assert!(y_res == 1499900299902, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_normal_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 90);
+        assert!(coin::value(&usdt_coins) == 90, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 33);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 1034, 2);
+        assert!(y_res == 911, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_min_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 1);
+        assert!(coin::value(&usdt_coins) == 1, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 2);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 1003, 2);
+        assert!(y_res == 1000, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_max_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (usdc_coins, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 1001, 1001);
+        assert!(coin::value(&usdc_coins) == 1001, 1);
+        assert!(coin::value(&usdt_coins) == 1001, 2);
+
+        let usdc_coins_to_add = test_coins::mint<USDC>(&coin_admin, 4);
+        let usdt_coins_to_add = test_coins::mint<USDT>(&coin_admin, 3);
+        coin::merge(&mut usdc_coins, usdc_coins_to_add);
+        coin::merge(&mut usdt_coins, usdt_coins_to_add);
+        liquidity_pool::pay_flashloan(usdc_coins, usdt_coins, loan);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 1004, 3);
+        assert!(y_res == 1003, 4);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_big_reserves_and_normal_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 996999980359);
+        assert!(coin::value(&usdt_coins) == 996999980359, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000000000);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 2939990000000, 2);
+        assert!(y_res == 292003000019641, 3);
+    }
+
+    #[test]
+    fun test_flashloan_coins_from_stable_pool_with_big_reserves_and_min_amount() {
+        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
+
+        let pool_owner_addr = signer::address_of(&pool_owner);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99);
+        assert!(coin::value(&usdt_coins) == 99, 1);
+
+        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
+        liquidity_pool::pay_flashloan(usdc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        assert!(x_res == 2930000000001, 2);
+        assert!(y_res == 292999999999901, 3);
     }
 
     #[test(emergency_acc = @emergency_admin)]

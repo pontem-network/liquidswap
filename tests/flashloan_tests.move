@@ -30,22 +30,21 @@ module liquidswap::flashloan_tests {
         (coin_admin, lp_owner, pool_addr)
     }
 
-    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
+    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, address) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        router::register_pool<USDC, USDT, Stable>(&lp_owner, b"pool_seed");
+        let pool_addr = router::register_pool<USDC, USDT, Stable>(&lp_owner, b"pool_seed");
 
-        let pool_owner_addr = signer::address_of(&lp_owner);
         if (x_val != 0 && y_val != 0) {
             let usdc_coins = test_coins::mint<USDC>(&coin_admin, x_val);
             let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
-                liquidity_pool::mint<USDC, USDT, Stable>(pool_owner_addr, usdc_coins, usdt_coins);
+                liquidity_pool::mint<USDC, USDT, Stable>(pool_addr, usdc_coins, usdt_coins);
             coin::register<LP<USDC, USDT, Stable>>(&lp_owner);
-            coin::deposit<LP<USDC, USDT, Stable>>(pool_owner_addr, lp_coins);
+            coin::deposit<LP<USDC, USDT, Stable>>(signer::address_of(&lp_owner), lp_coins);
         };
 
-        (coin_admin, lp_owner)
+        (coin_admin, lp_owner, pool_addr)
     }
 
     #[test]
@@ -204,12 +203,10 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_normal_reserves_and_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_addr) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let (zero, usdt_coins, loan) =
-            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99699999);
+            liquidity_pool::flashloan<USDC, USDT, Stable>(pool_addr, 0, 99699999);
         assert!(coin::value(&usdt_coins) == 99699999, 1);
 
         let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1000000);
@@ -218,16 +215,14 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_owner_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>(pool_addr);
         assert!(x_res == 15000999000, 2);
         assert!(y_res == 1499900300001, 3);
     }
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_normal_reserves_and_min_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(15000999000, 1499900300001);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(15000999000, 1499900300001);
 
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99);
@@ -246,9 +241,7 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_normal_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(1001, 1001);
 
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 90);
@@ -267,9 +260,7 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_min_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(1001, 1001);
 
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 1);
@@ -288,9 +279,7 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_min_reserves_and_max_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(1001, 1001);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(1001, 1001);
 
         let (usdc_coins, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 1001, 1001);
@@ -310,9 +299,7 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_big_reserves_and_normal_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 996999980359);
@@ -331,9 +318,7 @@ module liquidswap::flashloan_tests {
 
     #[test]
     fun test_flashloan_coins_from_stable_pool_with_big_reserves_and_min_amount() {
-        let (coin_admin, pool_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
-
-        let pool_owner_addr = signer::address_of(&pool_owner);
+        let (coin_admin, _, pool_owner_addr) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let (zero, usdt_coins, loan) =
             liquidity_pool::flashloan<USDC, USDT, Stable>(pool_owner_addr, 0, 99);

@@ -1,5 +1,5 @@
 [package]
-name = 'LPInit'
+name = 'LiquidswapInit'
 version = '1.0.0'
 
 [addresses]

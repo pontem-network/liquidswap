@@ -3,7 +3,6 @@ module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use liquidswap_lp::lp::LP;
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::dao_storage;
@@ -12,6 +11,7 @@ module liquidswap::dao_storage_tests {
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
+    use liquidswap_lp::coin::LP;
 
     #[test]
     fun test_register() {
@@ -134,34 +134,33 @@ module liquidswap::dao_storage_tests {
         create_account(&dao_admin_acc);
 
         // 0.3% fee
-        let pool_addr = router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, b"pool_seed");
+        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000);
 
         let lp_coins =
-            liquidity_pool::mint<BTC, USDT, Uncorrelated>(pool_addr, btc_coins, usdt_coins);
+            liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
         coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
         coin::deposit(signer::address_of(&lp_owner), lp_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
-                pool_addr,
                 btc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 960
             );
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>(pool_addr);
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
         assert!(x_res == 100999, 2);
         assert!(y_res == 99040, 3);
 
-        let (dao_x, dao_y) = dao_storage::get_storage_size<BTC, USDT, Uncorrelated>(pool_addr);
+        let (dao_x, dao_y) = dao_storage::get_storage_size<BTC, USDT, Uncorrelated>(@liquidswap_pool_account);
         assert!(dao_x == 1, 4);
         assert!(dao_y == 0, 5);
 
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, pool_addr, 1, 0);
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, @liquidswap_pool_account, 1, 0);
         assert!(coin::value(&x) == 1, 6);
         assert!(coin::value(&y) == 0, 7);
 

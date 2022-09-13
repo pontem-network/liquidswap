@@ -7,6 +7,9 @@ liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9
 dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 
+# should be the same as @liquidswap_lp in lp_coin
+liquidswap_pool_account = "0x385068db10693e06512ed54b1e6e8f1fb9945bb7a78c28a45585939ce953f99e"
+
 # Addresses for tests.
 test_coin_admin = "0x11"
 test_helpers = "0x12"
@@ -14,11 +17,11 @@ test_helpers = "0x12"
 test_lp_owner = "0x12"
 test_pool_addr = "0x2540b6f8a87ac1cff2de9f5f742854b448cd4521e96f840eda05e63e4e944ed6"
 
-#[dependencies.LiquidswapLP]
-#local = "./lp/"
-#
-#[dependencies.LPInit]
-#local = "./lp_init/"
+[dependencies.LiquidswapLP]
+local = "./liquidswap_lp/"
+
+[dependencies.LiquidswapInit]
+local = "./liquidswap_init/"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

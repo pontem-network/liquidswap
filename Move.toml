@@ -20,11 +20,6 @@ local = "./lp_coin/"
 [dependencies.LPInit]
 local = "./lp_init/"
 
-[dependencies.AptosStdlib]
-git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
-subdir = "aptos-move/framework/aptos-stdlib"
-
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
 rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"

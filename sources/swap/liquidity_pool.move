@@ -17,7 +17,7 @@ module liquidswap::liquidity_pool {
     use liquidswap::coin_helper::{Self, assert_is_coin};
     use liquidswap::dao_storage;
     use liquidswap::emergency::assert_no_emergency;
-    use liquidswap::lp_account;
+    use liquidswap::lp;
     use liquidswap::math;
     use liquidswap::stable_curve;
 
@@ -126,10 +126,10 @@ module liquidswap::liquidity_pool {
             is_stable_curve<Curve>() || is_uncorrelated_curve<Curve>(),
             ERR_INVALID_CURVE
         );
-        assert!(!lp_account::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
+        assert!(!lp::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
 
         let (lp_mint_cap, lp_burn_cap) =
-            lp_account::register_lp_coin<X, Y, Curve>(lp_name, lp_symbol);
+            lp::register_lp_coin<X, Y, Curve>(lp_name, lp_symbol);
 
         let x_scale = 0;
         let y_scale = 0;
@@ -754,7 +754,7 @@ module liquidswap::liquidity_pool {
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Uncorrelated>();
         let (lp_mint_cap, lp_burn_cap) =
-            lp_account::register_lp_coin<X, Y, Uncorrelated>(lp_name, lp_symbol);
+            lp::register_lp_coin<X, Y, Uncorrelated>(lp_name, lp_symbol);
 
         let pool = LiquidityPool<X, Y, Uncorrelated> {
             coin_x_reserve: coin::zero<X>(),

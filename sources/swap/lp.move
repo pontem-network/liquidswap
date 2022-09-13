@@ -1,4 +1,4 @@
-module liquidswap::lp_account {
+module liquidswap::lp {
     use std::signer;
     use std::string::String;
 

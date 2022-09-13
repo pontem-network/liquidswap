@@ -5,7 +5,7 @@ module liquidswap::lp_account_tests {
     use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{BTC, USDT};
     use test_helpers::test_pool;
-    use liquidswap::lp_account;
+    use liquidswap::lp;
     use liquidswap::coin_helper;
     use liquidswap::liquidity_pool::Uncorrelated;
     use aptos_framework::coin;
@@ -17,7 +17,7 @@ module liquidswap::lp_account_tests {
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<BTC, USDT, Uncorrelated>();
         let (mint_cap, burn_cap) =
-            lp_account::register_lp_coin_test<BTC, USDT, Uncorrelated>(lp_name, lp_symbol);
+            lp::register_lp_coin_test<BTC, USDT, Uncorrelated>(lp_name, lp_symbol);
         coin::destroy_mint_cap(mint_cap);
         coin::destroy_burn_cap(burn_cap);
 

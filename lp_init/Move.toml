@@ -1,0 +1,11 @@
+[package]
+name = 'LPInit'
+version = '1.0.0'
+
+[addresses]
+liquidswap = "0x2d7ae95e4f067836b540771b95531ea87f8f30dfd6c1667c496875f1ba65738f"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
+subdir = "aptos-move/framework/aptos-framework"

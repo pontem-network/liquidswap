@@ -1,27 +1,25 @@
 /// Liquidswap liquidity pool module.
 /// Implements mint/burn liquidity, swap of coins.
 module liquidswap::liquidity_pool {
-    use std::string::String;
     use std::signer;
-
-    use uq64x64::uq64x64;
-    use u256::u256;
+    use std::string::String;
 
     use aptos_std::event;
-
+    use aptos_std::type_info;
+    use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
-    use aptos_framework::account;
 
-    use liquidswap::coin_helper;
-    use liquidswap::coin_helper::assert_is_coin;
-    use liquidswap::dao_storage;
-    use liquidswap::math;
-    use liquidswap::stable_curve;
     use lp_coin_account::lp_coin::LP;
+    use u256::u256;
+    use uq64x64::uq64x64;
+
+    use liquidswap::coin_helper::{Self, assert_is_coin};
+    use liquidswap::dao_storage;
     use liquidswap::emergency::assert_no_emergency;
     use liquidswap::lp_account;
-    use aptos_std::type_info;
+    use liquidswap::math;
+    use liquidswap::stable_curve;
 
     // Error codes.
 
@@ -156,7 +154,7 @@ module liquidswap::liquidity_pool {
 
         // TODO: make a parameter
         let pool_account_seed = b"12345";
-        // TODO: what to with SignerCapability here
+        // TODO: what to do with SignerCapability here
         let (pool_acc, _signer_cap) = account::create_resource_account(owner, pool_account_seed);
         move_to(&pool_acc, pool);
 

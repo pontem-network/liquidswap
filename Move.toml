@@ -3,7 +3,7 @@ name = "Liquidswap"
 version = "0.2.7"
 
 [addresses]
-liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
+liquidswap = "0x2d7ae95e4f067836b540771b95531ea87f8f30dfd6c1667c496875f1ba65738f"
 dao_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 
@@ -16,6 +16,9 @@ test_pool_addr = "0x98c053307e6f9bc3d3fb35768b08ea6c530187bf7b43fd0326ea59b9c9f9
 
 [dependencies.LPCoin]
 local = "./lp_coin/"
+
+[dependencies.LPInit]
+local = "./lp_init/"
 
 [dependencies.AptosStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"

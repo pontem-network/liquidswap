@@ -6,37 +6,28 @@ module liquidswap::lp_account {
     use aptos_framework::coin::{Self, MintCapability, BurnCapability};
     use lp_coin_account::lp_coin::LP;
 
-    #[test_only]
-    use aptos_std::type_info;
-    #[test_only]
-    use std::string;
+    use liquidswap::lp_init;
 
     friend liquidswap::liquidity_pool;
 
     const ERR_NOT_INITIALIZED: u64 = 901;
 
+    const ERR_NO_PERMISSIONS: u64 = 902;
+
     struct LPCapability has key {
         signer_cap: SignerCapability
     }
 
-    public entry fun initialize_lp_account(
-        liquidswap_admin: &signer,
-        seed: vector<u8>,
-        lp_coin_metadata_serialized: vector<u8>,
-        lp_coin_code: vector<u8>
-    ) {
-        assert!(signer::address_of(liquidswap_admin) == @liquidswap, 1);
-
-        let (lp_acc, signer_cap) = account::create_resource_account(liquidswap_admin, seed);
-        aptos_framework::code::publish_package_txn(
-            &lp_acc,
-            lp_coin_metadata_serialized,
-            vector[lp_coin_code]
-        );
+    public entry fun initialize(liquidswap_admin: &signer) {
+        assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NO_PERMISSIONS);
+        let signer_cap = lp_init::retrieve_signer_cap(liquidswap_admin);
         move_to(liquidswap_admin, LPCapability { signer_cap });
     }
 
-    public(friend) fun register_lp_coin<X, Y, Curve>(lp_name: String, lp_symbol: String): (MintCapability<LP<X, Y, Curve>>, BurnCapability<LP<X, Y, Curve>>)
+    public(friend) fun register_lp_coin<X, Y, Curve>(
+        lp_name: String,
+        lp_symbol: String
+    ): (MintCapability<LP<X, Y, Curve>>, BurnCapability<LP<X, Y, Curve>>)
     acquires LPCapability {
         assert!(exists<LPCapability>(@liquidswap), ERR_NOT_INITIALIZED);
         let lp_cap = borrow_global<LPCapability>(@liquidswap);
@@ -63,18 +54,5 @@ module liquidswap::lp_account {
 
     public fun is_lp_coin_registered<X, Y, Curve>(): bool {
         coin::is_coin_initialized<LP<X, Y, Curve>>()
-    }
-
-    #[test_only]
-    public fun generate_lp_name<X, Y, Curve>(): String {
-        let lp_name = string::utf8(b"LP");
-        string::append(&mut lp_name, string::utf8(b"<"));
-        string::append(&mut lp_name, coin::symbol<X>());
-        string::append(&mut lp_name, string::utf8(b", "));
-        string::append(&mut lp_name, coin::symbol<Y>());
-        string::append(&mut lp_name, string::utf8(b", "));
-        string::append(&mut lp_name, string::utf8(type_info::struct_name(&type_info::type_of<Curve>())));
-        string::append(&mut lp_name, string::utf8(b">"));
-        lp_name
     }
 }

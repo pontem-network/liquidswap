@@ -171,7 +171,6 @@ module liquidswap::liquidity_pool {
     }
 
     /// Mint new liquidity coins.
-    /// * `pool_addr` - pool owner address.
     /// * `coin_x` - coin X to add to liquidity reserves.
     /// * `coin_y` - coin Y to add to liquidity reserves.
     /// Returns LP coins: `Coin<LP<X, Y, Curve>>`.
@@ -223,7 +222,6 @@ module liquidswap::liquidity_pool {
     }
 
     /// Burn liquidity coins (LP) and get back X and Y coins from reserves.
-    /// * `pool_addr` - pool owner address.
     /// * `lp_coins` - LP coins to burn.
     /// Returns both X and Y coins - `(Coin<X>, Coin<Y>)`.
     public fun burn<X, Y, Curve>(lp_coins: Coin<LP<X, Y, Curve>>): (Coin<X>, Coin<Y>)
@@ -335,7 +333,6 @@ module liquidswap::liquidity_pool {
     /// Get flash loan coins.
     /// In the most of situation only X or Y coin argument has value.
     /// Because an user usually loans only one coin, yet function allow to loans both coin.
-    /// * `pool_addr` - pool owner address.
     /// * `x_loan` - expected amount of X coins to loan.
     /// * `y_loan` - expected amount of Y coins to loan.
     /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y)`.
@@ -471,7 +468,6 @@ module liquidswap::liquidity_pool {
 
     /// Depositing part of fees to DAO Storage.
     /// * `pool` - pool to extract coins.
-    /// * `pool_addr` - address of pool.
     /// * `x_in_val` - how much X coins was deposited to pool.
     /// * `y_in_val` - how much Y coins was deposited to pool.
     fun split_third_of_fee_to_dao<X, Y, Curve>(
@@ -599,7 +595,6 @@ module liquidswap::liquidity_pool {
     /// Get current cumulative prices.
     /// Cumulative prices can be overflowed, so take it into account before work with the following function.
     /// It's important to use same logic in your math/algo (as Move doesn't allow overflow).
-    /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64)
     acquires LiquidityPool {
@@ -616,7 +611,6 @@ module liquidswap::liquidity_pool {
 
     /// Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
     /// For uncorrelated curve would return just zeros.
-    /// * `pool_addr` - pool owner address.
     public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
         // TODO: as everything is stored on the same address, maybe just store decimals of coin as
         // `CoinInfo<CoinType> { decimals: u8, decimals_scale: u64 }` on @liquidswap account?
@@ -634,14 +628,12 @@ module liquidswap::liquidity_pool {
     }
 
     /// Check if lp exists at address
-    /// * pool_addr - pool owner address.
     /// If pool exists returns true, otherwise false.
     public fun pool_exists_at<X, Y, Curve>(): bool {
         exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account)
     }
 
-    /// Get fees numerator, denumerator.
-    /// Returns (numerator, denumerator).
+    /// Get fees (numerator, denominator).
     public fun get_fees_config(): (u64, u64) {
         (FEE_MULTIPLIER, FEE_SCALE)
     }

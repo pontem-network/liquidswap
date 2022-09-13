@@ -32,7 +32,7 @@ And use in code:
 
 ```move
 use liquidswap::router;
-use liquidswap::liquidity_pool::Uncorrelated;
+use liquidswap::curves::Uncorrelated;
 
 use liquidswap_lp::coins::{USDT, BTC};
 

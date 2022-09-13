@@ -3,7 +3,7 @@ module liquidswap::flashloan_tests {
     use std::signer;
 
     use aptos_framework::coin;
-    use liquidswap_lp::lp_coin::LP;
+    use liquidswap_lp::lp::LP;
 
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;

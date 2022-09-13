@@ -1,3 +1,3 @@
-module liquidswap_lp::lp_coin {
+module liquidswap_lp::lp {
     struct LP<phantom X, phantom Y, phantom Curve> {}
 }

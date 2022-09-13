@@ -5,7 +5,7 @@ module liquidswap::scripts {
     use aptos_framework::coin;
 
     use liquidswap::router;
-    use liquidswap_lp::lp_coin::LP;
+    use liquidswap_lp::lp::LP;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).

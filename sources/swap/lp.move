@@ -5,7 +5,7 @@ module liquidswap::lp {
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::coin::{Self, MintCapability, BurnCapability};
 
-    use liquidswap_lp::lp_coin::LP;
+    use liquidswap_lp::lp::LP;
 
     use liquidswap::lp_init;
 

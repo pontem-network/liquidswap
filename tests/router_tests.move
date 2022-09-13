@@ -4,7 +4,7 @@ module liquidswap::router_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
-    use liquidswap_lp::lp_coin::LP;
+    use liquidswap_lp::lp::LP;
 
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::liquidity_pool;

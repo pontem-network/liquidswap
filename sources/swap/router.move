@@ -44,6 +44,8 @@ module liquidswap::router {
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
+    ///
+    /// Note: X, Y generic coin parameters must be sorted.
     public fun register_pool<X, Y, Curve>(account: &signer) {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
         liquidity_pool::register<X, Y, Curve>(account);
@@ -57,7 +59,7 @@ module liquidswap::router {
     /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
     /// Returns remainders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>)`.
     ///
-    /// Note: X, Y generic coin parameteres should be sorted.
+    /// Note: X, Y generic coin parameters must be sorted.
     public fun add_liquidity<X, Y, Curve>(
         coin_x: Coin<X>,
         min_coin_x_val: u64,

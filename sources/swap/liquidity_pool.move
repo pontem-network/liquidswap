@@ -617,8 +617,6 @@ module liquidswap::liquidity_pool {
     /// Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
     /// For uncorrelated curve would return just zeros.
     public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
-        // TODO: as everything is stored on the same address, maybe just store decimals of coin as
-        // `CoinInfo<CoinType> { decimals: u8, decimals_scale: u64 }` on @liquidswap account?
         assert!(
             coin_helper::is_sorted<X, Y>(),
             ERR_WRONG_PAIR_ORDERING

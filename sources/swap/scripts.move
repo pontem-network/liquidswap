@@ -9,6 +9,8 @@ module liquidswap::scripts {
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
+    ///
+    /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool<X, Y, Curve>(account: &signer) {
         router::register_pool<X, Y, Curve>(account);
     }
@@ -19,6 +21,8 @@ module liquidswap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
+    ///
+    /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool_and_add_liquidity<X, Y, Curve>(
         account: &signer,
         coin_x_val: u64,
@@ -42,6 +46,8 @@ module liquidswap::scripts {
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
     /// * `coin_y_val_min` - minimum amount of coin `Y` to add as liquidity (slippage).
+    ///
+    /// Note: X, Y generic coin parameters must be sorted.
     public entry fun add_liquidity<X, Y, Curve>(
         account: &signer,
         coin_x_val: u64,
@@ -76,6 +82,8 @@ module liquidswap::scripts {
     /// * `lp_val` - amount of `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of X coins to get.
     /// * `min_y_out_val` - minimum amount of Y coins to get.
+    ///
+    /// Note: X, Y generic coin parameters must be sorted.
     public entry fun remove_liquidity<X, Y, Curve>(
         account: &signer,
         lp_val: u64,

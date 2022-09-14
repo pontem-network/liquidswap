@@ -19,6 +19,7 @@ module liquidswap::liquidity_pool {
     use liquidswap::stable_curve;
     use liquidswap::lp_account;
     use liquidswap_lp::lp_coin::LP;
+    use liquidswap::router::is_swap_exists;
 
     // Error codes.
 
@@ -46,17 +47,17 @@ module liquidswap::liquidity_pool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
-    /// When both X and Y provided for flashloan are equal zero.
-    const ERR_EMPTY_COIN_LOAN: u64 = 108;
-
-    /// When pool is locked.
-    const ERR_POOL_IS_LOCKED: u64 = 109;
-
     /// When invalid curve passed as argument.
     const ERR_INVALID_CURVE: u64 = 110;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
     const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 111;
+
+    /// When both X and Y provided for flashloan are equal zero.
+    const ERR_EMPTY_COIN_LOAN: u64 = 112;
+
+    /// When pool is locked.
+    const ERR_POOL_IS_LOCKED: u64 = 113;
 
     // Constants.
 
@@ -115,7 +116,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
         assert!(
-            curves::is_stable_curve<Curve>() || curves::is_uncorrelated_curve<Curve>(),
+            curves::is_stable<Curve>() || curves::is_uncorrelated<Curve>(),
             ERR_INVALID_CURVE
         );
         assert!(!exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_EXISTS_FOR_PAIR);
@@ -137,7 +138,7 @@ module liquidswap::liquidity_pool {
         let x_scale = 0;
         let y_scale = 0;
 
-        if (curves::is_stable_curve<Curve>()) {
+        if (curves::is_stable<Curve>()) {
             x_scale = math::pow_10(coin::decimals<X>());
             y_scale = math::pow_10(coin::decimals<Y>());
         };
@@ -473,17 +474,17 @@ module liquidswap::liquidity_pool {
     ): (u128, u128) {
         // x_res_after_fee = x_reserve_new - x_in_value * 0.003
         // (all of it scaled to 1000 to be able to achieve this math in integers)
-        let x_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
+        let x_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
             math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
-        } else if (curves::is_stable_curve<Curve>()) {
+        } else if (curves::is_stable<Curve>()) {
             ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
         } else {
             abort ERR_INVALID_CURVE
         };
 
-        let y_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
+        let y_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
             math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
-        } else if (curves::is_stable_curve<Curve>()) {
+        } else if (curves::is_stable<Curve>()) {
             ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
         } else {
             abort ERR_INVALID_CURVE
@@ -529,13 +530,13 @@ module liquidswap::liquidity_pool {
         x_res_with_fees: u128,
         y_res_with_fees: u128,
     ) {
-        if (curves::is_stable_curve<Curve>()) {
+        if (curves::is_stable<Curve>()) {
             let lp_value_before_swap = stable_curve::lp_value(x_res, x_scale, y_res, y_scale);
             let lp_value_after_swap_and_fee = stable_curve::lp_value(x_res_with_fees, x_scale, y_res_with_fees, y_scale);
 
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap);
             assert!(cmp == 2, ERR_INCORRECT_SWAP);
-        } else if (curves::is_uncorrelated_curve<Curve>()) {
+        } else if (curves::is_uncorrelated<Curve>()) {
             let lp_value_before_swap = x_res * y_res;
             let lp_value_before_swap_u256 = u256::mul(
                 u256::from_u128(lp_value_before_swap),

@@ -8,11 +8,11 @@ module liquidswap::curves {
     // For stablecoins like USDC, USDT
     struct Stable {}
 
-    public fun is_uncorrelated_curve<Curve>(): bool {
+    public fun is_uncorrelated<Curve>(): bool {
         type_info::type_of<Curve>() == type_info::type_of<Uncorrelated>()
     }
 
-    public fun is_stable_curve<Curve>(): bool {
+    public fun is_stable<Curve>(): bool {
         type_info::type_of<Curve>() == type_info::type_of<Stable>()
     }
 }

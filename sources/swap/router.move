@@ -223,7 +223,7 @@ module liquidswap::router {
     /// Check liquidity pool exists for coins `X` and `Y` at owner address.
     /// * `pool_addr` - pool owner address.
     /// If pool exists returns true, otherwise false.
-    public fun pool_exists_at<X, Y, Curve>(): bool {
+    public fun is_swap_exists<X, Y, Curve>(): bool {
         if (coin_helper::is_sorted<X, Y>()) {
             liquidity_pool::is_pool_exists<X, Y, Curve>()
         } else {
@@ -355,7 +355,7 @@ module liquidswap::router {
         let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
         let fee_multiplier = fee_scale - fee_pct;
 
-        if (curves::is_stable_curve<Curve>()) {
+        if (curves::is_stable<Curve>()) {
             let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
             let coin_in_val_after_fees = if (coin_in_val_scaled % (fee_scale as u128) != 0) {
                 (coin_in_val_scaled / (fee_scale as u128)) + 1
@@ -370,7 +370,7 @@ module liquidswap::router {
                 (reserve_in as u128),
                 (reserve_out as u128)
             ) as u64)
-        } else if (curves::is_uncorrelated_curve<Curve>()) {
+        } else if (curves::is_uncorrelated<Curve>()) {
             let coin_in_val_after_fees = coin_in * fee_multiplier;
             // x_reserve size after adding amount_in (scaled to 1000)
             let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees;
@@ -415,7 +415,7 @@ module liquidswap::router {
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;  // 997
 
-        if (curves::is_stable_curve<Curve>()) {
+        if (curves::is_stable<Curve>()) {
             // !!!FOR AUDITOR!!!
             // Double check it.
             let coin_in = (stable_curve::coin_in(
@@ -427,7 +427,7 @@ module liquidswap::router {
             ) as u64) + 1;
 
             (coin_in * fee_scale / fee_multiplier) + 1
-        } else if (curves::is_uncorrelated_curve<Curve>()) {
+        } else if (curves::is_uncorrelated<Curve>()) {
             // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
 

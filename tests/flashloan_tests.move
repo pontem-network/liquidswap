@@ -351,7 +351,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 108)]
+    #[expected_failure(abort_code = 112)]
     fun test_fail_if_flashloan_zero_amount() {
         let (_, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -405,7 +405,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_mint_when_pool_is_locked() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -428,7 +428,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_swap_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -454,7 +454,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_burn_when_pool_is_locked() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -477,7 +477,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_flashloan_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -501,7 +501,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_get_reserves_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -520,7 +520,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 109)]
+    #[expected_failure(abort_code = 113)]
     fun test_fail_if_get_cumulative_prices_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 

@@ -22,6 +22,14 @@ test_helpers = "0x12"
 test_lp_owner = "0x12"
 test_pool_addr = "0x2540b6f8a87ac1cff2de9f5f742854b448cd4521e96f840eda05e63e4e944ed6"
 
+econia = '0xc0deb00c9154b6b64db01eeb77d08255300315e1fa35b687d384a703f6034fbd'
+# Mock users for unit tests
+user = '0x1234'
+user_0 = '0x2345'
+user_1 = '0x3456'
+user_2 = '0x4567'
+user_3 = '0x5678'
+
 [dependencies.LiquidswapLP]
 local = "./liquidswap_lp/"
 

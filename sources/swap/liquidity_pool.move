@@ -19,7 +19,6 @@ module liquidswap::liquidity_pool {
     use liquidswap::stable_curve;
     use liquidswap::lp_account;
     use liquidswap_lp::lp_coin::LP;
-    use liquidswap::router::is_swap_exists;
 
     // Error codes.
 
@@ -187,7 +186,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert_pool_locked<X, Y, Curve>();
+        assert_pool_unlocked<X, Y, Curve>();
 
         let lp_coins_total = coin_helper::supply<LP<X, Y, Curve>>();
 
@@ -239,7 +238,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert_pool_locked<X, Y, Curve>();
+        assert_pool_unlocked<X, Y, Curve>();
 
         let burned_lp_coins_val = coin::value(&lp_coins);
 
@@ -292,7 +291,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert_pool_locked<X, Y, Curve>();
+        assert_pool_unlocked<X, Y, Curve>();
 
         let x_in_val = coin::value(&x_in);
         let y_in_val = coin::value(&y_in);
@@ -357,10 +356,10 @@ module liquidswap::liquidity_pool {
     acquires LiquidityPool, EventsStore {
         assert_not_an_emergency();
 
-        assert_pool_locked<X, Y, Curve>();
-
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
+        assert_pool_unlocked<X, Y, Curve>();
 
         assert!(x_loan > 0 || y_loan > 0, ERR_EMPTY_COIN_LOAN);
 
@@ -591,7 +590,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Aborts if pool is locked.
-    fun assert_pool_locked<X, Y, Curve>() acquires LiquidityPool {
+    fun assert_pool_unlocked<X, Y, Curve>() acquires LiquidityPool {
         assert!(is_pool_locked<X, Y, Curve>() == false, ERR_POOL_IS_LOCKED);
     }
 
@@ -599,8 +598,6 @@ module liquidswap::liquidity_pool {
 
     /// Check if pool is locked.
     public fun is_pool_locked<X, Y, Curve>(): bool acquires LiquidityPool {
-        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
-        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.locked
     }
@@ -614,7 +611,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert_pool_locked<X, Y, Curve>();
+        assert_pool_unlocked<X, Y, Curve>();
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         let x_reserve = coin::value(&liquidity_pool.coin_x_reserve);
@@ -634,7 +631,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert_pool_locked<X, Y, Curve>();
+        assert_pool_unlocked<X, Y, Curve>();
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         let last_price_x_cumulative = *&liquidity_pool.last_price_x_cumulative;

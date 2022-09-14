@@ -192,7 +192,7 @@ module liquidswap::liquidity_pool {
         let y_provided_val = coin::value<Y>(&coin_y);
 
         let provided_liq = if (lp_coins_total == 0) {
-            let initial_liq = math::sqrt(math::mul_to_u128(y_provided_val, x_provided_val));
+            let initial_liq = math::sqrt(math::mul_to_u128(x_provided_val, y_provided_val));
             assert!(initial_liq > MINIMAL_LIQUIDITY, ERR_NOT_ENOUGH_INITIAL_LIQUIDITY);
             initial_liq - MINIMAL_LIQUIDITY
         } else {

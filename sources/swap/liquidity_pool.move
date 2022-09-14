@@ -18,8 +18,7 @@ module liquidswap::liquidity_pool {
     use liquidswap::math;
     use liquidswap::stable_curve;
     use liquidswap::lp_account;
-    use liquidswap_lp::coin::LP;
-    use liquidswap::lp_coin;
+    use liquidswap_lp::lp_coin::LP;
 
     // Error codes.
 
@@ -119,15 +118,21 @@ module liquidswap::liquidity_pool {
             curves::is_stable_curve<Curve>() || curves::is_uncorrelated_curve<Curve>(),
             ERR_INVALID_CURVE
         );
-        // TODO: change into check for LiquidityPool existence
-        assert!(!lp_coin::is_lp_coin_registered<X, Y, Curve>(), ERR_POOL_EXISTS_FOR_PAIR);
+        assert!(!exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_EXISTS_FOR_PAIR);
 
         let pool_cap = borrow_global<PoolAccountCapability>(@liquidswap);
-        let pool_acc = account::create_signer_with_capability(&pool_cap.signer_cap);
+        let pool_account = account::create_signer_with_capability(&pool_cap.signer_cap);
 
         let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
-        let (lp_mint_cap, lp_burn_cap) =
-            lp_coin::register_lp_coin<X, Y, Curve>(&pool_acc, lp_name, lp_symbol);
+        let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) =
+            coin::initialize<LP<X, Y, Curve>>(
+                &pool_account,
+                lp_name,
+                lp_symbol,
+                6,
+                true
+            );
+        coin::destroy_freeze_cap(lp_freeze_cap);
 
         let x_scale = 0;
         let y_scale = 0;
@@ -149,17 +154,17 @@ module liquidswap::liquidity_pool {
             y_scale,
             locked: false,
         };
-        move_to(&pool_acc, pool);
+        move_to(&pool_account, pool);
 
-        dao_storage::register<X, Y, Curve>(&pool_acc);
+        dao_storage::register<X, Y, Curve>(&pool_account);
 
         let events_store = EventsStore<X, Y, Curve> {
-            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, Curve>>(&pool_acc),
-            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, Curve>>(&pool_acc),
-            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, Curve>>(&pool_acc),
-            swap_handle: account::new_event_handle<SwapEvent<X, Y, Curve>>(&pool_acc),
-            loan_handle: account::new_event_handle<FlashloanEvent<X, Y, Curve>>(&pool_acc),
-            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, Curve>>(&pool_acc),
+            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, Curve>>(&pool_account),
+            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, Curve>>(&pool_account),
+            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, Curve>>(&pool_account),
+            swap_handle: account::new_event_handle<SwapEvent<X, Y, Curve>>(&pool_account),
+            loan_handle: account::new_event_handle<FlashloanEvent<X, Y, Curve>>(&pool_account),
+            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, Curve>>(&pool_account),
         };
         event::emit_event(
             &mut events_store.pool_created_handle,
@@ -167,7 +172,7 @@ module liquidswap::liquidity_pool {
                 creator: signer::address_of(acc)
             },
         );
-        move_to(&pool_acc, events_store);
+        move_to(&pool_account, events_store);
     }
 
     /// Mint new liquidity coins.
@@ -627,9 +632,8 @@ module liquidswap::liquidity_pool {
         (pool.x_scale, pool.y_scale)
     }
 
-    /// Check if lp exists at address
-    /// If pool exists returns true, otherwise false.
-    public fun pool_exists_at<X, Y, Curve>(): bool {
+    /// Check if liquidity pool exists.
+    public fun is_pool_exists<X, Y, Curve>(): bool {
         exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account)
     }
 

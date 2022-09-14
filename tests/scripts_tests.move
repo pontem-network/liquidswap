@@ -10,7 +10,7 @@ module liquidswap::scripts_tests {
     use liquidswap::scripts;
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_helpers::test_pool;
-    use liquidswap_lp::coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
@@ -34,7 +34,7 @@ module liquidswap::scripts_tests {
 
         scripts::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
 
-        assert!(liquidity_pool::pool_exists_at<BTC, USDT, Uncorrelated>(), 1);
+        assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 1);
     }
 
     #[test]
@@ -59,7 +59,7 @@ module liquidswap::scripts_tests {
             10100,
         );
 
-        assert!(liquidity_pool::pool_exists_at<BTC, USDT, Uncorrelated>(), 1);
+        assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 1);
 
         assert!(coin::balance<BTC>(lp_owner_addr) == 0, 2);
         assert!(coin::balance<USDT>(lp_owner_addr) == 0, 3);

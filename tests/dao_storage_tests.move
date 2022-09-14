@@ -11,7 +11,7 @@ module liquidswap::dao_storage_tests {
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
-    use liquidswap_lp::coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     #[test]
     fun test_register() {

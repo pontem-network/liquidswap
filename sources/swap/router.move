@@ -9,7 +9,7 @@ module liquidswap::router {
     use liquidswap::math;
     use liquidswap::stable_curve;
     use liquidswap::liquidity_pool;
-    use liquidswap_lp::coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     // Errors codes.
 
@@ -223,9 +223,9 @@ module liquidswap::router {
     /// If pool exists returns true, otherwise false.
     public fun pool_exists_at<X, Y, Curve>(): bool {
         if (coin_helper::is_sorted<X, Y>()) {
-            liquidity_pool::pool_exists_at<X, Y, Curve>()
+            liquidity_pool::is_pool_exists<X, Y, Curve>()
         } else {
-            liquidity_pool::pool_exists_at<Y, X, Curve>()
+            liquidity_pool::is_pool_exists<Y, X, Curve>()
         }
     }
 

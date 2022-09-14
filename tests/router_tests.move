@@ -10,7 +10,7 @@ module liquidswap::router_tests {
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
-    use liquidswap_lp::coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     const MAX_U64: u64 = 18446744073709551615;
 

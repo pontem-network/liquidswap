@@ -11,10 +11,9 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;
-    use liquidswap::lp_coin;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
-    use liquidswap_lp::coin::LP;
+    use liquidswap_lp::lp_coin::LP;
 
     fun setup_btc_usdt_pool(): (signer, signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
@@ -45,9 +44,9 @@ module liquidswap::liquidity_pool_tests {
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner);
 
-        assert!(lp_coin::is_lp_coin_registered<BTC, USDT, Uncorrelated>(), 10);
+        assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 10);
         assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 11);
-        assert!(!lp_coin::is_lp_coin_registered<USDT, BTC, Uncorrelated>(), 12);
+        assert!(!liquidity_pool::is_pool_exists<USDT, BTC, Uncorrelated>(), 12);
         assert!(!coin::is_coin_initialized<LP<USDT, BTC, Uncorrelated>>(), 13);
 
         let (x_res_val, y_res_val) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
@@ -1223,8 +1222,8 @@ module liquidswap::liquidity_pool_tests {
     fun test_pool_exists() {
         let (_, _) = setup_btc_usdt_pool();
 
-        assert!(liquidity_pool::pool_exists_at<BTC, USDT, Uncorrelated>(), 0);
-        assert!(!liquidity_pool::pool_exists_at<USDT, BTC, Uncorrelated>(), 1);
+        assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 0);
+        assert!(!liquidity_pool::is_pool_exists<USDT, BTC, Uncorrelated>(), 1);
     }
 
     #[test]

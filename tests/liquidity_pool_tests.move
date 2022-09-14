@@ -46,37 +46,36 @@ module liquidswap::liquidity_pool_tests {
 
         assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 10);
         assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 11);
-        assert!(!liquidity_pool::is_pool_exists<USDT, BTC, Uncorrelated>(), 12);
-        assert!(!coin::is_coin_initialized<LP<USDT, BTC, Uncorrelated>>(), 13);
+        assert!(!coin::is_coin_initialized<LP<USDT, BTC, Uncorrelated>>(), 12);
 
         let (x_res_val, y_res_val) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
-        assert!(x_res_val == 0, 0);
-        assert!(y_res_val == 0, 1);
+        assert!(x_res_val == 0, 13);
+        assert!(y_res_val == 0, 14);
 
         let (x_price, y_price, _) =
             liquidity_pool::get_cumulative_prices<BTC, USDT, Uncorrelated>();
-        assert!(x_price == 0, 2);
-        assert!(y_price == 0, 3);
+        assert!(x_price == 0, 15);
+        assert!(y_price == 0, 16);
 
         // Check created LP.
-        assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 4);
+        assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 17);
         let lp_name = coin::name<LP<BTC, USDT, Uncorrelated>>();
-        assert!(lp_name == pool_lp_name, 6);
+        assert!(lp_name == pool_lp_name, 18);
         let lp_symbol = coin::symbol<LP<BTC, USDT, Uncorrelated>>();
-        assert!(lp_symbol == pool_lp_symbol, 7);
+        assert!(lp_symbol == pool_lp_symbol, 19);
         let lp_supply = coin::supply<LP<BTC, USDT, Uncorrelated>>();
-        assert!(option::is_some(&lp_supply), 8);
-        assert!(*option::borrow(&lp_supply) == 0, 9);
+        assert!(option::is_some(&lp_supply), 20);
+        assert!(*option::borrow(&lp_supply) == 0, 21);
 
         // Get cumulative prices.
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, Uncorrelated>();
-        assert!(x_cum_price == 0, 10);
-        assert!(y_cum_price == 0, 11);
-        assert!(ts == 0, 12);
+        assert!(x_cum_price == 0, 22);
+        assert!(y_cum_price == 0, 23);
+        assert!(ts == 0, 24);
 
         // Check if it's locked.
-        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, Uncorrelated>(), 13);
+        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, Uncorrelated>(), 25);
     }
 
     #[test(emergency_acc = @emergency_admin)]
@@ -1223,7 +1222,7 @@ module liquidswap::liquidity_pool_tests {
         let (_, _) = setup_btc_usdt_pool();
 
         assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 0);
-        assert!(!liquidity_pool::is_pool_exists<USDT, BTC, Uncorrelated>(), 1);
+        assert!(!liquidity_pool::is_pool_exists<USDC, USDT, Uncorrelated>(), 1);
     }
 
     #[test]

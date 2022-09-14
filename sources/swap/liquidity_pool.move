@@ -182,6 +182,10 @@ module liquidswap::liquidity_pool {
     public fun mint<X, Y, Curve>(coin_x: Coin<X>, coin_y: Coin<Y>): Coin<LP<X, Y, Curve>>
     acquires LiquidityPool, EventsStore {
         assert_no_emergency();
+
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert_pool_locked<X, Y, Curve>();
 
         let lp_coins_total = coin_helper::supply<LP<X, Y, Curve>>();
@@ -231,6 +235,9 @@ module liquidswap::liquidity_pool {
     /// Returns both X and Y coins - `(Coin<X>, Coin<Y>)`.
     public fun burn<X, Y, Curve>(lp_coins: Coin<LP<X, Y, Curve>>): (Coin<X>, Coin<Y>)
     acquires LiquidityPool, EventsStore {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert_pool_locked<X, Y, Curve>();
 
         let burned_lp_coins_val = coin::value(&lp_coins);
@@ -280,6 +287,10 @@ module liquidswap::liquidity_pool {
         y_out: u64
     ): (Coin<X>, Coin<Y>) acquires LiquidityPool, EventsStore {
         assert_no_emergency();
+
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert_pool_locked<X, Y, Curve>();
 
         let x_in_val = coin::value(&x_in);
@@ -346,6 +357,10 @@ module liquidswap::liquidity_pool {
         assert_no_emergency();
 
         assert_pool_locked<X, Y, Curve>();
+
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert!(x_loan > 0 || y_loan > 0, ERR_EMPTY_COIN_LOAN);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
@@ -392,9 +407,10 @@ module liquidswap::liquidity_pool {
     ) acquires LiquidityPool {
         assert_no_emergency();
 
-        let Flashloan { pool_addr, x_loan, y_loan } = loan;
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        assert!(exists<LiquidityPool<X, Y, Curve>>(pool_addr), ERR_POOL_DOES_NOT_EXIST);
+        let Flashloan { pool_addr, x_loan, y_loan } = loan;
 
         let x_in_val = coin::value(&x_in);
         let y_in_val = coin::value(&y_in);
@@ -459,15 +475,20 @@ module liquidswap::liquidity_pool {
         // (all of it scaled to 1000 to be able to achieve this math in integers)
         let x_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
             math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
-        } else {
+        } else if (curves::is_stable_curve<Curve>()) {
             ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        } else {
+            abort ERR_INVALID_CURVE
         };
 
         let y_res_new_after_fee = if (curves::is_uncorrelated_curve<Curve>()) {
             math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
-        } else {
+        } else if (curves::is_stable_curve<Curve>()) {
             ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+        } else {
+            abort ERR_INVALID_CURVE
         };
+
         (x_res_new_after_fee, y_res_new_after_fee)
     }
 
@@ -588,6 +609,10 @@ module liquidswap::liquidity_pool {
     public fun get_reserves_size<X, Y, Curve>(): (u64, u64)
     acquires LiquidityPool {
         assert_no_emergency();
+
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert_pool_locked<X, Y, Curve>();
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
@@ -604,6 +629,10 @@ module liquidswap::liquidity_pool {
     public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64)
     acquires LiquidityPool {
         assert_no_emergency();
+
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         assert_pool_locked<X, Y, Curve>();
 
         let liquidity_pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
@@ -617,14 +646,8 @@ module liquidswap::liquidity_pool {
     /// Get decimals scales (10^X decimals, 10^Y decimals) for stable curve.
     /// For uncorrelated curve would return just zeros.
     public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
-        assert!(
-            coin_helper::is_sorted<X, Y>(),
-            ERR_WRONG_PAIR_ORDERING
-        );
-        assert!(
-            exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account),
-            ERR_POOL_DOES_NOT_EXIST
-        );
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
         let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         (pool.x_scale, pool.y_scale)
@@ -632,6 +655,7 @@ module liquidswap::liquidity_pool {
 
     /// Check if liquidity pool exists.
     public fun is_pool_exists<X, Y, Curve>(): bool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account)
     }
 

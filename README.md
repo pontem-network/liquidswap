@@ -32,18 +32,16 @@ And use in code:
 
 ```move
 use liquidswap::router;
+use liquidswap::curves::Uncorrelated;
 
 use liquidswap_lp::coins::{USDT, BTC};
-use liquidswap_lp::lp::LP;
 
 ...
-let pool_owner_addr = @0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9;
 let usdt_coins_to_get = 5292719411;
-let btc_coins_to_swap_val = router::get_amount_in<BTC, USDT, LP<BTC, USDT>>(pool_owner_addr, usdt_coins_to_get);
+let btc_coins_to_swap_val = router::get_amount_in<BTC, USDT, Uncorrelated>(usdt_coins_to_get);
 let btc_coins_to_swap = coin::withdraw<BTC>(account, btc_coins_to_swap_val);
 
-let (coin_x, coin_y) = router::swap_coin_for_exact_coin<BTC, USDT, LP<BTC, USDT>>(
-    pool_owner_addr,
+let (coin_x, coin_y) = router::swap_coin_for_exact_coin<BTC, USDT, Uncorrelated>(
     btc_coins_to_swap,
     usdt_coins_to_get
 );

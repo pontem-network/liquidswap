@@ -6,6 +6,7 @@ module liquidswap::coin_helper {
 
     use aptos_framework::coin;
     use aptos_std::comparator::{Self, Result};
+    use aptos_std::type_info;
 
     // Errors codes.
 
@@ -32,9 +33,27 @@ module liquidswap::coin_helper {
     /// Compare two coins, `X` and `Y`, using names.
     /// Caller should call this function to determine the order of A, B.
     public fun compare<X, Y>(): Result {
-        let x_symbol = coin::symbol<X>();
-        let y_symbol = coin::symbol<Y>();
-        comparator::compare(&x_symbol, &y_symbol)
+        let x_info = type_info::type_of<X>();
+        let y_info = type_info::type_of<Y>();
+
+        // 1. compare struct_name
+        let x_struct_name = type_info::struct_name(&x_info);
+        let y_struct_name = type_info::struct_name(&y_info);
+        let struct_cmp = comparator::compare(&x_struct_name, &y_struct_name);
+        if (!comparator::is_equal(&struct_cmp)) return struct_cmp;
+
+        // 2. if struct names are equal, compare module name
+        let x_module_name = type_info::module_name(&x_info);
+        let y_module_name = type_info::module_name(&y_info);
+        let module_cmp = comparator::compare(&x_module_name, &y_module_name);
+        if (!comparator::is_equal(&module_cmp)) return module_cmp;
+
+        // 3. if modules are equal, compare addresses
+        let x_address = type_info::account_address(&x_info);
+        let y_address = type_info::account_address(&y_info);
+        let address_cmp = comparator::compare(&x_address, &y_address);
+
+        address_cmp
     }
 
     /// Check that coins generics `X`, `Y` are sorted in correct ordering.
@@ -53,11 +72,13 @@ module liquidswap::coin_helper {
 
     /// Generate LP coin name for pair `X`/`Y`.
     /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
-    public fun generate_lp_name<X, Y>(): (String, String) {
+    public fun generate_lp_name_and_symbol<X, Y, Curve>(): (String, String) {
         let symbol = b"LP-";
         vector::append(&mut symbol, *bytes(&coin::symbol<X>()));
         vector::push_back(&mut symbol, 0x2d);
         vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
+        vector::push_back(&mut symbol, 0x2d);
+        vector::append(&mut symbol, type_info::struct_name(&type_info::type_of<Curve>()));
 
         (string::utf8(b"Liquidswap LP"), string::utf8(symbol))
     }

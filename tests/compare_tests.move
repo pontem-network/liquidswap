@@ -48,4 +48,20 @@ module liquidswap::compare_tests {
         assert!(comparator::is_smaller_than(&coin_helper::compare<AptosCoin, 0x2::aptos_coin::AptosCoin>()), 1);
         assert!(comparator::is_greater_than(&coin_helper::compare<0x2::aptos_coin::AptosCoin, AptosCoin>()), 1);
     }
+
+    #[test]
+    fun test_is_sorted() {
+        assert!(coin_helper::is_sorted<BTC, AptosCoin>(), 1);
+        assert!(coin_helper::is_sorted<USDC, USDT>(), 2);
+        assert!(coin_helper::is_sorted<AptosCoin, 0x2::aptos_coin::AptosCoin>(), 3);
+
+        assert!(!coin_helper::is_sorted<AptosCoin, BTC>(), 4);
+        assert!(!coin_helper::is_sorted<USDT, USDC>(), 5);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 3000)]
+    fun test_is_sorted_cannot_be_equal() {
+        assert!(coin_helper::is_sorted<AptosCoin, AptosCoin>(), 1);
+    }
 }

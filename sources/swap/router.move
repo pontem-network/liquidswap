@@ -35,7 +35,6 @@ module liquidswap::router {
     // Public functions.
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.
-    /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     ///
     /// Note: X, Y generic coin parameters must be sorted.
     public fun register_pool<X, Y, Curve>(account: &signer) {
@@ -335,7 +334,6 @@ module liquidswap::router {
     /// * `reserve_out` - reserves of coin we are going to get.
     /// * `scale_in` - 10 pow by decimals amount of coin we going to swap.
     /// * `scale_out` - 10 pow by decimals amount of coin we going to get.
-    /// * `curve_type` - type of curve (1 = stable, 2 = uncorrelated).
     /// Returns amount of coins out after swap.
     fun get_coin_out_with_fees<Curve>(
         coin_in: u64,
@@ -384,7 +382,6 @@ module liquidswap::router {
     /// * `reserve_in` - reserves of coin we are going to swap.
     /// * `scale_in` - 10 pow by decimals amount of coin we swap.
     /// * `scale_out` - 10 pow by decimals amount of coin we get.
-    /// * `curve_type` - type of curve (1 = stable, 2 = uncorrelated).
     ///
     /// This computation is a reverse of get_coin_out formula for uncorrelated assets:
     ///     y = x * 0.997 * ry / (rx + x * 0.997)

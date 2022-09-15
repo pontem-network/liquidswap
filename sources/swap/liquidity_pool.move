@@ -86,7 +86,7 @@ module liquidswap::liquidity_pool {
         locked: bool,
     }
 
-    /// Flash loan resource
+    /// Flash loan resource.
     /// There is no way in Move to pass calldata and make dynamic calls, but a resource can be used for this purpose.
     /// To make the execution into a single transaction, the flash loan function must return a resource
     /// that cannot be copied, cannot be saved, cannot be dropped, or cloned.
@@ -96,8 +96,10 @@ module liquidswap::liquidity_pool {
         y_loan: u64
     }
 
+    /// Stores resource account signer capability under Liquidswap account.
     struct PoolAccountCapability has key { signer_cap: SignerCapability }
 
+    /// Initializes Liquidswap contracts.
     public fun initialize(liquidswap_admin: &signer) {
         assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
         let signer_cap = lp_account::retrieve_signer_cap(liquidswap_admin);
@@ -105,8 +107,6 @@ module liquidswap::liquidity_pool {
     }
 
     /// Register liquidity pool `X`/`Y`.
-    /// Parameters:
-    /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, Curve>(acc: &signer) acquires PoolAccountCapability {
         assert_no_emergency();
 
@@ -515,7 +515,6 @@ module liquidswap::liquidity_pool {
     /// Compute and verify LP value after and before swap, in nutshell, _k function.
     /// * `x_scale` - 10 pow by X coin decimals.
     /// * `y_scale` - 10 pow by Y coin decimals.
-    /// * `curve_type` - type of curve.
     /// * `x_res` - X reserves before swap.
     /// * `y_res` - Y reserves before swap.
     /// * `x_res_with_fees` - X reserves after swap.
@@ -591,13 +590,17 @@ module liquidswap::liquidity_pool {
 
     /// Aborts if pool is locked.
     fun assert_pool_unlocked<X, Y, Curve>() acquires LiquidityPool {
-        assert!(is_pool_locked<X, Y, Curve>() == false, ERR_POOL_IS_LOCKED);
+        let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        assert!(pool.locked == false, ERR_POOL_IS_LOCKED);
     }
 
     // Getters.
 
     /// Check if pool is locked.
     public fun is_pool_locked<X, Y, Curve>(): bool acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
         let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.locked
     }

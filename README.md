@@ -21,11 +21,11 @@ Update your `Move.toml` with
 ```toml
 [dependencies.Liquidswap]
 git = 'https://github.com/pontem-network/liquidswap.git'
-rev = 'v0.2.7'
+rev = 'v0.3.0'
 
-[dependencies.LiquidswapLP]
-git = 'https://github.com/pontem-network/liquidswap-lp.git'
-rev = 'v0.4.11'
+[dependencies.TestCoins]
+git = 'https://github.com/pontem-network/test-coins.git'
+rev = 'v0.1.0'
 ```
 
 And use in code:
@@ -34,7 +34,7 @@ And use in code:
 use liquidswap::router;
 use liquidswap::curves::Uncorrelated;
 
-use liquidswap_lp::coins::{USDT, BTC};
+use test_coins::coins::{USDT, BTC};
 
 ...
 let usdt_coins_to_get = 5292719411;

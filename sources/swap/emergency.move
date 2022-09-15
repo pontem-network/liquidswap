@@ -25,7 +25,7 @@ module liquidswap::emergency {
     /// Pauses all operations.
     public entry fun pause(account: &signer) {
         assert!(!is_disabled(), ERR_DISABLED);
-        assert_not_emergency();
+        assert_no_emergency();
 
         assert!(signer::address_of(account) == @emergency_admin, ERR_NO_PERMISSIONS);
 
@@ -49,7 +49,7 @@ module liquidswap::emergency {
     }
 
     /// Would abort if currently paused.
-    public fun assert_not_emergency() {
+    public fun assert_no_emergency() {
         assert!(!is_emergency(), ERR_EMERGENCY);
     }
 

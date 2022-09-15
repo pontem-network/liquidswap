@@ -4,13 +4,13 @@ module liquidswap::emergency_tests {
 
     #[test(emergency_acc = @emergency_admin)]
     public fun test_end_to_end(emergency_acc: signer) {
-        emergency::assert_not_emergency();
+        emergency::assert_no_emergency();
         assert!(emergency::is_emergency() == false, 0);
 
         emergency::pause(&emergency_acc);
         assert!(emergency::is_emergency() == true, 1);
         emergency::resume(&emergency_acc);
-        emergency::assert_not_emergency();
+        emergency::assert_no_emergency();
 
         assert!(emergency::is_emergency() == false, 2);
 
@@ -52,12 +52,12 @@ module liquidswap::emergency_tests {
     #[expected_failure(abort_code = 4001)]
     public fun test_emergency_assert_fails(emergency_acc: signer) {
         emergency::pause(&emergency_acc);
-        emergency::assert_not_emergency();
+        emergency::assert_no_emergency();
     }
 
     #[test]
     public fun test_emergency_assert() {
-        emergency::assert_not_emergency();
+        emergency::assert_no_emergency();
     }
 
     #[test(emergency_acc = @emergency_admin)]

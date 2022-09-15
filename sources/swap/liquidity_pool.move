@@ -53,10 +53,10 @@ module liquidswap::liquidity_pool {
     const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 109;
 
     /// When both X and Y provided for flashloan are equal zero.
-    const ERR_EMPTY_COIN_LOAN: u64 = 112;
+    const ERR_EMPTY_COIN_LOAN: u64 = 110;
 
     /// When pool is locked.
-    const ERR_POOL_IS_LOCKED: u64 = 113;
+    const ERR_POOL_IS_LOCKED: u64 = 111;
 
     // Constants.
 

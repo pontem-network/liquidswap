@@ -366,7 +366,29 @@ module liquidswap::liquidity_pool_tests {
 
     // Test burn liquidity.
     #[test]
-    fun test_burn_liquidity() {
+    #[expected_failure(abort_code = 106)]
+    fun test_fail_if_trying_to_burn_zero_values() {
+        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+
+        let btc_coins = test_coins::mint<BTC>(&coin_admin, 2000000000000);
+        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 560000000000000);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
+        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
+        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+
+        let (btc_return, usdt_return) =
+            liquidity_pool::burn<BTC, USDT, Uncorrelated>(coin::zero());
+
+        test_coins::burn(&coin_admin, btc_return);
+        test_coins::burn(&coin_admin, usdt_return);
+    }
+
+
+    // Test burn liquidity.
+    #[test]
+    fun test_burn_liquidity_at_pool_registration() {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 2000000000000);

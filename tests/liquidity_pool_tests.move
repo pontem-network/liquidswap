@@ -1,7 +1,6 @@
 #[test_only]
 module liquidswap::liquidity_pool_tests {
     use std::option;
-    use std::signer;
     use std::string::utf8;
 
     use aptos_framework::coin;
@@ -202,11 +201,11 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(1660338836);
 
-        let lp_coins =
-            liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_liq, usdt_liq);
+        let lp_coins_val =
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
 
         let expected_liquidity = 1673320053 - 1000;
-        assert!(coin::value(&lp_coins) == expected_liquidity, 0);
+        assert!(lp_coins_val == expected_liquidity, 0);
         assert!(supply<LP<BTC, USDT, Uncorrelated>>() == (expected_liquidity as u128), 1);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
@@ -217,9 +216,6 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_price == 0, 4);
         assert!(y_price == 0, 5);
         assert!(ts == 1660338836, 6);
-
-        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins)
     }
 
     #[test]
@@ -515,10 +511,7 @@ module liquidswap::liquidity_pool_tests {
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
 
-        let lp_coins =
-            liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
-        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
 
         let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
         let (zero, usdt_coins) =

@@ -12,19 +12,9 @@ test_coin_admin = "0x11"
 test_pool_owner = "0x12"
 test_helpers = "0x12"
 
-[dependencies.MoveStdlib]
-git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
-subdir = "aptos-move/framework/move-stdlib"
-
-[dependencies.AptosStdlib]
-git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
-subdir = "aptos-move/framework/aptos-stdlib"
-
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
+rev = "devnet"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]

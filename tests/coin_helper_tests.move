@@ -1,7 +1,5 @@
 #[test_only]
 module liquidswap::coin_helper_tests {
-    use std::string::utf8;
-
     use aptos_std::comparator;
     use aptos_framework::genesis;
 
@@ -58,17 +56,5 @@ module liquidswap::coin_helper_tests {
 
         coin_helper::assert_is_coin<USDT>();
         let _ = coin_helper::is_sorted<USDT, USDT>();
-    }
-
-    #[test(coin_admin = @test_coin_admin)]
-    fun generate_lp_name(coin_admin: signer) {
-        genesis::setup();
-        create_account(&coin_admin);
-
-        test_coins::register_coins(&coin_admin);
-
-        let (lp_name, lp_symbol) = coin_helper::generate_lp_name<BTC, USDT>();
-        assert!(lp_name == utf8(b"Liquidswap LP"), 0);
-        assert!(lp_symbol == utf8(b"LP-BTC-USDT"), 1);
     }
 }

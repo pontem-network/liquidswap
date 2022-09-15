@@ -8,7 +8,6 @@ module liquidswap::scripts {
     use liquidswap_lp::lp_coin::LP;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
-    /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
     ///
     /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool<X, Y, Curve>(account: &signer) {
@@ -16,7 +15,6 @@ module liquidswap::scripts {
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
-    /// * `curve_type` - curve type: 1 = stable (like Solidly), 2 = uncorrelated (like Uniswap).
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.

@@ -494,8 +494,8 @@ module liquidswap::router_tests {
 
         router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
 
-        assert!(router::pool_exists_at<BTC, USDT, Uncorrelated>(), 0);
-        assert!(router::pool_exists_at<USDT, BTC, Uncorrelated>(), 1);
+        assert!(router::is_swap_exists<BTC, USDT, Uncorrelated>(), 0);
+        assert!(router::is_swap_exists<USDT, BTC, Uncorrelated>(), 1);
     }
 
     #[test]

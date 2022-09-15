@@ -179,6 +179,19 @@ module liquidswap::liquidity_pool_tests {
 
     // Add liquidity tests.
     #[test]
+    #[expected_failure(abort_code = 107)]
+    fun test_fail_if_pool_for_this_pair_does_not_exist() {
+        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+
+        let btc_liq_val = 100000000;
+        let usdt_liq_val = 28000000000;
+        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdc_liq = test_coins::mint<USDC>(&coin_admin, usdt_liq_val);
+
+        test_pool::mint_liquidity<BTC, USDC, Uncorrelated>(&lp_owner, btc_liq, usdc_liq);
+    }
+
+    #[test]
     fun test_add_liquidity_to_empty_pool() {
         let (coin_admin, lp_owner) = setup_btc_usdt_pool();
 

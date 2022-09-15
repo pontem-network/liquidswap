@@ -1774,8 +1774,6 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_0() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
-
         timestamp::fast_forward_seconds(1660545565);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
@@ -1795,8 +1793,6 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     fun test_cumulative_price_1() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1818,8 +1814,6 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_2() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
-
         timestamp::fast_forward_seconds(1660545565);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
@@ -1839,8 +1833,6 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     fun test_cumulative_price_3() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
 
         timestamp::fast_forward_seconds(3600);
 
@@ -1862,8 +1854,6 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_max_time() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
-
         timestamp::update_global_time_for_test(18446744073709551615);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
@@ -1884,8 +1874,6 @@ module liquidswap::liquidity_pool_tests {
     fun test_cumulative_price_overflow() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
-
         timestamp::fast_forward_seconds(1);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
@@ -1905,8 +1893,6 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     fun test_cumulative_price_overflow_1() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-
-        // test_pool::register_lp_coin_drop_caps<BTC, USDT, Uncorrelated>();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 

@@ -47,16 +47,16 @@ module liquidswap::liquidity_pool {
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
     /// When invalid curve passed as argument.
-    const ERR_INVALID_CURVE: u64 = 110;
+    const ERR_INVALID_CURVE: u64 = 108;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
-    const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 111;
+    const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 109;
 
     /// When both X and Y provided for flashloan are equal zero.
-    const ERR_EMPTY_COIN_LOAN: u64 = 112;
+    const ERR_EMPTY_COIN_LOAN: u64 = 110;
 
     /// When pool is locked.
-    const ERR_POOL_IS_LOCKED: u64 = 113;
+    const ERR_POOL_IS_LOCKED: u64 = 111;
 
     // Constants.
 

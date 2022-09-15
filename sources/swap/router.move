@@ -32,14 +32,6 @@ module liquidswap::router {
     /// When unknown curve used.
     const ERR_INVALID_CURVE: u64 = 207;
 
-    // Constants.
-
-    /// Stable curve (like Solidly).
-    const STABLE_CURVE: u8 = 1;
-
-    /// Uncorellated curve (like Uniswap).
-    const UNCORRELATED_CURVE: u8 = 2;
-
     // Public functions.
 
     /// Register new liquidity pool for `X`/`Y` pair on signer address with `LP` coin.

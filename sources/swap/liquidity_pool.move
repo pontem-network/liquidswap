@@ -100,7 +100,7 @@ module liquidswap::liquidity_pool {
     struct PoolAccountCapability has key { signer_cap: SignerCapability }
 
     /// Initializes Liquidswap contracts.
-    public fun initialize(liquidswap_admin: &signer) {
+    public entry fun initialize(liquidswap_admin: &signer) {
         assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
         let signer_cap = lp_account::retrieve_signer_cap(liquidswap_admin);
         move_to(liquidswap_admin, PoolAccountCapability { signer_cap });

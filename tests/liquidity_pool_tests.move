@@ -1871,7 +1871,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    fun test_cumulative_price_overflow() {
+    fun test_cumulative_price_overflow_0() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
         timestamp::fast_forward_seconds(1);
@@ -1908,5 +1908,13 @@ module liquidswap::liquidity_pool_tests {
         assert!(ts == 18446744073709, 0);
         assert!(x_cum_price == 340282366920928287925748899990034, 1);
         assert!(y_cum_price == 340282366920928287925748899990034, 2);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 108)]
+    fun test_fail_if_invalid_curve_is_passed() {
+        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+
+        liquidity_pool::register<BTC, USDT, BTC>(&lp_owner);
     }
 }

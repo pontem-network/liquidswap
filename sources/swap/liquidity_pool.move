@@ -47,7 +47,7 @@ module liquidswap::liquidity_pool {
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
     /// When invalid curve passed as argument.
-    const ERR_INVALID_CURVE: u64 = 110;
+    const ERR_INVALID_CURVE: u64 = 108;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
     const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 111;

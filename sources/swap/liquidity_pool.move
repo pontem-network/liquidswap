@@ -50,7 +50,7 @@ module liquidswap::liquidity_pool {
     const ERR_INVALID_CURVE: u64 = 108;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
-    const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 111;
+    const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 109;
 
     /// When both X and Y provided for flashloan are equal zero.
     const ERR_EMPTY_COIN_LOAN: u64 = 112;

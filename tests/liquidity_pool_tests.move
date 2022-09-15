@@ -1917,4 +1917,12 @@ module liquidswap::liquidity_pool_tests {
 
         liquidity_pool::register<BTC, USDT, BTC>(&lp_owner);
     }
+
+    #[test]
+    #[expected_failure(abort_code = 109)]
+    fun test_cannot_initialize_pool_with_non_admin_account() {
+        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+
+        liquidity_pool::initialize(&lp_owner);
+    }
 }

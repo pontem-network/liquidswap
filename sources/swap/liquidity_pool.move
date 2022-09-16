@@ -1,7 +1,7 @@
 /// Liquidswap liquidity pool module.
 /// Implements mint/burn liquidity, swap of coins.
 module liquidswap::liquidity_pool {
-    use std::string::String;
+    use std::string::utf8;
     use std::signer;
 
     use uq64x64::uq64x64;
@@ -92,8 +92,6 @@ module liquidswap::liquidity_pool {
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register<X, Y, LP>(
         owner: &signer,
-        lp_name: String,
-        lp_symbol: String,
         curve_type: u8
     ) {
         assert_no_emergency();
@@ -111,8 +109,8 @@ module liquidswap::liquidity_pool {
 
         let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) = coin::initialize<LP>(
             owner,
-            lp_name,
-            lp_symbol,
+            utf8(b"Liquidswap LP"),
+            utf8(b"LP"),
             6,
             true
         );

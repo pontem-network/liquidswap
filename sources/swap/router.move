@@ -42,11 +42,9 @@ module liquidswap::router {
     /// * `curve_type` - pool curve type: 1 = stable, 2 = uncorrelated (uniswap like).
     public fun register_pool<X, Y, LP>(account: &signer, curve_type: u8) {
         if (coin_helper::is_sorted<X, Y>()) {
-            let (lp_name, lp_symbol) = coin_helper::generate_lp_name<X, Y>();
-            liquidity_pool::register<X, Y, LP>(account, lp_name, lp_symbol, curve_type);
+            liquidity_pool::register<X, Y, LP>(account,  curve_type);
         } else {
-            let (lp_name, lp_symbol) = coin_helper::generate_lp_name<Y, X>();
-            liquidity_pool::register<Y, X, LP>(account, lp_name, lp_symbol, curve_type);
+            liquidity_pool::register<Y, X, LP>(account, curve_type);
         }
     }
 

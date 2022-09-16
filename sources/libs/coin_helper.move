@@ -1,8 +1,6 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module liquidswap::coin_helper {
     use std::option;
-    use std::string::{Self, String, bytes};
-    use std::vector;
 
     use aptos_framework::coin;
     use aptos_std::comparator::{Self, Result};
@@ -49,16 +47,5 @@ module liquidswap::coin_helper {
     /// Would throw error if supply for `CoinType` doesn't exist.
     public fun supply<CoinType>(): u128 {
         option::extract(&mut coin::supply<CoinType>())
-    }
-
-    /// Generate LP coin name for pair `X`/`Y`.
-    /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
-    public fun generate_lp_name<X, Y>(): (String, String) {
-        let symbol = b"LP-";
-        vector::append(&mut symbol, *bytes(&coin::symbol<X>()));
-        vector::push_back(&mut symbol, 0x2d);
-        vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
-
-        (string::utf8(b"Liquidswap LP"), string::utf8(symbol))
     }
 }

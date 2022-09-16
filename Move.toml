@@ -14,7 +14,7 @@ test_helpers = "0x12"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "devnet"
+rev = "971c160079263a8d3e1d2503a570b01ecaaf10ba"
 subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]

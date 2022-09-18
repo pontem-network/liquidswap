@@ -7,5 +7,5 @@ liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "8f634bcd2e48c4972868d0053d3532f4f760ae19"
+rev = "843b204dce971d98449b82624f4f684c7a18b991"
 subdir = "aptos-move/framework/aptos-framework"

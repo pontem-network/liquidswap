@@ -69,11 +69,12 @@ module liquidswap::coin_helper {
 
     /// Generate LP coin name and symbol for pair `X`/`Y` and curve `Curve`.
     /// ```
-    /// curve_symbol = when(curve) {
-    ///     is Stable -> "*"
-    ///     is Uncorrelated -> "+"
+    ///
+    /// (curve_name, curve_symbol) = when(curve) {
+    ///     is Uncorrelated -> (""(no symbol), "-U")
+    ///     is Stable -> ("*", "-S")
     /// }
-    /// name = "LiquidLP-" + symbol<X>() + "-" + symbol<Y>() + curve_symbol;
+    /// name = "LiquidLP-" + symbol<X>() + "-" + symbol<Y>() + curve_name;
     /// symbol = symbol<X>()[0:4] + "-" + symbol<Y>()[0:4] + curve_symbol;
     /// ```
     /// For example, for `LP<BTC, USDT, Uncorrelated>`,
@@ -90,8 +91,8 @@ module liquidswap::coin_helper {
         string::append_utf8(&mut lp_symbol, b"-");
         string::append(&mut lp_symbol, coin_symbol_prefix<Y>());
 
-        let curve_symbol = if (is_stable<Curve>()) b"*" else b"+";
-        string::append_utf8(&mut lp_name, curve_symbol);
+        let (curve_name, curve_symbol) = if (is_stable<Curve>()) (b"-S", b"*") else (b"-U", b"");
+        string::append_utf8(&mut lp_name, curve_name);
         string::append_utf8(&mut lp_symbol, curve_symbol);
 
         (lp_name, lp_symbol)

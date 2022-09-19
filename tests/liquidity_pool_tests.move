@@ -7,6 +7,7 @@ module liquidswap::liquidity_pool_tests {
     use aptos_framework::timestamp;
     use liquidswap_lp::lp_coin::LP;
 
+    use liquidswap::admins;
     use liquidswap::coin_helper::supply;
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
@@ -142,6 +143,8 @@ module liquidswap::liquidity_pool_tests {
 
         test_coins::register_coin<USDT>(&coin_admin, b"USDT", b"USDT", 6);
 
+        admins::initialize_for_test();
+
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner);
     }
@@ -152,6 +155,8 @@ module liquidswap::liquidity_pool_tests {
         let (coin_admin, lp_owner) = test_pool::create_coin_admin_and_lp_owner();
 
         test_coins::register_coin<BTC>(&coin_admin, b"BTC", b"BTC", 8);
+
+        admins::initialize_for_test();
 
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
             &lp_owner);

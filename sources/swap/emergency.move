@@ -1,6 +1,7 @@
 /// The module allows for emergency stop Liquidswap operations.
 module liquidswap::emergency {
     use std::signer;
+    use liquidswap::admins;
 
     // Error codes.
 
@@ -27,7 +28,7 @@ module liquidswap::emergency {
         assert!(!is_disabled(), ERR_DISABLED);
         assert_no_emergency();
 
-        assert!(signer::address_of(account) == @emergency_admin, ERR_NO_PERMISSIONS);
+        assert!(signer::address_of(account) == admins::get_emergency_admin(), ERR_NO_PERMISSIONS);
 
         move_to(account, Emergency {});
     }
@@ -37,7 +38,7 @@ module liquidswap::emergency {
         assert!(!is_disabled(), ERR_DISABLED);
 
         let account_addr = signer::address_of(account);
-        assert!(account_addr == @emergency_admin, ERR_NO_PERMISSIONS);
+        assert!(account_addr == admins::get_emergency_admin(), ERR_NO_PERMISSIONS);
         assert!(is_emergency(), ERR_NOT_EMERGENCY);
 
         let Emergency {} = move_from<Emergency>(account_addr);
@@ -45,7 +46,7 @@ module liquidswap::emergency {
 
     /// Get if it's paused or not.
     public fun is_emergency(): bool {
-        exists<Emergency>(@emergency_admin)
+        exists<Emergency>(admins::get_emergency_admin())
     }
 
     /// Would abort if currently paused.
@@ -55,13 +56,13 @@ module liquidswap::emergency {
 
     /// Get if it's disabled or not.
     public fun is_disabled(): bool {
-        exists<Disabled>(@emergency_admin)
+        exists<Disabled>(admins::get_emergency_admin())
     }
 
     /// Disable condition forever.
     public entry fun disable_forever(account: &signer) {
         assert!(!is_disabled(), ERR_DISABLED);
-        assert!(signer::address_of(account) == @emergency_admin, ERR_NO_PERMISSIONS);
+        assert!(signer::address_of(account) == admins::get_emergency_admin(), ERR_NO_PERMISSIONS);
 
         move_to(account, Disabled {});
     }

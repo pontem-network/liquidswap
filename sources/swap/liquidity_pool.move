@@ -11,6 +11,7 @@ module liquidswap::liquidity_pool {
     use u256::u256;
     use uq64x64::uq64x64;
 
+    use liquidswap::admins;
     use liquidswap::coin_helper;
     use liquidswap::curves;
     use liquidswap::dao_storage;
@@ -132,6 +133,8 @@ module liquidswap::liquidity_pool {
         assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
         let signer_cap = lp_account::retrieve_signer_cap(liquidswap_admin);
         move_to(liquidswap_admin, PoolAccountCapability { signer_cap });
+
+        admins::initialize(liquidswap_admin);
     }
 
     /// Register liquidity pool `X`/`Y`.

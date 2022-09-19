@@ -67,8 +67,15 @@ module liquidswap::coin_helper {
         option::extract(&mut coin::supply<CoinType>())
     }
 
-    /// Generate LP coin name for pair `X`/`Y`.
-    /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
+    /// Generate LP coin name and symbol for pair `X`/`Y` and curve `Curve`.
+    /// ```
+    /// curve_symbol = when(curve) {
+    ///     is Stable -> "*"
+    ///     is Uncorrelated -> "+"
+    /// }
+    /// name = "LiquidLP-" + symbol<X>() + "-" + symbol<Y>() + curve_symbol;
+    /// symbol = symbol<X>()[0:4] + "-" + symbol<Y>()[0:4] + curve_symbol;
+    /// ```
     public fun generate_lp_name_and_symbol<X, Y, Curve>(): (String, String) {
         let lp_name = string::utf8(b"");
         string::append_utf8(&mut lp_name, b"LiquidLP-");

@@ -76,6 +76,8 @@ module liquidswap::coin_helper {
     /// name = "LiquidLP-" + symbol<X>() + "-" + symbol<Y>() + curve_symbol;
     /// symbol = symbol<X>()[0:4] + "-" + symbol<Y>()[0:4] + curve_symbol;
     /// ```
+    /// For example, for `LP<BTC, USDT, Uncorrelated>`,
+    /// the result will be `(b"LiquidLP-BTC-USDT+", b"BTC-USDT+")`
     public fun generate_lp_name_and_symbol<X, Y, Curve>(): (String, String) {
         let lp_name = string::utf8(b"");
         string::append_utf8(&mut lp_name, b"LiquidLP-");

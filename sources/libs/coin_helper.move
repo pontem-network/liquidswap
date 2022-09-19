@@ -19,14 +19,7 @@ module liquidswap::coin_helper {
     const ERR_IS_NOT_COIN: u64 = 3001;
 
     // Constants.
-
-    /// When both coin names are equal.
-    const EQUAL: u8 = 0;
-    /// When coin `X` name is less than coin `Y` name.
-    const LESS_THAN: u8 = 1;
-    /// When coin `X` name is greater than coin `X` name.
-    const GREATER_THAN: u8 = 2;
-
+    /// Length of symbol prefix to be used in LP coin symbol.
     const SYMBOL_PREFIX_LENGTH: u64 = 4;
 
     /// Check if provided generic `CoinType` is a coin.

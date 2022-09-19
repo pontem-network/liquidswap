@@ -55,9 +55,9 @@ module liquidswap::liquidity_pool_tests {
         // Check created LP.
         assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 17);
         let lp_name = coin::name<LP<BTC, USDT, Uncorrelated>>();
-        assert!(lp_name == utf8(b"LiquidLP-BTC-USDT+"), 18);
+        assert!(lp_name == utf8(b"LiquidLP-BTC-USDT-U"), 18);
         let lp_symbol = coin::symbol<LP<BTC, USDT, Uncorrelated>>();
-        assert!(lp_symbol == utf8(b"BTC-USDT+"), 19);
+        assert!(lp_symbol == utf8(b"BTC-USDT"), 19);
         let lp_supply = coin::supply<LP<BTC, USDT, Uncorrelated>>();
         assert!(option::is_some(&lp_supply), 20);
         assert!(*option::borrow(&lp_supply) == 0, 21);
@@ -104,7 +104,7 @@ module liquidswap::liquidity_pool_tests {
 
         assert!(coin::is_coin_initialized<LP<USDC, USDT, Stable>>(), 4);
         let lp_name = coin::name<LP<USDC, USDT, Stable>>();
-        assert!(lp_name == utf8(b"LiquidLP-USDC-USDT*"), 6);
+        assert!(lp_name == utf8(b"LiquidLP-USDC-USDT-S"), 6);
         let lp_symbol = coin::symbol<LP<USDC, USDT, Stable>>();
         assert!(lp_symbol == utf8(b"USDC-USDT*"), 7);
         let lp_supply = coin::supply<LP<USDC, USDT, Stable>>();

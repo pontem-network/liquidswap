@@ -1,12 +1,14 @@
 /// The `CoinHelper` module contains helper funcs to work with `AptosFramework::Coin` module.
 module liquidswap::coin_helper {
     use std::option;
-    use std::string::{Self, String, bytes};
-    use std::vector;
+    use std::string::{Self, String};
 
     use aptos_framework::coin;
     use aptos_std::comparator::{Self, Result};
     use aptos_std::type_info;
+
+    use liquidswap::curves::is_stable;
+    use liquidswap::math;
 
     // Errors codes.
 
@@ -17,13 +19,8 @@ module liquidswap::coin_helper {
     const ERR_IS_NOT_COIN: u64 = 3001;
 
     // Constants.
-
-    /// When both coin names are equal.
-    const EQUAL: u8 = 0;
-    /// When coin `X` name is less than coin `Y` name.
-    const LESS_THAN: u8 = 1;
-    /// When coin `X` name is greater than coin `X` name.
-    const GREATER_THAN: u8 = 2;
+    /// Length of symbol prefix to be used in LP coin symbol.
+    const SYMBOL_PREFIX_LENGTH: u64 = 4;
 
     /// Check if provided generic `CoinType` is a coin.
     public fun assert_is_coin<CoinType>() {
@@ -70,16 +67,40 @@ module liquidswap::coin_helper {
         option::extract(&mut coin::supply<CoinType>())
     }
 
-    /// Generate LP coin name for pair `X`/`Y`.
-    /// Returns generated symbol and name (`symbol<X>()` + "-" + `symbol<Y>()`).
+    /// Generate LP coin name and symbol for pair `X`/`Y` and curve `Curve`.
+    /// ```
+    ///
+    /// (curve_name, curve_symbol) = when(curve) {
+    ///     is Uncorrelated -> (""(no symbol), "-U")
+    ///     is Stable -> ("*", "-S")
+    /// }
+    /// name = "LiquidLP-" + symbol<X>() + "-" + symbol<Y>() + curve_name;
+    /// symbol = symbol<X>()[0:4] + "-" + symbol<Y>()[0:4] + curve_symbol;
+    /// ```
+    /// For example, for `LP<BTC, USDT, Uncorrelated>`,
+    /// the result will be `(b"LiquidLP-BTC-USDT+", b"BTC-USDT+")`
     public fun generate_lp_name_and_symbol<X, Y, Curve>(): (String, String) {
-        let symbol = b"LP-";
-        vector::append(&mut symbol, *bytes(&coin::symbol<X>()));
-        vector::push_back(&mut symbol, 0x2d);
-        vector::append(&mut symbol, *bytes(&coin::symbol<Y>()));
-        vector::push_back(&mut symbol, 0x2d);
-        vector::append(&mut symbol, type_info::struct_name(&type_info::type_of<Curve>()));
+        let lp_name = string::utf8(b"");
+        string::append_utf8(&mut lp_name, b"LiquidLP-");
+        string::append(&mut lp_name, coin::symbol<X>());
+        string::append_utf8(&mut lp_name, b"-");
+        string::append(&mut lp_name, coin::symbol<Y>());
 
-        (string::utf8(b"Liquidswap LP"), string::utf8(symbol))
+        let lp_symbol = string::utf8(b"");
+        string::append(&mut lp_symbol, coin_symbol_prefix<X>());
+        string::append_utf8(&mut lp_symbol, b"-");
+        string::append(&mut lp_symbol, coin_symbol_prefix<Y>());
+
+        let (curve_name, curve_symbol) = if (is_stable<Curve>()) (b"-S", b"*") else (b"-U", b"");
+        string::append_utf8(&mut lp_name, curve_name);
+        string::append_utf8(&mut lp_symbol, curve_symbol);
+
+        (lp_name, lp_symbol)
+    }
+
+    fun coin_symbol_prefix<CoinType>(): String {
+        let symbol = coin::symbol<CoinType>();
+        let prefix_length = math::min_u64(string::length(&symbol), SYMBOL_PREFIX_LENGTH);
+        string::sub_string(&symbol, 0, prefix_length)
     }
 }

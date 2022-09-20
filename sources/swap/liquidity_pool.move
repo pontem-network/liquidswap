@@ -19,7 +19,6 @@ module liquidswap::liquidity_pool {
     use liquidswap::stable_curve;
     use liquidswap::lp_account;
     use liquidswap_lp::lp_coin::LP;
-    use std::string::utf8;
 
     // Error codes.
 
@@ -107,11 +106,12 @@ module liquidswap::liquidity_pool {
         let pool_cap = borrow_global<PoolAccountCapability>(@liquidswap);
         let pool_account = account::create_signer_with_capability(&pool_cap.signer_cap);
 
+        let (lp_name, lp_symbol) = coin_helper::generate_lp_name_and_symbol<X, Y, Curve>();
         let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) =
             coin::initialize<LP<X, Y, Curve>>(
                 &pool_account,
-                utf8(b"Liquidswap LP"),
-                utf8(b"LP"),
+                lp_name,
+                lp_symbol,
                 6,
                 true
             );

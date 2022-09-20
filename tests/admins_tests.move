@@ -33,8 +33,15 @@ module liquidswap::admins_tests {
     fun test_set_dao_admin_fail_if_user_is_not_dao_admin() {
         admins::initialize_for_test();
 
-        let dao_admin = account::create_account_for_test(@test_coin_admin);
-        admins::set_dao_admin(&dao_admin, @dao_admin);
+        let dao_admin = account::create_account_for_test(@dao_admin);
+        admins::set_dao_admin(&dao_admin, @test_coin_admin);
+        assert!(admins::get_dao_admin() == @test_coin_admin, 0);
+
+        let test_coin_admin = account::create_account_for_test(@test_coin_admin);
+        admins::set_dao_admin(&test_coin_admin, @dao_admin);
+        assert!(admins::get_dao_admin() == @dao_admin, 1);
+
+        admins::set_dao_admin(&test_coin_admin, @dao_admin);
     }
 
     #[test]
@@ -66,7 +73,14 @@ module liquidswap::admins_tests {
     fun test_set_emergency_admin_fail_if_user_is_not_emergency_admin() {
         admins::initialize_for_test();
 
-        let emergency_admin = account::create_account_for_test(@test_coin_admin);
-        admins::set_emergency_admin(&emergency_admin, @emergency_admin);
+        let emergency_admin = account::create_account_for_test(@emergency_admin);
+        admins::set_emergency_admin(&emergency_admin, @test_coin_admin);
+        assert!(admins::get_emergency_admin() == @test_coin_admin, 0);
+
+        let test_coin_admin = account::create_account_for_test(@test_coin_admin);
+        admins::set_emergency_admin(&test_coin_admin, @emergency_admin);
+        assert!(admins::get_emergency_admin() == @emergency_admin, 1);
+
+        admins::set_emergency_admin(&test_coin_admin, @emergency_admin);
     }
 }

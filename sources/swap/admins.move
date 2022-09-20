@@ -1,9 +1,6 @@
 module liquidswap::admins {
     use std::signer;
 
-    #[test_only]
-    use aptos_framework::account;
-
     friend liquidswap::liquidity_pool;
 
     // Error codes.
@@ -55,7 +52,7 @@ module liquidswap::admins {
 
     #[test_only]
     public fun initialize_for_test() {
-        let liquidswap_admin = account::create_account_for_test(@liquidswap);
+        let liquidswap_admin = aptos_framework::account::create_account_for_test(@liquidswap);
         initialize(&liquidswap_admin);
     }
 }

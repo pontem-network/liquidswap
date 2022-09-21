@@ -30,7 +30,7 @@ module liquidswap::admins {
         config.dao_admin_address
     }
 
-    public fun set_dao_admin(dao_admin: &signer, new_addr: address) acquires AdminConfig {
+    public entry fun set_dao_admin(dao_admin: &signer, new_addr: address) acquires AdminConfig {
         assert!(exists<AdminConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
         let config = borrow_global_mut<AdminConfig>(@liquidswap);
         assert!(config.dao_admin_address == signer::address_of(dao_admin), ERR_NOT_ADMIN);
@@ -43,7 +43,7 @@ module liquidswap::admins {
         config.emergency_admin_address
     }
 
-    public fun set_emergency_admin(emergency_admin: &signer, new_addr: address) acquires AdminConfig {
+    public entry fun set_emergency_admin(emergency_admin: &signer, new_addr: address) acquires AdminConfig {
         assert!(exists<AdminConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
         let config = borrow_global_mut<AdminConfig>(@liquidswap);
         assert!(config.emergency_admin_address == signer::address_of(emergency_admin), ERR_NOT_ADMIN);

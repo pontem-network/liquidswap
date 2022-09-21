@@ -14,13 +14,15 @@ module liquidswap::admins {
     struct AdminConfig has key {
         dao_admin_address: address,
         emergency_admin_address: address,
+        fee_admin_address: address,
     }
 
     /// Initializes admin contracts when initializing the liquidity pool.
     public(friend) fun initialize(liquidswap_admin: &signer) {
         move_to(liquidswap_admin, AdminConfig {
             dao_admin_address: @dao_admin,
-            emergency_admin_address: @emergency_admin
+            emergency_admin_address: @emergency_admin,
+            fee_admin_address: @fee_admin,
         });
     }
 
@@ -48,6 +50,19 @@ module liquidswap::admins {
         let config = borrow_global_mut<AdminConfig>(@liquidswap);
         assert!(config.emergency_admin_address == signer::address_of(emergency_admin), ERR_NOT_ADMIN);
         config.emergency_admin_address = new_addr;
+    }
+
+    public fun get_fee_admin(): address acquires AdminConfig {
+        assert!(exists<AdminConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+        let config = borrow_global<AdminConfig>(@liquidswap);
+        config.fee_admin_address
+    }
+
+    public entry fun set_fee_admin(fee_admin: &signer, new_addr: address) acquires AdminConfig {
+        assert!(exists<AdminConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+        let config = borrow_global_mut<AdminConfig>(@liquidswap);
+        assert!(config.fee_admin_address == signer::address_of(fee_admin), ERR_NOT_ADMIN);
+        config.fee_admin_address = new_addr;
     }
 
     #[test_only]

@@ -1129,7 +1129,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_fees_config() {
         setup_btc_usdt_pool();
 
-        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
+        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config<BTC, USDT, Uncorrelated>();
 
         assert!(fee_pct == 30, 0);
         assert!(fee_scale == 10000, 1);

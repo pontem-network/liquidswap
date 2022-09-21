@@ -297,7 +297,7 @@ module liquidswap::router {
     public fun get_amount_out<X, Y, Curve>(amount_in: u64): u64 {
         let (reserve_x, reserve_y) = get_reserves_size<X, Y, Curve>();
         let (scale_x, scale_y) = get_decimals_scales<X, Y, Curve>();
-        get_coin_out_with_fees<Curve>(
+        get_coin_out_with_fees<X, Y, Curve>(
             amount_in,
             reserve_x,
             reserve_y,
@@ -317,7 +317,7 @@ module liquidswap::router {
     public fun get_amount_in<X, Y, Curve>(amount_out: u64): u64 {
         let (reserve_x, reserve_y) = get_reserves_size<X, Y, Curve>();
         let (scale_x, scale_y) = get_decimals_scales<X, Y, Curve>();
-        get_coin_in_with_fees<Curve>(
+        get_coin_in_with_fees<X, Y, Curve>(
             amount_out,
             reserve_y,
             reserve_x,
@@ -335,14 +335,14 @@ module liquidswap::router {
     /// * `scale_in` - 10 pow by decimals amount of coin we going to swap.
     /// * `scale_out` - 10 pow by decimals amount of coin we going to get.
     /// Returns amount of coins out after swap.
-    fun get_coin_out_with_fees<Curve>(
+    fun get_coin_out_with_fees<X, Y, Curve>(
         coin_in: u64,
         reserve_in: u64,
         reserve_out: u64,
         scale_in: u64,
         scale_out: u64,
     ): u64 {
-        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
+        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config<X, Y, Curve>();
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curves::is_stable<Curve>()) {
@@ -393,14 +393,14 @@ module liquidswap::router {
     ///  For stable curve math described in `coin_in` func into `../libs/StableCurve.move`.
     ///
     /// Returns amount of coins needed for swap.
-    fun get_coin_in_with_fees<Curve>(
+    fun get_coin_in_with_fees<X, Y, Curve>(
         coin_out: u64,
         reserve_out: u64,
         reserve_in: u64,
         scale_out: u64,
         scale_in: u64,
     ): u64 {
-        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config();
+        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config<X, Y, Curve>();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;  // 997
 

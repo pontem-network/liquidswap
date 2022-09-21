@@ -3,6 +3,7 @@ module liquidswap::dao_storage_tests {
     use std::signer;
 
     use aptos_framework::coin;
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::dao_storage;
@@ -11,7 +12,7 @@ module liquidswap::dao_storage_tests {
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
-    use liquidswap_lp::lp_coin::LP;
+    use liquidswap::admins;
 
     #[test]
     fun test_register() {
@@ -79,8 +80,16 @@ module liquidswap::dao_storage_tests {
         assert!(x_val == 0, 2);
         assert!(y_val == 1000000, 3);
 
+        admins::set_dao_admin(&dao_admin_acc, signer::address_of(&coin_admin));
+        let (x0, y0) =
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&coin_admin, lp_owner_addr, 0, 1000000);
+        assert!(coin::value(&x0) == 0, 4);
+        assert!(coin::value(&y0) == 1000000, 5);
+
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
+        test_coins::burn(&coin_admin, x0);
+        test_coins::burn(&coin_admin, y0);
     }
 
     #[test(dao_admin_acc = @dao_admin)]

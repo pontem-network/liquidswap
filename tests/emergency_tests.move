@@ -3,8 +3,8 @@ module liquidswap::emergency_tests {
     use liquidswap::admins;
     use liquidswap::emergency;
 
-    #[test(emergency_acc = @emergency_admin)]
-    public fun test_end_to_end(emergency_acc: signer) {
+    #[test(emergency_acc = @emergency_admin, coin_admin = @test_coin_admin)]
+    public fun test_end_to_end(emergency_acc: signer, coin_admin: signer) {
         admins::initialize_for_test();
         emergency::assert_no_emergency();
         assert!(emergency::is_emergency() == false, 0);
@@ -18,8 +18,10 @@ module liquidswap::emergency_tests {
 
         emergency::pause(&emergency_acc);
 
+        admins::set_emergency_admin(&emergency_acc, @test_coin_admin);
+
         assert!(emergency::is_disabled() == false, 3);
-        emergency::disable_forever(&emergency_acc);
+        emergency::disable_forever(&coin_admin);
         assert!(emergency::is_disabled() == true, 4);
     }
 

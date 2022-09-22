@@ -58,6 +58,10 @@ let (coin_x, coin_y) = router::swap_coin_for_exact_coin<BTC, USDT, Uncorrelated>
 
     aptos move test
 
+### Security Audits
+
+Look at [section](https://docs.liquidswap.com/#security-audits) in our doc.
+
 ### License
 
 See [LICENSE](LICENSE)

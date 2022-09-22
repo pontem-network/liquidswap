@@ -57,22 +57,22 @@ module liquidswap::liquidity_pool {
     /// When pool is locked.
     const ERR_POOL_IS_LOCKED: u64 = 111;
 
-    /// When less than minimum
-    const ERR_LESS_THAN_MINIMUM: u64 = 112;
-
-    /// When greater than maximum
-    const ERR_GREATER_THAN_MAXIMUM: u64 = 113;
+    /// When invalid fee amount
+    const ERR_INVALID_FEE: u64 = 112;
 
     /// When user is not admin
-    const ERR_NOT_ADMIN: u64 = 114;
+    const ERR_NOT_ADMIN: u64 = 113;
 
     // Constants.
 
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Default fee is 0.3%
-    const DEFAULT_FEE: u64 = 30;
+    /// Default fee for uncorrelated pool is 0.3%
+    const DEFAULT_UNCORRELATED_FEE: u64 = 30;
+
+    /// Default fee for stable pool is 0.3%
+    const DEFAULT_STABLE_FEE: u64 = 4;
 
     /// Minimum value of fee.
     const MIN_FEE: u64 = 1;
@@ -164,12 +164,12 @@ module liquidswap::liquidity_pool {
 
         let x_scale = 0;
         let y_scale = 0;
-        let fee = DEFAULT_FEE;
+        let fee = DEFAULT_UNCORRELATED_FEE;
 
         if (curves::is_stable<Curve>()) {
             x_scale = math::pow_10(coin::decimals<X>());
             y_scale = math::pow_10(coin::decimals<Y>());
-            fee = 4;    // default fee for stable curve
+            fee = DEFAULT_STABLE_FEE;    // default fee for stable curve
         };
 
         let pool = LiquidityPool<X, Y, Curve> {
@@ -722,8 +722,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(fee_admin) == @fee_admin, ERR_NOT_ADMIN);
-        assert!(MIN_FEE <= fee, ERR_LESS_THAN_MINIMUM);
-        assert!(fee <= MAX_FEE, ERR_GREATER_THAN_MAXIMUM);
+        assert!(MIN_FEE <= fee && fee <= MAX_FEE, ERR_INVALID_FEE);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.fee = fee;
@@ -741,8 +740,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(dao_admin) == @dao_admin, ERR_NOT_ADMIN);
-        assert!(MIN_DAO_FEE <= dao_fee, ERR_LESS_THAN_MINIMUM);
-        assert!(dao_fee <= MAX_DAO_FEE, ERR_GREATER_THAN_MAXIMUM);
+        assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.dao_fee = dao_fee;

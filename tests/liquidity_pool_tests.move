@@ -1871,7 +1871,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 114)]
+    #[expected_failure(abort_code = 113)]
     fun test_set_fee_fail_if_user_is_not_admin() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
@@ -1880,18 +1880,10 @@ module liquidswap::liquidity_pool_tests {
 
     #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 112)]
-    fun test_set_fee_fail_if_value_is_less_than_minimum(fee_admin: signer) {
+    fun test_set_fee_fail_if_invalid_amount_of_fee(fee_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
         liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 0);
-    }
-
-    #[test(fee_admin = @fee_admin)]
-    #[expected_failure(abort_code = 113)]
-    fun test_set_fee_fail_if_value_is_greater_than_maximum(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 36);
     }
 
     #[test(dao_admin = @dao_admin)]
@@ -1939,7 +1931,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 114)]
+    #[expected_failure(abort_code = 113)]
     fun test_set_dao_fee_fail_if_user_is_not_admin() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
@@ -1947,8 +1939,8 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test(dao_admin = @dao_admin)]
-    #[expected_failure(abort_code = 113)]
-    fun test_set_dao_fee_fail_if_value_is_greater_than_maximum(dao_admin: signer) {
+    #[expected_failure(abort_code = 112)]
+    fun test_set_dao_fee_fail_if_invalid_amount_of_fee(dao_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
         liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&dao_admin, 101);

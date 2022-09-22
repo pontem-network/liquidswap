@@ -3,13 +3,12 @@ module liquidswap::liquidity_pool_tests {
     use std::option;
     use std::string::utf8;
 
-    use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::timestamp;
     use liquidswap_lp::lp_coin::LP;
 
-    use liquidswap::config;
     use liquidswap::coin_helper::supply;
+    use liquidswap::config;
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
     use liquidswap::liquidity_pool;

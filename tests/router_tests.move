@@ -4,13 +4,13 @@ module liquidswap::router_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
-    use liquidswap_lp::lp_coin::LP;
 
     const MAX_U64: u64 = 18446744073709551615;
 
@@ -728,7 +728,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let amount_in = router::get_amount_in<USDC, USDT, Stable>(67279092);
-        assert!(amount_in == 674816, 0);
+        assert!(amount_in == 673061, 0);
     }
 
     #[test]
@@ -760,7 +760,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(20000000000, 1000000000000);
 
         let amount_in = router::get_amount_in<USDC, USDT, Stable>(67279092);
-        assert!(amount_in == 726737, 0);
+        assert!(amount_in == 724846, 0);
     }
 
     #[test]
@@ -776,7 +776,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let amount_in = router::get_amount_in<USDT, USDC, Stable>(158282982);
-        assert!(amount_in == 15875935305, 0);
+        assert!(amount_in == 15834641356, 0);
     }
 
     #[test]
@@ -792,7 +792,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let amount_in = router::get_amount_in<USDT, USDC, Stable>(57212828231);
-        assert!(amount_in == 5738519680397, 0);
+        assert!(amount_in == 5723593558779, 0);
     }
 
     #[test]
@@ -800,7 +800,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(674816);
-        assert!(amount_out == 67279199, 0);
+        assert!(amount_out == 67454699, 0);
     }
 
     #[test]
@@ -832,7 +832,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(25000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(323859);
-        assert!(amount_out == 31295205, 0);
+        assert!(amount_out == 31376814, 0);
     }
 
     #[test]
@@ -840,7 +840,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(58201);
-        assert!(amount_out == 5802699, 0);
+        assert!(amount_out == 5817799, 0);
     }
 
     #[test]
@@ -864,7 +864,7 @@ module liquidswap::router_tests {
         let (_, _) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let amount_out = router::get_amount_out<USDT, USDC, Stable>(572123482812);
-        assert!(amount_out == 5704071102, 0);
+        assert!(amount_out == 5718946312, 0);
     }
 
     #[test]

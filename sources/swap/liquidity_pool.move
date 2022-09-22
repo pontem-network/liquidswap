@@ -164,10 +164,12 @@ module liquidswap::liquidity_pool {
 
         let x_scale = 0;
         let y_scale = 0;
+        let fee = DEFAULT_FEE;
 
         if (curves::is_stable<Curve>()) {
             x_scale = math::pow_10(coin::decimals<X>());
             y_scale = math::pow_10(coin::decimals<Y>());
+            fee = 4;    // default fee for stable curve
         };
 
         let pool = LiquidityPool<X, Y, Curve> {
@@ -181,7 +183,7 @@ module liquidswap::liquidity_pool {
             x_scale,
             y_scale,
             locked: false,
-            fee: DEFAULT_FEE,
+            fee,
             dao_fee: DEFAULT_DAO_FEE,
         };
         move_to(&pool_account, pool);
@@ -720,8 +722,8 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(fee_admin) == @fee_admin, ERR_NOT_ADMIN);
-        assert!(fee <= MIN_FEE, ERR_LESS_THAN_MINIMUM);
-        assert!(MAX_FEE <= fee, ERR_GREATER_THAN_MAXIMUM);
+        assert!(MIN_FEE <= fee, ERR_LESS_THAN_MINIMUM);
+        assert!(fee <= MAX_FEE, ERR_GREATER_THAN_MAXIMUM);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.fee = fee;
@@ -739,8 +741,8 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(dao_admin) == @dao_admin, ERR_NOT_ADMIN);
-        assert!(dao_fee <= MIN_DAO_FEE, ERR_LESS_THAN_MINIMUM);
-        assert!(MAX_DAO_FEE <= dao_fee, ERR_GREATER_THAN_MAXIMUM);
+        assert!(MIN_DAO_FEE <= dao_fee, ERR_LESS_THAN_MINIMUM);
+        assert!(dao_fee <= MAX_DAO_FEE, ERR_GREATER_THAN_MAXIMUM);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.dao_fee = dao_fee;

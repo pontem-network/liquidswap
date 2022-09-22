@@ -5,7 +5,7 @@ module liquidswap::dao_storage {
     use aptos_framework::coin::{Self, Coin};
     use aptos_std::event;
 
-    use liquidswap::admins;
+    use liquidswap::config;
 
     friend liquidswap::liquidity_pool;
 
@@ -75,7 +75,7 @@ module liquidswap::dao_storage {
     /// Returns both withdrawn X and Y coins: `(Coin<X>, Coin<Y>)`.
     public fun withdraw<X, Y, Curve>(dao_admin_acc: &signer, pool_addr: address, x_val: u64, y_val: u64): (Coin<X>, Coin<Y>)
     acquires Storage, EventsStore {
-        assert!(signer::address_of(dao_admin_acc) == admins::get_dao_admin(), ERR_NOT_ADMIN_ACCOUNT);
+        assert!(signer::address_of(dao_admin_acc) == config::get_dao_admin(), ERR_NOT_ADMIN_ACCOUNT);
 
         let storage = borrow_global_mut<Storage<X, Y, Curve>>(pool_addr);
         let coin_x = coin::extract(&mut storage.coin_x, x_val);

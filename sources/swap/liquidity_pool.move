@@ -58,31 +58,16 @@ module liquidswap::liquidity_pool {
     /// When pool is locked.
     const ERR_POOL_IS_LOCKED: u64 = 111;
 
-    /// When invalid fee amount
-    const ERR_INVALID_FEE: u64 = 112;
-
     /// When user is not admin
-    const ERR_NOT_ADMIN: u64 = 113;
+    const ERR_NOT_ADMIN: u64 = 112;
 
     // Constants.
 
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Minimum value of fee.
-    const MIN_FEE: u64 = 1;
-
-    /// Maximum value of fee.
-    const MAX_FEE: u64 = 35;
-
     /// Denominator to handle decimal points for fees.
     const FEE_SCALE: u64 = 10000;
-
-    /// Minimum value of dao fee.
-    const MIN_DAO_FEE: u64 = 0;
-
-    /// Maximum value of dao fee.
-    const MAX_DAO_FEE: u64 = 100;
 
     /// Denominator to handle decimal points for dao fee.
     const DAO_FEE_SCALE: u64 = 100;
@@ -714,7 +699,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(fee_admin) == @fee_admin, ERR_NOT_ADMIN);
-        assert!(MIN_FEE <= fee && fee <= MAX_FEE, ERR_INVALID_FEE);
+        config::assert_fee_valid(fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.fee = fee;
@@ -732,7 +717,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(dao_admin) == @dao_admin, ERR_NOT_ADMIN);
-        assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
+        config::assert_dao_fee_valid(dao_fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.dao_fee = dao_fee;

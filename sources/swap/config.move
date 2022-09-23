@@ -105,7 +105,7 @@ module liquidswap::config {
         let config = borrow_global_mut<PoolConfig>(@liquidswap);
 
         assert!(config.fee_admin_address == signer::address_of(fee_admin), ERR_NOT_ADMIN);
-        assert!(MIN_FEE <= default_fee && default_fee <= MAX_FEE, ERR_INVALID_FEE);
+        assert_fee_valid(default_fee);
 
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee = default_fee;
@@ -125,9 +125,19 @@ module liquidswap::config {
         let config = borrow_global_mut<PoolConfig>(@liquidswap);
 
         assert!(config.dao_admin_address == signer::address_of(dao_admin), ERR_NOT_ADMIN);
-        assert!(MIN_DAO_FEE <= default_fee && default_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
+        assert_dao_fee_valid(default_fee);
 
         config.default_dao_fee = default_fee;
+    }
+
+    /// Aborts if fee is valid.
+    public fun assert_fee_valid(fee: u64) {
+        assert!(MIN_FEE <= fee && fee <= MAX_FEE, ERR_INVALID_FEE);
+    }
+
+    /// Aborts if dao fee is valid.
+    public fun assert_dao_fee_valid(dao_fee: u64) {
+        assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
     }
 
     #[test_only]

@@ -45,9 +45,9 @@ module liquidswap::config {
             dao_admin_address: @dao_admin,
             emergency_admin_address: @emergency_admin,
             fee_admin_address: @fee_admin,
-            default_uncorrelated_fee: 30,
-            default_stable_fee: 4,
-            default_dao_fee: 33,
+            default_uncorrelated_fee: 30,   // 0.3%
+            default_stable_fee: 4,          // 0.04%
+            default_dao_fee: 33,            // 33%
         });
     }
 

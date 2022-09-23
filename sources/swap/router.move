@@ -43,7 +43,6 @@ module liquidswap::router {
     }
 
     /// Add liquidity to pool `X`/`Y` with rationality checks.
-    /// * `pool_addr` - pool owner address.
     /// * `coin_x` - coin X to add as liquidity.
     /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
     /// * `coin_y` - coin Y to add as liquidity.
@@ -81,7 +80,6 @@ module liquidswap::router {
     }
 
     /// Burn liquidity coins `LP` and get coins `X` and `Y` back.
-    /// * `pool_addr` - pool owner address.
     /// * `lp_coins` - `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of `X` coins must be out.
     /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
@@ -109,7 +107,6 @@ module liquidswap::router {
     }
 
     /// Swap exact amount of coin `X` for coin `Y`.
-    /// * `pool_addr` - pool owner address.
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_min_val` - minimum amount of coin Y to get out.
     /// Returns `Coin<Y>`.
@@ -130,7 +127,6 @@ module liquidswap::router {
     }
 
     /// Swap max coin amount `X` for exact coin `Y`.
-    /// * `pool_addr` - pool owner address.
     /// * `coin_max_in` - maximum amount of coin X to swap to get `coin_out_val` of coins Y.
     /// * `coin_out_val` - exact amount of coin Y to get.
     /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
@@ -154,7 +150,6 @@ module liquidswap::router {
 
     /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
     /// So use the following function only on your own risk.
-    /// * `pool_addr` - pool owner address.
     /// * `coin_in` - coin X to swap.
     /// * `coin_out_val` - amount of coin Y to get out.
     /// Returns `Coin<Y>`.
@@ -176,7 +171,6 @@ module liquidswap::router {
     // Getters.
 
     /// Get decimals scales for stable curve, for uncorrelated curve would return zeros.
-    /// * `pool_addr` - pool owner address.
     /// Returns `X` and `Y` coins decimals scales.
     public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -188,7 +182,6 @@ module liquidswap::router {
     }
 
     /// Get current cumulative prices in liquidity pool `X`/`Y`.
-    /// * `pool_addr` - pool owner address.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -200,7 +193,6 @@ module liquidswap::router {
     }
 
     /// Get reserves of liquidity pool (`X` and `Y`).
-    /// * `pool_addr` - pool owner address.
     /// Returns current reserves (`X`, `Y`).
     public fun get_reserves_size<X, Y, Curve>(): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -211,8 +203,34 @@ module liquidswap::router {
         }
     }
 
-    /// Check liquidity pool exists for coins `X` and `Y` at owner address.
-    /// * `pool_addr` - pool owner address.
+    /// Get fee for specific pool together with denominator (numerator, denominator).
+    public fun get_fees_config<X, Y, Curve>(): (u64, u64) {
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_fees_config<X, Y, Curve>()
+        } else {
+            liquidity_pool::get_fees_config<Y, X, Curve>()
+        }
+    }
+
+    /// Get fee for specific pool.
+    public fun get_fee<X, Y, Curve>(): u64 {
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_fee<X, Y, Curve>()
+        } else {
+            liquidity_pool::get_fee<Y, X, Curve>()
+        }
+    }
+
+    /// Get dao fee for specific pool.
+    public fun get_dao_fee<X, Y, Curve>(): u64 {
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_dao_fee<X, Y, Curve>()
+        } else {
+            liquidity_pool::get_dao_fee<Y, X, Curve>()
+        }
+    }
+
+    /// Check swap for pair `X` and `Y` exists.
     /// If pool exists returns true, otherwise false.
     public fun is_swap_exists<X, Y, Curve>(): bool {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -225,7 +243,6 @@ module liquidswap::router {
     // Math.
 
     /// Calculate amounts needed for adding new liquidity for both `X` and `Y`.
-    /// * `pool_addr` - pool owner address.
     /// * `x_desired` - desired value of coins `X`.
     /// * `y_desired` - desired value of coins `Y`.
     /// * `x_min` - minimum of coins X expected.
@@ -270,7 +287,6 @@ module liquidswap::router {
     }
 
     /// Convert `LP` coins to `X` and `Y` coins, useful to calculate amount the user recieve after removing liquidity.
-    /// * `pool_addr` - pool owner address.
     /// * `lp_to_burn_val` - amount of `LP` coins to burn.
     /// Returns both `X` and `Y` coins amounts.
     public fun get_reserves_for_lp_coins<X, Y, Curve>(
@@ -291,7 +307,6 @@ module liquidswap::router {
     /// So if Coins::USDC is X and Coins::USDT is Y, it will get amount of USDT you will get after swap `amount_x` USDC.
     /// !Important!: This function can eat a lot of gas if you querying it for stable curve pool, so be aware.
     /// We recommend to do implement such kind of logic offchain.
-    /// * `pool_addr` - pool owner address.
     /// * `amount_x` - amount to swap.
     /// Returns amount of `Y` coins getting after swap.
     public fun get_amount_out<X, Y, Curve>(amount_in: u64): u64 {
@@ -311,7 +326,6 @@ module liquidswap::router {
     /// it returns amount of USDT you have to swap (include fees).
     /// !Important!: This function can eat a lot of gas if you querying it for stable curve pool, so be aware.
     /// We recommend to do implement such kind of logic offchain.
-    /// * `pool_addr` - pool owner address.
     /// * `amount_x` - amount to swap.
     /// Returns amount of `X` coins needed.
     public fun get_amount_in<X, Y, Curve>(amount_out: u64): u64 {
@@ -342,7 +356,7 @@ module liquidswap::router {
         scale_in: u64,
         scale_out: u64,
     ): u64 {
-        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config<X, Y, Curve>();
+        let (fee_pct, fee_scale) = get_fees_config<X, Y, Curve>();
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curves::is_stable<Curve>()) {
@@ -400,7 +414,7 @@ module liquidswap::router {
         scale_out: u64,
         scale_in: u64,
     ): u64 {
-        let (fee_pct, fee_scale) = liquidity_pool::get_fees_config<X, Y, Curve>();
+        let (fee_pct, fee_scale) = get_fees_config<X, Y, Curve>();
         // 0.997 for 0.3% fee
         let fee_multiplier = fee_scale - fee_pct;  // 997
 

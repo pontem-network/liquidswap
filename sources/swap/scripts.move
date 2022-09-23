@@ -39,7 +39,6 @@ module liquidswap::scripts {
     }
 
     /// Add new liquidity into pool `X`/`Y` and get liquidity coin `LP`.
-    /// * `pool_addr` - address of account registered pool.
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
@@ -76,7 +75,6 @@ module liquidswap::scripts {
     }
 
     /// Remove (burn) liquidity coins `LP` from account, get `X` and`Y` coins back.
-    /// * `pool_addr` - address of account registered pool.
     /// * `lp_val` - amount of `LP` coins to burn.
     /// * `min_x_out_val` - minimum amount of X coins to get.
     /// * `min_y_out_val` - minimum amount of Y coins to get.
@@ -102,7 +100,6 @@ module liquidswap::scripts {
     }
 
     /// Swap exact coin `X` for at least minimum coin `Y`.
-    /// * `pool_addr` - address of account registered pool.
     /// * `coin_val` - amount of coins `X` to swap.
     /// * `coin_out_min_val` - minimum expected amount of coins `Y` to get.
     public entry fun swap<X, Y, Curve>(
@@ -122,7 +119,6 @@ module liquidswap::scripts {
     }
 
     /// Swap maximum coin `X` for exact coin `Y`.
-    /// * `pool_addr` - address of account registered pool.
     /// * `coin_val_max` - how much of coins `X` can be used to get `Y` coin.
     /// * `coin_out` - how much of coins `Y` should be returned.
     public entry fun swap_into<X, Y, Curve>(

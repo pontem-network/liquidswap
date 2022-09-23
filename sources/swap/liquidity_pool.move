@@ -12,6 +12,7 @@ module liquidswap::liquidity_pool {
     use uq64x64::uq64x64;
 
     use liquidswap::coin_helper;
+    use liquidswap::config;
     use liquidswap::curves;
     use liquidswap::dao_storage;
     use liquidswap::emergency::assert_no_emergency;
@@ -57,40 +58,16 @@ module liquidswap::liquidity_pool {
     /// When pool is locked.
     const ERR_POOL_IS_LOCKED: u64 = 111;
 
-    /// When invalid fee amount
-    const ERR_INVALID_FEE: u64 = 112;
-
     /// When user is not admin
-    const ERR_NOT_ADMIN: u64 = 113;
+    const ERR_NOT_ADMIN: u64 = 112;
 
     // Constants.
 
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Default fee for uncorrelated pool is 0.3%
-    const DEFAULT_UNCORRELATED_FEE: u64 = 30;
-
-    /// Default fee for stable pool is 0.3%
-    const DEFAULT_STABLE_FEE: u64 = 4;
-
-    /// Minimum value of fee.
-    const MIN_FEE: u64 = 1;
-
-    /// Maximum value of fee.
-    const MAX_FEE: u64 = 35;
-
     /// Denominator to handle decimal points for fees.
     const FEE_SCALE: u64 = 10000;
-
-    /// Default dao fee is 33%
-    const DEFAULT_DAO_FEE: u64 = 33;
-
-    /// Minimum value of dao fee.
-    const MIN_DAO_FEE: u64 = 0;
-
-    /// Maximum value of dao fee.
-    const MAX_DAO_FEE: u64 = 100;
 
     /// Denominator to handle decimal points for dao fee.
     const DAO_FEE_SCALE: u64 = 100;
@@ -132,6 +109,8 @@ module liquidswap::liquidity_pool {
         assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
         let signer_cap = lp_account::retrieve_signer_cap(liquidswap_admin);
         move_to(liquidswap_admin, PoolAccountCapability { signer_cap });
+
+        config::initialize(liquidswap_admin);
     }
 
     /// Register liquidity pool `X`/`Y`.
@@ -164,12 +143,10 @@ module liquidswap::liquidity_pool {
 
         let x_scale = 0;
         let y_scale = 0;
-        let fee = DEFAULT_UNCORRELATED_FEE;
 
         if (curves::is_stable<Curve>()) {
             x_scale = math::pow_10(coin::decimals<X>());
             y_scale = math::pow_10(coin::decimals<Y>());
-            fee = DEFAULT_STABLE_FEE;    // default fee for stable curve
         };
 
         let pool = LiquidityPool<X, Y, Curve> {
@@ -183,8 +160,8 @@ module liquidswap::liquidity_pool {
             x_scale,
             y_scale,
             locked: false,
-            fee,
-            dao_fee: DEFAULT_DAO_FEE,
+            fee: config::get_default_fee<Curve>(),
+            dao_fee: config::get_default_dao_fee(),
         };
         move_to(&pool_account, pool);
 
@@ -722,7 +699,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(fee_admin) == @fee_admin, ERR_NOT_ADMIN);
-        assert!(MIN_FEE <= fee && fee <= MAX_FEE, ERR_INVALID_FEE);
+        config::assert_fee_valid(fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.fee = fee;
@@ -740,7 +717,7 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(dao_admin) == @dao_admin, ERR_NOT_ADMIN);
-        assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
+        config::assert_dao_fee_valid(dao_fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.dao_fee = dao_fee;

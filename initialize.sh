@@ -5,13 +5,14 @@ set -x
 
 NODE_URL=http://0.0.0.0:8080/v1
 FAUCET_URL=http://0.0.0.0:8081/
+LIQUIDSWAP_PK=TO_ADD
 
 aptos init \
     --rest-url $NODE_URL \
     --faucet-url $FAUCET_URL \
-    --private-key TO_ADD
+    --private-key $LIQUIDSWAP_PK
 
-aptos account fund-with-faucet --account 43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9
+aptos account fund-with-faucet --account 43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9 --amount 1000000000000000
 
 cd ../uq64x64/
 aptos move publish
@@ -35,11 +36,47 @@ aptos move run \
     --args hex:$LP_COIN_BYTECODE_HEX
 cd -
 
+# initialize pools
 aptos move publish
 aptos move run \
     --function-id 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::liquidity_pool::initialize
 
+# deploy BTC, USDT coins
 cd ../test-coins
 aptos move publish
+aptos move run \
+    --function-id 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::register_coins
+aptos move run \
+    --function-id 0x1::managed_coin::register \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::USDT
+aptos move run \
+    --function-id 0x1::managed_coin::register \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::BTC
 cd -
+
+# mint coins
+aptos move run \
+    --function-id 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::mint_coin \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::USDT \
+    --args address:43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9 \
+    --args u64:10000000000000
+aptos move run \
+    --function-id 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::mint_coin \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::BTC \
+    --args address:43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9 \
+    --args u64:40000000000
+
+# register pool and add liquidity
+aptos move run \
+    --function-id 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::scripts::register_pool_and_add_liquidity \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::BTC \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::USDT \
+    --type-args 0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::curves::Uncorrelated \
+    --args u64:400000000 \
+    --args u64:400000000 \
+    --args u64:100000000000 \
+    --args u64:100000000000
+
+
+
 

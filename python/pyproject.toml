@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "liquidswap-python"
+version = "0.1.0"
+description = ""
+authors = ["Maksim Kurnikov <maxim.kurnikov@gmail.com>"]
+readme = "README.md"
+packages = [{include = "liquidswap"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aptos-sdk = { path = "../../aptos-core/ecosystem/python/sdk", develop = false }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

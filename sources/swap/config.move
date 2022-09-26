@@ -91,16 +91,21 @@ module liquidswap::config {
     }
 
     public fun get_default_fee<Curve>(): u64 acquires PoolConfig {
+        curves::assert_valid_curve<Curve>();
         assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
         let config = borrow_global<PoolConfig>(@liquidswap);
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee
-        } else {
+        } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee
+        } else {
+            abort ERR_INVALID_FEE
         }
     }
 
     public entry fun set_default_fee<Curve>(fee_admin: &signer, default_fee: u64) acquires PoolConfig {
+        curves::assert_valid_curve<Curve>();
         assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
         let config = borrow_global_mut<PoolConfig>(@liquidswap);
 
@@ -109,9 +114,11 @@ module liquidswap::config {
 
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee = default_fee;
-        } else {
+        } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee = default_fee;
-        }
+        } else {
+            abort ERR_INVALID_FEE
+        };
     }
 
     public fun get_default_dao_fee(): u64 acquires PoolConfig {

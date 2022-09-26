@@ -46,8 +46,8 @@ module liquidswap::liquidity_pool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
-    /// When invalid curve passed as argument.
-    const ERR_INVALID_CURVE: u64 = 108;
+    /// Should never occur.
+    const ERR_UNREACHABLE: u64 = 108;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
     const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 109;
@@ -121,10 +121,7 @@ module liquidswap::liquidity_pool {
         coin_helper::assert_is_coin<Y>();
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
-        assert!(
-            curves::is_stable<Curve>() || curves::is_uncorrelated<Curve>(),
-            ERR_INVALID_CURVE
-        );
+        curves::assert_valid_curve<Curve>();
         assert!(!exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_EXISTS_FOR_PAIR);
 
         let pool_cap = borrow_global<PoolAccountCapability>(@liquidswap);
@@ -491,7 +488,7 @@ module liquidswap::liquidity_pool {
         } else if (curves::is_stable<Curve>()) {
             ((x_reserve - math::mul_div(x_in_val, fee, FEE_SCALE)) as u128)
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
 
         let y_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
@@ -499,7 +496,7 @@ module liquidswap::liquidity_pool {
         } else if (curves::is_stable<Curve>()) {
             ((y_reserve - math::mul_div(y_in_val, fee, FEE_SCALE)) as u128)
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
 
         (x_res_new_after_fee, y_res_new_after_fee)
@@ -566,7 +563,7 @@ module liquidswap::liquidity_pool {
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap_u256);
             assert!(cmp == 2, ERR_INCORRECT_SWAP);
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
     }
 

@@ -1816,7 +1816,7 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 108)]
+    #[expected_failure(abort_code = 10001)]
     fun test_fail_if_invalid_curve_is_passed() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 

@@ -2,6 +2,13 @@
 module liquidswap::config_tests {
     use liquidswap::config;
     use liquidswap::curves::{Uncorrelated, Stable};
+    use aptos_framework::account;
+
+    struct InvalidCurve {}
+
+    fun fee_admin(): signer {
+        account::create_account_for_test(@fee_admin)
+    }
 
     #[test(dao_admin = @dao_admin, test_coin_admin = @test_coin_admin)]
     fun test_dao_admin(dao_admin: signer, test_coin_admin: signer) {
@@ -189,4 +196,22 @@ module liquidswap::config_tests {
 
         config::set_default_dao_fee(&dao_admin, 101);
     }
+
+    #[test]
+    #[expected_failure(abort_code = 10001)]
+    fun test_cannot_set_default_fee_for_invalid_curve() {
+        config::initialize_for_test();
+
+        let fee_admin = fee_admin();
+        config::set_default_fee<InvalidCurve>(&fee_admin, 100);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 10001)]
+    fun test_cannot_get_default_fee_for_invalid_curve() {
+        config::initialize_for_test();
+
+        let _ = config::get_default_fee<InvalidCurve>();
+    }
 }
+

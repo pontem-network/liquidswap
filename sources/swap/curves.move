@@ -2,6 +2,8 @@
 module liquidswap::curves {
     use aptos_std::type_info;
 
+    const ERR_INVALID_CURVE: u64 = 10001;
+
     /// For pairs like BTC, Aptos, ETH.
     struct Uncorrelated {}
 
@@ -13,8 +15,12 @@ module liquidswap::curves {
         type_info::type_of<Curve>() == type_info::type_of<Uncorrelated>()
     }
 
-    /// Check provided `Stable` type is Stable.
+    /// Check provided `Curve` type is Stable.
     public fun is_stable<Curve>(): bool {
         type_info::type_of<Curve>() == type_info::type_of<Stable>()
+    }
+
+    public fun assert_valid_curve<Curve>() {
+        assert!(is_uncorrelated<Curve>() || is_stable<Curve>(), ERR_INVALID_CURVE);
     }
 }

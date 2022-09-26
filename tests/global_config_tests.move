@@ -1,5 +1,5 @@
 #[test_only]
-module liquidswap::config_tests {
+module liquidswap::global_config_tests {
     use liquidswap::global_config;
     use liquidswap::curves::{Uncorrelated, Stable};
     use aptos_framework::account;

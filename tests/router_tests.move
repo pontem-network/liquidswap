@@ -1226,4 +1226,24 @@ module liquidswap::router_tests {
 
         let (_x_value, _y_value) = router::calc_optimal_coin_values<BTC, USDT, Uncorrelated>(x_desired, y_desired, 0, 2800000000);
     }
+
+    #[test]
+    fun test_router_get_fee_config() {
+        let (_, _) = register_pool_with_liquidity(10000, 10000);
+
+        let (fee, _) = router::get_fees_config<BTC, USDT, Uncorrelated>();
+        assert!(fee == 30, 1);
+        let (fee, _) = router::get_fees_config<USDT, BTC, Uncorrelated>();
+        assert!(fee == 30, 1);
+
+        let fee = router::get_fee<BTC, USDT, Uncorrelated>();
+        assert!(fee == 30, 1);
+        let fee = router::get_fee<USDT, BTC, Uncorrelated>();
+        assert!(fee == 30, 1);
+
+        let dao_fee = router::get_dao_fee<BTC, USDT, Uncorrelated>();
+        assert!(dao_fee == 33, 1);
+        let dao_fee = router::get_dao_fee<USDT, BTC, Uncorrelated>();
+        assert!(dao_fee == 33, 1);
+    }
 }

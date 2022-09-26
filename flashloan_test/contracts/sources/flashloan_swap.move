@@ -15,14 +15,30 @@ module flashloan_test::flashloan_swap {
 
         // any loop to add some time
         let i = 0;
-        while (i < 1000) {
+        while (i < 100) {
             i = i + 1;
         };
 
-        let fee_usdts = coin::withdraw<USDT>(account, 310);
+        let (n, d) = liquidity_pool::get_fees_config();
+        let fees_val = usdt_amount * n / d + 1;
+        let fee_usdts = coin::withdraw<USDT>(account, fees_val);
         coin::merge(&mut usdt_coins, fee_usdts);
 
         liquidity_pool::pay_flashloan(coin::zero<BTC>(), usdt_coins, loan);
+    }
+
+    public entry fun swap(account: &signer, usdt_amount: u64) {
+        let usdt_coins = coin::withdraw<USDT>(account, usdt_amount);
+
+        let (btc_out, usdt_out) = liquidity_pool::swap<BTC, USDT, Uncorrelated>(
+            coin::zero(),
+            0,
+            usdt_coins,
+            0,
+        );
+
+        coin::destroy_zero(usdt_out);
+        coin::destroy_zero(btc_out);
     }
 
     #[test(coin_admin = @test_coins, flashloan_test = @flashloan_test)]

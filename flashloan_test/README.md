@@ -10,4 +10,4 @@ The test written in Typescript sends 25 flashloans and swaps from different acco
 
 ## Run
 
-    npm run flashloan
+    PK_LOAN=key-1 PK_LOAN_2=key-2 PK_TRADER=key-3 npm run flashloan

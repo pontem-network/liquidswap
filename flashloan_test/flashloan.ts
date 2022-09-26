@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 dotenv.config();
 
 import {AptosClient, AptosAccount, CoinClient, BCS, TxnBuilderTypes, Types as AptosTypes} from "aptos";
@@ -14,9 +14,9 @@ const {
 
 export const NODE_URL = process.env.APTOS_NODE_URL || "https://fullnode.testnet.aptoslabs.com";
 
-const PK_LOAN = process.env.PK_LOAN;
-const PK_LOAN_2 = process.env.PK_LOAN_2;
-const PK_TRADER = process.env.PK_TRADER;
+const PK_LOAN = process.env.PK_LOAN as string;
+const PK_LOAN_2 = process.env.PK_LOAN_2 as string;
+const PK_TRADER = process.env.PK_TRADER as string;
 
 const APTOS_COIN = '0x1::aptos_coin::AptosCoin';
 const USDT_COIN = '0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9::coins::USDT';

@@ -1837,13 +1837,13 @@ module liquidswap::liquidity_pool_tests {
     fun test_get_fee_fail_if_pair_is_not_sorted() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        let _ = liquidity_pool::get_pool_fee<USDT, BTC, Uncorrelated>();
+        let _ = liquidity_pool::get_fee<USDT, BTC, Uncorrelated>();
     }
 
     #[test]
     #[expected_failure(abort_code = 107)]
     fun test_get_fee_fail_if_pool_does_not_exists() {
-        let _ = liquidity_pool::get_pool_fee<BTC, USDT, Uncorrelated>();
+        let _ = liquidity_pool::get_fee<BTC, USDT, Uncorrelated>();
     }
 
     #[test(fee_admin = @fee_admin)]
@@ -1851,13 +1851,13 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_fee_fail_if_pair_is_not_sorted(fee_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_fee<USDT, BTC, Uncorrelated>(&fee_admin, 10);
+        liquidity_pool::set_fee<USDT, BTC, Uncorrelated>(&fee_admin, 10);
     }
 
     #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 107)]
     fun test_set_fee_fail_if_pool_does_not_exists(fee_admin: signer) {
-        liquidity_pool::set_pool_fee<BTC, USDT, Uncorrelated>(&fee_admin, 10);
+        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 10);
     }
 
     #[test]
@@ -1865,7 +1865,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_fee_fail_if_user_is_not_admin() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
+        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
     }
 
     #[test(fee_admin = @fee_admin)]
@@ -1873,7 +1873,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_fee_fail_if_invalid_amount_of_fee(fee_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_fee<BTC, USDT, Uncorrelated>(&fee_admin, 0);
+        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 0);
     }
 
     #[test]
@@ -1881,13 +1881,13 @@ module liquidswap::liquidity_pool_tests {
     fun test_get_dao_fee_fail_if_pair_is_not_sorted() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        let _ = liquidity_pool::get_pool_dao_fee<USDT, BTC, Uncorrelated>();
+        let _ = liquidity_pool::get_dao_fee<USDT, BTC, Uncorrelated>();
     }
 
     #[test]
     #[expected_failure(abort_code = 107)]
     fun test_get_dao_fee_fail_if_pool_does_not_exists() {
-        let _ = liquidity_pool::get_pool_dao_fee<BTC, USDT, Uncorrelated>();
+        let _ = liquidity_pool::get_dao_fee<BTC, USDT, Uncorrelated>();
     }
 
     #[test(dao_admin = @dao_admin)]
@@ -1895,13 +1895,13 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_dao_fee_fail_if_pair_is_not_sorted(dao_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_dao_fee<USDT, BTC, Uncorrelated>(&dao_admin, 10);
+        liquidity_pool::set_dao_fee<USDT, BTC, Uncorrelated>(&dao_admin, 10);
     }
 
     #[test(dao_admin = @dao_admin)]
     #[expected_failure(abort_code = 107)]
     fun test_set_dao_fee_fail_if_pool_does_not_exists(dao_admin: signer) {
-        liquidity_pool::set_pool_dao_fee<BTC, USDT, Uncorrelated>(&dao_admin, 10);
+        liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&dao_admin, 10);
     }
 
     #[test]
@@ -1909,7 +1909,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_dao_fee_fail_if_user_is_not_admin() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_dao_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
+        liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
     }
 
     #[test(dao_admin = @dao_admin)]
@@ -1917,7 +1917,7 @@ module liquidswap::liquidity_pool_tests {
     fun test_set_dao_fee_fail_if_invalid_amount_of_fee(dao_admin: signer) {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
         liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        liquidity_pool::set_pool_dao_fee<BTC, USDT, Uncorrelated>(&dao_admin, 101);
+        liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&dao_admin, 101);
     }
 
 
@@ -1934,16 +1934,16 @@ module liquidswap::liquidity_pool_tests {
         let (fee, _) = liquidity_pool::get_fees_config<BTC, USDT, Uncorrelated>();
         assert!(fee == 30, 1);
 
-        let fee = liquidity_pool::get_pool_fee<BTC, USDT, Uncorrelated>();
+        let fee = liquidity_pool::get_fee<BTC, USDT, Uncorrelated>();
         assert!(fee == 30, 1);
 
         let fee_admin = account::create_account_for_test(@fee_admin);
-        liquidity_pool::set_pool_fee<BTC, USDT, Uncorrelated>(&fee_admin, 32);
+        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 32);
 
         let (fee, _) = liquidity_pool::get_fees_config<BTC, USDT, Uncorrelated>();
         assert!(fee == 32, 1);
 
-        let fee = liquidity_pool::get_pool_fee<BTC, USDT, Uncorrelated>();
+        let fee = liquidity_pool::get_fee<BTC, USDT, Uncorrelated>();
         assert!(fee == 32, 1);
     }
 
@@ -1953,29 +1953,29 @@ module liquidswap::liquidity_pool_tests {
         let (fee, _) = liquidity_pool::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 4, 1);
 
-        let fee = liquidity_pool::get_pool_fee<USDC, USDT, Stable>();
+        let fee = liquidity_pool::get_fee<USDC, USDT, Stable>();
         assert!(fee == 4, 1);
 
         let fee_admin = account::create_account_for_test(@fee_admin);
-        liquidity_pool::set_pool_fee<USDC, USDT, Stable>(&fee_admin, 5);
+        liquidity_pool::set_fee<USDC, USDT, Stable>(&fee_admin, 5);
 
         let (fee, _) = liquidity_pool::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 5, 1);
 
-        let fee = liquidity_pool::get_pool_fee<USDC, USDT, Stable>();
+        let fee = liquidity_pool::get_fee<USDC, USDT, Stable>();
         assert!(fee == 5, 1);
     }
 
     #[test]
     fun test_dao_fee_config() {
         let (_, _) = setup_btc_usdt_pool();
-        let fee = liquidity_pool::get_pool_dao_fee<BTC, USDT, Uncorrelated>();
+        let fee = liquidity_pool::get_dao_fee<BTC, USDT, Uncorrelated>();
         assert!(fee == 33, 1);
 
         let fee_admin = account::create_account_for_test(@fee_admin);
-        liquidity_pool::set_pool_dao_fee<BTC, USDT, Uncorrelated>(&fee_admin, 35);
+        liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&fee_admin, 35);
 
-        let fee = liquidity_pool::get_pool_dao_fee<BTC, USDT, Uncorrelated>();
+        let fee = liquidity_pool::get_dao_fee<BTC, USDT, Uncorrelated>();
         assert!(fee == 35, 1);
     }
 
@@ -1990,10 +1990,10 @@ module liquidswap::liquidity_pool_tests {
 
         let (fee, _) = liquidity_pool::get_fees_config<BTC, USDT, Uncorrelated>();
         assert!(fee == 33, 1);
-        let fee = liquidity_pool::get_pool_fee<BTC, USDT, Uncorrelated>();
+        let fee = liquidity_pool::get_fee<BTC, USDT, Uncorrelated>();
         assert!(fee == 33, 1);
 
-        let dao_fee = liquidity_pool::get_pool_dao_fee<BTC, USDT, Uncorrelated>();
+        let dao_fee = liquidity_pool::get_dao_fee<BTC, USDT, Uncorrelated>();
         assert!(dao_fee == 66, 1);
     }
 
@@ -2008,10 +2008,10 @@ module liquidswap::liquidity_pool_tests {
 
         let (fee, _) = liquidity_pool::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 6, 1);
-        let fee = liquidity_pool::get_pool_fee<USDC, USDT, Stable>();
+        let fee = liquidity_pool::get_fee<USDC, USDT, Stable>();
         assert!(fee == 6, 1);
 
-        let dao_fee = liquidity_pool::get_pool_dao_fee<USDC, USDT, Stable>();
+        let dao_fee = liquidity_pool::get_dao_fee<USDC, USDT, Stable>();
         assert!(dao_fee == 66, 1);
     }
 }

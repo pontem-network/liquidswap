@@ -677,11 +677,11 @@ module liquidswap::liquidity_pool {
 
     /// Get fee for specific pool together with denominator (numerator, denominator).
     public fun get_fees_config<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
-        (get_pool_fee<X, Y, Curve>(), FEE_SCALE)
+        (get_fee<X, Y, Curve>(), FEE_SCALE)
     }
 
     /// Get fee for specific pool.
-    public fun get_pool_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
+    public fun get_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
@@ -690,7 +690,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Set fee for specific pool.
-    public entry fun set_pool_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool {
+    public entry fun set_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert!(signer::address_of(fee_admin) == global_config::get_fee_admin(), ERR_NOT_ADMIN);
@@ -701,7 +701,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Get DAO fee for specific pool.
-    public fun get_pool_dao_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
+    public fun get_dao_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
@@ -710,7 +710,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Set DAO fee for specific pool.
-    public entry fun set_pool_dao_fee<X, Y, Curve>(dao_admin: &signer, dao_fee: u64) acquires LiquidityPool {
+    public entry fun set_dao_fee<X, Y, Curve>(dao_admin: &signer, dao_fee: u64) acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 

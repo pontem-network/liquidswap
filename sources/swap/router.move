@@ -29,8 +29,8 @@ module liquidswap::router {
     const ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM: u64 = 205;
     /// Needed amount in great than maximum.
     const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 206;
-    /// When unknown curve used.
-    const ERR_INVALID_CURVE: u64 = 207;
+    /// Marks the unreachable place in code
+    const ERR_UNREACHABLE: u64 = 207;
 
     // Public functions.
 
@@ -386,7 +386,7 @@ module liquidswap::router {
                 reserve_out,
                 new_reserve_in)  // scaled to 1000
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         }
     }
 
@@ -442,7 +442,7 @@ module liquidswap::router {
             ) + 1;
             coin_in
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         }
     }
 

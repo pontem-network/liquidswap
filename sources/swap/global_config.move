@@ -1,4 +1,4 @@
-module liquidswap::config {
+module liquidswap::global_config {
     use std::signer;
 
     use liquidswap::curves;
@@ -16,21 +16,24 @@ module liquidswap::config {
     /// When invalid fee amount
     const ERR_INVALID_FEE: u64 = 302;
 
+    /// Unreachable, is a bug if thrown
+    const ERR_UNREACHABLE: u64 = 303;
+
     // Constants.
 
-    /// Minimum value of fee.
+    /// Minimum value of fee, 0.01%
     const MIN_FEE: u64 = 1;
 
-    /// Maximum value of fee.
+    /// Maximum value of fee, 0.35%
     const MAX_FEE: u64 = 35;
 
-    /// Minimum value of dao fee.
+    /// Minimum value of dao fee, 0%
     const MIN_DAO_FEE: u64 = 0;
 
-    /// Maximum value of dao fee.
+    /// Maximum value of dao fee, 100%
     const MAX_DAO_FEE: u64 = 100;
 
-    struct PoolConfig has key {
+    struct GlobalConfig has key {
         dao_admin_address: address,
         emergency_admin_address: address,
         fee_admin_address: address,
@@ -41,7 +44,7 @@ module liquidswap::config {
 
     /// Initializes admin contracts when initializing the liquidity pool.
     public(friend) fun initialize(liquidswap_admin: &signer) {
-        move_to(liquidswap_admin, PoolConfig {
+        move_to(liquidswap_admin, GlobalConfig {
             dao_admin_address: @dao_admin,
             emergency_admin_address: @emergency_admin,
             fee_admin_address: @fee_admin,
@@ -51,99 +54,111 @@ module liquidswap::config {
         });
     }
 
-    public fun get_dao_admin(): address acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global<PoolConfig>(@liquidswap);
+    public fun get_dao_admin(): address acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global<GlobalConfig>(@liquidswap);
         config.dao_admin_address
     }
 
-    public entry fun set_dao_admin(dao_admin: &signer, new_addr: address) acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<PoolConfig>(@liquidswap);
+    public entry fun set_dao_admin(dao_admin: &signer, new_addr: address) acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
         assert!(config.dao_admin_address == signer::address_of(dao_admin), ERR_NOT_ADMIN);
+
         config.dao_admin_address = new_addr;
     }
 
-    public fun get_emergency_admin(): address acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global<PoolConfig>(@liquidswap);
+    public fun get_emergency_admin(): address acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global<GlobalConfig>(@liquidswap);
         config.emergency_admin_address
     }
 
-    public entry fun set_emergency_admin(emergency_admin: &signer, new_addr: address) acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<PoolConfig>(@liquidswap);
+    public entry fun set_emergency_admin(emergency_admin: &signer, new_addr: address) acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
         assert!(config.emergency_admin_address == signer::address_of(emergency_admin), ERR_NOT_ADMIN);
+
         config.emergency_admin_address = new_addr;
     }
 
-    public fun get_fee_admin(): address acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global<PoolConfig>(@liquidswap);
+    public fun get_fee_admin(): address acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global<GlobalConfig>(@liquidswap);
         config.fee_admin_address
     }
 
-    public entry fun set_fee_admin(fee_admin: &signer, new_addr: address) acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<PoolConfig>(@liquidswap);
+    public entry fun set_fee_admin(fee_admin: &signer, new_addr: address) acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
         assert!(config.fee_admin_address == signer::address_of(fee_admin), ERR_NOT_ADMIN);
+
         config.fee_admin_address = new_addr;
     }
 
-    public fun get_default_fee<Curve>(): u64 acquires PoolConfig {
+    public fun get_default_fee<Curve>(): u64 acquires GlobalConfig {
         curves::assert_valid_curve<Curve>();
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
 
-        let config = borrow_global<PoolConfig>(@liquidswap);
+        let config = borrow_global<GlobalConfig>(@liquidswap);
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee
         } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee
         } else {
-            abort ERR_INVALID_FEE
+            abort ERR_UNREACHABLE
         }
     }
 
-    public entry fun set_default_fee<Curve>(fee_admin: &signer, default_fee: u64) acquires PoolConfig {
+    public entry fun set_default_fee<Curve>(fee_admin: &signer, default_fee: u64) acquires GlobalConfig {
         curves::assert_valid_curve<Curve>();
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<PoolConfig>(@liquidswap);
+
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
 
         assert!(config.fee_admin_address == signer::address_of(fee_admin), ERR_NOT_ADMIN);
-        assert_fee_valid(default_fee);
+        assert_valid_fee(default_fee);
 
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee = default_fee;
         } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee = default_fee;
         } else {
-            abort ERR_INVALID_FEE
+            abort ERR_UNREACHABLE
         };
     }
 
-    public fun get_default_dao_fee(): u64 acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global<PoolConfig>(@liquidswap);
+    public fun get_default_dao_fee(): u64 acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
+
+        let config = borrow_global<GlobalConfig>(@liquidswap);
         config.default_dao_fee
     }
 
-    public entry fun set_default_dao_fee(dao_admin: &signer, default_fee: u64) acquires PoolConfig {
-        assert!(exists<PoolConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<PoolConfig>(@liquidswap);
+    public entry fun set_default_dao_fee(dao_admin: &signer, default_fee: u64) acquires GlobalConfig {
+        assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
 
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
         assert!(config.dao_admin_address == signer::address_of(dao_admin), ERR_NOT_ADMIN);
-        assert_dao_fee_valid(default_fee);
+
+        assert_valid_dao_fee(default_fee);
 
         config.default_dao_fee = default_fee;
     }
 
     /// Aborts if fee is valid.
-    public fun assert_fee_valid(fee: u64) {
+    public fun assert_valid_fee(fee: u64) {
         assert!(MIN_FEE <= fee && fee <= MAX_FEE, ERR_INVALID_FEE);
     }
 
     /// Aborts if dao fee is valid.
-    public fun assert_dao_fee_valid(dao_fee: u64) {
+    public fun assert_valid_dao_fee(dao_fee: u64) {
         assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
     }
 

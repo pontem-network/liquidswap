@@ -3,19 +3,20 @@
 module liquidswap::liquidity_pool {
     use std::signer;
 
+    use aptos_std::event;
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
-    use aptos_std::event;
+
     use liquidswap_lp::lp_coin::LP;
     use u256::u256;
     use uq64x64::uq64x64;
 
     use liquidswap::coin_helper;
-    use liquidswap::global_config;
     use liquidswap::curves;
     use liquidswap::dao_storage;
-    use liquidswap::emergency::assert_no_emergency;
+    use liquidswap::emergency::{Self, assert_no_emergency};
+    use liquidswap::global_config;
     use liquidswap::lp_account;
     use liquidswap::math;
     use liquidswap::stable_curve;
@@ -111,6 +112,7 @@ module liquidswap::liquidity_pool {
         move_to(liquidswap_admin, PoolAccountCapability { signer_cap });
 
         global_config::initialize(liquidswap_admin);
+        emergency::initialize(liquidswap_admin);
     }
 
     /// Register liquidity pool `X`/`Y`.

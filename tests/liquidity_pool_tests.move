@@ -15,6 +15,7 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
     use test_helpers::test_pool;
+    use test_helpers::test_pool::initialize_liquidity_pool;
 
     fun setup_btc_usdt_pool(): (signer, signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
@@ -144,10 +145,9 @@ module liquidswap::liquidity_pool_tests {
 
         test_coins::register_coin<USDT>(&coin_admin, b"USDT", b"USDT", 6);
 
-        global_config::initialize_for_test();
+        initialize_liquidity_pool();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
     }
 
     #[test]
@@ -157,10 +157,9 @@ module liquidswap::liquidity_pool_tests {
 
         test_coins::register_coin<BTC>(&coin_admin, b"BTC", b"BTC", 8);
 
-        global_config::initialize_for_test();
+        initialize_liquidity_pool();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
     }
 
     #[test]
@@ -168,11 +167,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_fail_if_pool_already_exists() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
     }
 
     // Add liquidity tests.

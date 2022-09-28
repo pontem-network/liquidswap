@@ -20,7 +20,13 @@ module liquidswap::curves {
         type_info::type_of<Curve>() == type_info::type_of<Stable>()
     }
 
+    /// Is `Curve` type valid or not (means correct type used).
+    public fun is_valid_curve<Curve>(): bool {
+        is_uncorrelated<Curve>() || is_stable<Curve>()
+    }
+
+    /// Checks if `Curve` is valid (means correct type used).
     public fun assert_valid_curve<Curve>() {
-        assert!(is_uncorrelated<Curve>() || is_stable<Curve>(), ERR_INVALID_CURVE);
+        assert!(is_valid_curve<Curve>(), ERR_INVALID_CURVE);
     }
 }

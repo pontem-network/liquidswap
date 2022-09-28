@@ -28,7 +28,7 @@ module liquidswap::coin_helper {
     }
 
     /// Compare two coins, `X` and `Y`, using names.
-    /// Caller should call this function to determine the order of A, B.
+    /// Caller should call this function to determine the order of X, Y.
     public fun compare<X, Y>(): Result {
         let x_info = type_info::type_of<X>();
         let y_info = type_info::type_of<Y>();

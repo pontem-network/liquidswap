@@ -698,6 +698,11 @@ module liquidswap::liquidity_pool {
         pool.fee = fee;
     }
 
+    /// Get DAO fee for specific pool together with denominator (numerator, denominator).
+    public fun get_dao_fees_config<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
+        (get_dao_fee<X, Y, Curve>(), DAO_FEE_SCALE)
+    }
+
     /// Get DAO fee for specific pool.
     public fun get_dao_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);

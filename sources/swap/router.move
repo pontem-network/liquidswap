@@ -221,7 +221,16 @@ module liquidswap::router {
         }
     }
 
-    /// Get dao fee for specific pool.
+    /// Get DAO fee for specific pool together with denominator (numerator, denominator).
+    public fun get_dao_fees_config<X, Y, Curve>(): (u64, u64) {
+        if (coin_helper::is_sorted<X, Y>()) {
+            liquidity_pool::get_dao_fees_config<X, Y, Curve>()
+        } else {
+            liquidity_pool::get_dao_fees_config<Y, X, Curve>()
+        }
+    }
+
+    /// Get DAO fee for specific pool.
     public fun get_dao_fee<X, Y, Curve>(): u64 {
         if (coin_helper::is_sorted<X, Y>()) {
             liquidity_pool::get_dao_fee<X, Y, Curve>()

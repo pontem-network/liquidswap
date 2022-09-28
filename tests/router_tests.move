@@ -1228,22 +1228,76 @@ module liquidswap::router_tests {
     }
 
     #[test]
-    fun test_router_get_fee_config() {
+    fun test_fee_config_for_uncorrelated_curve() {
         let (_, _) = register_pool_with_liquidity(10000, 10000);
 
         let (fee, _) = router::get_fees_config<BTC, USDT, Uncorrelated>();
         assert!(fee == 30, 1);
         let (fee, _) = router::get_fees_config<USDT, BTC, Uncorrelated>();
-        assert!(fee == 30, 1);
+        assert!(fee == 30, 2);
 
         let fee = router::get_fee<BTC, USDT, Uncorrelated>();
-        assert!(fee == 30, 1);
+        assert!(fee == 30, 3);
         let fee = router::get_fee<USDT, BTC, Uncorrelated>();
-        assert!(fee == 30, 1);
+        assert!(fee == 30, 4);
+
+        let (dao_fee, _) = router::get_dao_fees_config<BTC, USDT, Uncorrelated>();
+        assert!(dao_fee == 33, 5);
+        let (dao_fee, _) = router::get_dao_fees_config<USDT, BTC, Uncorrelated>();
+        assert!(dao_fee == 33, 6);
 
         let dao_fee = router::get_dao_fee<BTC, USDT, Uncorrelated>();
-        assert!(dao_fee == 33, 1);
+        assert!(dao_fee == 33, 7);
         let dao_fee = router::get_dao_fee<USDT, BTC, Uncorrelated>();
-        assert!(dao_fee == 33, 1);
+        assert!(dao_fee == 33, 8);
+    }
+
+    #[test]
+    fun test_fee_config_for_stable_curve() {
+        let (_, _) = register_stable_pool_with_liquidity(10000, 10000);
+
+        let (fee, _) = router::get_fees_config<USDC, USDT, Stable>();
+        assert!(fee == 4, 1);
+        let (fee, _) = router::get_fees_config<USDT, USDC, Stable>();
+        assert!(fee == 4, 2);
+
+        let fee = router::get_fee<USDC, USDT, Stable>();
+        assert!(fee == 4, 3);
+        let fee = router::get_fee<USDT, USDC, Stable>();
+        assert!(fee == 4, 4);
+
+        let (dao_fee, _) = router::get_dao_fees_config<USDC, USDT, Stable>();
+        assert!(dao_fee == 33, 5);
+        let (dao_fee, _) = router::get_dao_fees_config<USDT, USDC, Stable>();
+        assert!(dao_fee == 33, 6);
+
+        let dao_fee = router::get_dao_fee<USDC, USDT, Stable>();
+        assert!(dao_fee == 33, 7);
+        let dao_fee = router::get_dao_fee<USDT, USDC, Stable>();
+        assert!(dao_fee == 33, 8);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 107)]
+    fun test_get_fees_config_fail_if_pool_does_not_exists() {
+        router::get_fees_config<BTC, USDT, Uncorrelated>();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 107)]
+    fun test_get_fee_fail_if_pool_does_not_exists() {
+        router::get_fee<BTC, USDT, Uncorrelated>();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 107)]
+    fun test_get_dao_fees_config_fail_if_pool_does_not_exists() {
+        router::get_dao_fees_config<BTC, USDT, Uncorrelated>();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 107)]
+    fun test_get_dao_fee_fail_if_pool_does_not_exists() {
+        router::get_dao_fee<BTC, USDT, Uncorrelated>();
     }
 }

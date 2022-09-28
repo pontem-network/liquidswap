@@ -694,7 +694,9 @@ module liquidswap::liquidity_pool {
     public entry fun set_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_unlocked<X, Y, Curve>();
         assert!(signer::address_of(fee_admin) == global_config::get_fee_admin(), ERR_NOT_ADMIN);
+
         global_config::assert_valid_fee(fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
@@ -719,8 +721,9 @@ module liquidswap::liquidity_pool {
     public entry fun set_dao_fee<X, Y, Curve>(fee_admin: &signer, dao_fee: u64) acquires LiquidityPool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
-
+        assert_pool_unlocked<X, Y, Curve>();
         assert!(signer::address_of(fee_admin) == global_config::get_fee_admin(), ERR_NOT_ADMIN);
+
         global_config::assert_valid_dao_fee(dao_fee);
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);

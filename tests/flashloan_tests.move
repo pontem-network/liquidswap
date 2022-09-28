@@ -537,4 +537,42 @@ module liquidswap::flashloan_tests {
         coin::destroy_zero(zero);
         test_coins::burn(&coin_admin, usdt_coins);
     }
+
+    #[test(fee_admin = @fee_admin)]
+    #[expected_failure(abort_code = 111)]
+    fun test_set_fee_fail_if_pool_is_locked(fee_admin: signer) {
+        let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, Uncorrelated>(0, 276404249);
+        assert!(coin::value(&usdt_coins) == 276404249, 1);
+
+        // set fee when pool is locked
+        liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 10);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
+
+    #[test(fee_admin = @fee_admin)]
+    #[expected_failure(abort_code = 111)]
+    fun test_set_dao_fee_fail_if_pool_is_locked(fee_admin: signer) {
+        let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
+
+        let (zero, usdt_coins, loan) =
+            liquidity_pool::flashloan<BTC, USDT, Uncorrelated>(0, 276404249);
+        assert!(coin::value(&usdt_coins) == 276404249, 1);
+
+        // set dao fee when pool is locked
+        liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&fee_admin, 10);
+
+        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000000);
+        liquidity_pool::pay_flashloan(btc_coins_to_exchange, coin::zero<USDT>(), loan);
+
+        coin::destroy_zero(zero);
+        test_coins::burn(&coin_admin, usdt_coins);
+    }
 }

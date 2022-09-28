@@ -170,15 +170,15 @@ module liquidswap::global_config_tests {
         global_config::set_default_fee<Uncorrelated>(&fee_admin, 20);
     }
 
-    #[test(dao_admin = @dao_admin)]
+    #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 301)]
-    fun test_set_default_dao_fee_fail_if_user_is_not_dao_admin(dao_admin: signer) {
+    fun test_set_default_dao_fee_fail_if_user_is_not_fee_admin(fee_admin: signer) {
         global_config::initialize_for_test();
 
-        global_config::set_dao_admin(&dao_admin, @test_coin_admin);
-        assert!(global_config::get_dao_admin() == @test_coin_admin, 0);
+        global_config::set_fee_admin(&fee_admin, @test_coin_admin);
+        assert!(global_config::get_fee_admin() == @test_coin_admin, 0);
 
-        global_config::set_default_dao_fee(&dao_admin, 20);
+        global_config::set_default_dao_fee(&fee_admin, 20);
     }
 
     #[test(fee_admin = @fee_admin)]

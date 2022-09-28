@@ -376,15 +376,14 @@ module liquidswap::router {
             ) as u64)
         } else if (curves::is_uncorrelated<Curve>()) {
             let coin_in_val_after_fees = coin_in * fee_multiplier;
-            // x_reserve size after adding amount_in (scaled to 1000)
             let new_reserve_in = reserve_in * fee_scale + coin_in_val_after_fees;
 
             // Multiply coin_in by the current exchange rate:
             // current_exchange_rate = reserve_out / reserve_in
             // amount_in_after_fees * current_exchange_rate -> amount_out
-            math::mul_div(coin_in_val_after_fees, // scaled to 1000
+            math::mul_div(coin_in_val_after_fees,
                 reserve_out,
-                new_reserve_in)  // scaled to 1000
+                new_reserve_in)
         } else {
             abort ERR_UNREACHABLE
         }
@@ -398,11 +397,11 @@ module liquidswap::router {
     /// * `scale_out` - 10 pow by decimals amount of coin we get.
     ///
     /// This computation is a reverse of get_coin_out formula for uncorrelated assets:
-    ///     y = x * 0.997 * ry / (rx + x * 0.997)
+    ///     y = x * (fee_scale - fee_pct) * ry / (rx + x * (fee_scale - fee_pct))
     ///
     /// solving it for x returns this formula:
-    ///     x = y * rx / ((ry - y) * 0.997) or
-    ///     x = y * rx * 1000 / ((ry - y) * 997) which implemented in this function
+    ///     x = y * rx / ((ry - y) * (fee_scale - fee_pct)) or
+    ///     x = y * rx * (fee_scale) / ((ry - y) * (fee_scale - fee_pct)) which implemented in this function
     ///
     ///  For stable curve math described in `coin_in` func into `../libs/StableCurve.move`.
     ///
@@ -415,8 +414,7 @@ module liquidswap::router {
         scale_in: u64,
     ): u64 {
         let (fee_pct, fee_scale) = get_fees_config<X, Y, Curve>();
-        // 0.997 for 0.3% fee
-        let fee_multiplier = fee_scale - fee_pct;  // 997
+        let fee_multiplier = fee_scale - fee_pct;
 
         if (curves::is_stable<Curve>()) {
             // !!!FOR AUDITOR!!!
@@ -431,14 +429,13 @@ module liquidswap::router {
 
             (coin_in * fee_scale / fee_multiplier) + 1
         } else if (curves::is_uncorrelated<Curve>()) {
-            // (reserves_out - coin_out) * 0.997
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
 
             // coin_out * reserve_in * fee_scale / new reserves out
             let coin_in = math::mul_div(
                 coin_out, // y
-                reserve_in * fee_scale, // rx * 1000
-                new_reserves_out   // (ry - y) * 997
+                reserve_in * fee_scale,
+                new_reserves_out
             ) + 1;
             coin_in
         } else {

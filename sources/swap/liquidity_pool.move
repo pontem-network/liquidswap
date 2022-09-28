@@ -481,8 +481,6 @@ module liquidswap::liquidity_pool {
         y_in_val: u64,
         fee: u64,
     ): (u128, u128) {
-        // x_res_after_fee = x_reserve_new - x_in_value * fee_multiplier / fee_scale
-        // (all of it scaled to 1000 to be able to achieve this math in integers)
         let x_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
             math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, fee)
         } else if (curves::is_stable<Curve>()) {

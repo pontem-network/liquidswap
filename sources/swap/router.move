@@ -251,9 +251,9 @@ module liquidswap::router {
 
     // Math.
 
-    /// Calculate amounts needed for adding new liquidity for both `X` and `Y`.
-    /// * `x_desired` - desired value of coins `X`.
-    /// * `y_desired` - desired value of coins `Y`.
+    /// Calculate optimal amounts of `X`, `Y` coins to add as a new liquidity.
+    /// * `x_desired` - provided value of coins `X`.
+    /// * `y_desired` - provided value of coins `Y`.
     /// * `x_min` - minimum of coins X expected.
     /// * `y_min` - minimum of coins Y expected.
     /// Returns both `X` and `Y` coins amounts.
@@ -270,10 +270,13 @@ module liquidswap::router {
         } else {
             let y_returned = convert_with_current_price(x_desired, reserves_x, reserves_y);
             if (y_returned <= y_desired) {
+                // amount of `y` received from `x_desired` on a current price is less than `y_desired`
                 assert!(y_returned >= y_min, ERR_INSUFFICIENT_Y_AMOUNT);
                 return (x_desired, y_returned)
             } else {
+                // not enough in `y_desired`, use it as a cap
                 let x_returned = convert_with_current_price(y_desired, reserves_y, reserves_x);
+                // ERR_OVERLIMIT_X should never occur here, added just in case
                 assert!(x_returned <= x_desired, ERR_OVERLIMIT_X);
                 assert!(x_returned >= x_min, ERR_INSUFFICIENT_X_AMOUNT);
                 return (x_returned, y_desired)

@@ -4,7 +4,7 @@ version = "0.2.7"
 
 [addresses]
 liquidswap = "0x43417434fd869edee76cca2a4d2301e528a1551b1d719b75c350c3c97d15b8b9"
-dao_admin = "0x4c0dfc295567a9bc521872b05a893e6add4eecfc26e5bcf11d3f3f1a96678f6d"
+dao_admin = "0xd932dceea6c05c56e29735da9bee581e4038576e677ecadd42b5b5c871fc55b9"
 emergency_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 fee_admin = "0xb4d7b2466d211c1f4629e8340bb1a9e75e7f8fb38cc145c54c5c9f9d5017a318"
 

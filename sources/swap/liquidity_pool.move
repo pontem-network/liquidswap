@@ -8,17 +8,18 @@ module liquidswap::liquidity_pool {
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
 
+    use liquidswap_lp::lp_coin::LP;
     use u256::u256;
     use uq64x64::uq64x64;
 
-    use liquidswap::coin_helper::{Self, assert_is_coin};
+    use liquidswap::coin_helper;
     use liquidswap::curves;
     use liquidswap::dao_storage;
-    use liquidswap::emergency::assert_no_emergency;
+    use liquidswap::emergency::{Self, assert_no_emergency};
+    use liquidswap::global_config;
+    use liquidswap::lp_account;
     use liquidswap::math;
     use liquidswap::stable_curve;
-    use liquidswap::lp_account;
-    use liquidswap_lp::lp_coin::LP;
 
     // Error codes.
 
@@ -46,8 +47,8 @@ module liquidswap::liquidity_pool {
     /// When pool doesn't exists for pair.
     const ERR_POOL_DOES_NOT_EXIST: u64 = 107;
 
-    /// When invalid curve passed as argument.
-    const ERR_INVALID_CURVE: u64 = 108;
+    /// Should never occur.
+    const ERR_UNREACHABLE: u64 = 108;
 
     /// When `initialize()` transaction is signed with any account other than @liquidswap.
     const ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE: u64 = 109;
@@ -58,16 +59,19 @@ module liquidswap::liquidity_pool {
     /// When pool is locked.
     const ERR_POOL_IS_LOCKED: u64 = 111;
 
+    /// When user is not admin
+    const ERR_NOT_ADMIN: u64 = 112;
+
     // Constants.
 
     /// Minimal liquidity.
     const MINIMAL_LIQUIDITY: u64 = 1000;
 
-    /// Current fee is 0.3%
-    const FEE_MULTIPLIER: u64 = 30;
-
     /// Denominator to handle decimal points for fees.
     const FEE_SCALE: u64 = 10000;
+
+    /// Denominator to handle decimal points for dao fee.
+    const DAO_FEE_SCALE: u64 = 100;
 
     // Public functions.
 
@@ -84,6 +88,8 @@ module liquidswap::liquidity_pool {
         x_scale: u64,
         y_scale: u64,
         locked: bool,
+        fee: u64,           // 1 - 35
+        dao_fee: u64,       // 0 - 100
     }
 
     /// Flash loan resource.
@@ -102,22 +108,23 @@ module liquidswap::liquidity_pool {
     /// Initializes Liquidswap contracts.
     public entry fun initialize(liquidswap_admin: &signer) {
         assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_NOT_ENOUGH_PERMISSIONS_TO_INITIALIZE);
+
         let signer_cap = lp_account::retrieve_signer_cap(liquidswap_admin);
         move_to(liquidswap_admin, PoolAccountCapability { signer_cap });
+
+        global_config::initialize(liquidswap_admin);
+        emergency::initialize(liquidswap_admin);
     }
 
     /// Register liquidity pool `X`/`Y`.
     public fun register<X, Y, Curve>(acc: &signer) acquires PoolAccountCapability {
         assert_no_emergency();
 
-        assert_is_coin<X>();
-        assert_is_coin<Y>();
+        coin_helper::assert_is_coin<X>();
+        coin_helper::assert_is_coin<Y>();
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
 
-        assert!(
-            curves::is_stable<Curve>() || curves::is_uncorrelated<Curve>(),
-            ERR_INVALID_CURVE
-        );
+        curves::assert_valid_curve<Curve>();
         assert!(!exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_EXISTS_FOR_PAIR);
 
         let pool_cap = borrow_global<PoolAccountCapability>(@liquidswap);
@@ -153,6 +160,8 @@ module liquidswap::liquidity_pool {
             x_scale,
             y_scale,
             locked: false,
+            fee: global_config::get_default_fee<Curve>(),
+            dao_fee: global_config::get_default_dao_fee(),
         };
         move_to(&pool_account, pool);
 
@@ -320,6 +329,7 @@ module liquidswap::liquidity_pool {
                 coin::value(&pool.coin_y_reserve),
                 x_in_val,
                 y_in_val,
+                pool.fee
             );
         assert_lp_value_is_increased<Curve>(
             pool.x_scale,
@@ -330,7 +340,7 @@ module liquidswap::liquidity_pool {
             (y_res_new_after_fee as u128),
         );
 
-        split_third_of_fee_to_dao(pool, x_in_val, y_in_val);
+        split_fee_to_dao(pool, x_in_val, y_in_val);
 
         update_oracle<X, Y, Curve>(pool, x_reserve_size, y_reserve_size);
 
@@ -441,6 +451,7 @@ module liquidswap::liquidity_pool {
                 coin::value(&pool.coin_y_reserve),
                 x_in_val,
                 y_in_val,
+                pool.fee,
             );
         assert_lp_value_is_increased<Curve>(
             pool.x_scale,
@@ -451,7 +462,7 @@ module liquidswap::liquidity_pool {
             y_res_new_after_fee,
         );
         // third of all fees goes into DAO
-        split_third_of_fee_to_dao(pool, x_in_val, y_in_val);
+        split_fee_to_dao(pool, x_in_val, y_in_val);
 
         // As we are in same block, don't need to update oracle, it's already updated during flashloan initalization.
 
@@ -466,29 +477,29 @@ module liquidswap::liquidity_pool {
     /// * `y_reserve` - reserve Y.
     /// * `x_in_val` - amount of X coins added to reserves.
     /// * `y_in_val` - amount of Y coins added to reserves.
+    /// * `fee` - amount of fee.
     /// Returns both X and Y reserves after fees.
     fun new_reserves_after_fees_scaled<Curve>(
         x_reserve: u64,
         y_reserve: u64,
         x_in_val: u64,
         y_in_val: u64,
+        fee: u64,
     ): (u128, u128) {
-        // x_res_after_fee = x_reserve_new - x_in_value * 0.003
-        // (all of it scaled to 1000 to be able to achieve this math in integers)
         let x_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
-            math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, FEE_MULTIPLIER)
+            math::mul_to_u128(x_reserve, FEE_SCALE) - math::mul_to_u128(x_in_val, fee)
         } else if (curves::is_stable<Curve>()) {
-            ((x_reserve - math::mul_div(x_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+            ((x_reserve - math::mul_div(x_in_val, fee, FEE_SCALE)) as u128)
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
 
         let y_res_new_after_fee = if (curves::is_uncorrelated<Curve>()) {
-            math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, FEE_MULTIPLIER)
+            math::mul_to_u128(y_reserve, FEE_SCALE) - math::mul_to_u128(y_in_val, fee)
         } else if (curves::is_stable<Curve>()) {
-            ((y_reserve - math::mul_div(y_in_val, FEE_MULTIPLIER, FEE_SCALE)) as u128)
+            ((y_reserve - math::mul_div(y_in_val, fee, FEE_SCALE)) as u128)
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
 
         (x_res_new_after_fee, y_res_new_after_fee)
@@ -498,14 +509,19 @@ module liquidswap::liquidity_pool {
     /// * `pool` - pool to extract coins.
     /// * `x_in_val` - how much X coins was deposited to pool.
     /// * `y_in_val` - how much Y coins was deposited to pool.
-    fun split_third_of_fee_to_dao<X, Y, Curve>(
+    fun split_fee_to_dao<X, Y, Curve>(
         pool: &mut LiquidityPool<X, Y, Curve>,
         x_in_val: u64,
         y_in_val: u64
     ) {
-        // Split 33% of fee multiplier of provided coins to the DAOStorage
-        // x_in_val * (fee / fee_scale), ie. for 0.1% it's (10 / 10000)
-        let dao_fee_multiplier = FEE_MULTIPLIER / 3;
+        let fee_multiplier = pool.fee;
+        let dao_fee = pool.dao_fee;
+        // Split dao_fee_multiplier% of fee multiplier of provided coins to the DAOStorage
+        let dao_fee_multiplier = if (fee_multiplier * dao_fee % DAO_FEE_SCALE != 0) {
+            (fee_multiplier * dao_fee / DAO_FEE_SCALE) + 1
+        } else {
+            fee_multiplier * dao_fee / DAO_FEE_SCALE
+        };
         let dao_x_fee_val = math::mul_div(x_in_val, dao_fee_multiplier, FEE_SCALE);
         let dao_y_fee_val = math::mul_div(y_in_val, dao_fee_multiplier, FEE_SCALE);
 
@@ -550,7 +566,7 @@ module liquidswap::liquidity_pool {
             let cmp = u256::compare(&lp_value_after_swap_and_fee, &lp_value_before_swap_u256);
             assert!(cmp == 2, ERR_INCORRECT_SWAP);
         } else {
-            abort ERR_INVALID_CURVE
+            abort ERR_UNREACHABLE
         };
     }
 
@@ -662,9 +678,58 @@ module liquidswap::liquidity_pool {
         exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account)
     }
 
-    /// Get fees (numerator, denominator).
-    public fun get_fees_config(): (u64, u64) {
-        (FEE_MULTIPLIER, FEE_SCALE)
+    /// Get fee for specific pool together with denominator (numerator, denominator).
+    public fun get_fees_config<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
+        (get_fee<X, Y, Curve>(), FEE_SCALE)
+    }
+
+    /// Get fee for specific pool.
+    public fun get_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
+        let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        pool.fee
+    }
+
+    /// Set fee for specific pool.
+    public entry fun set_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_unlocked<X, Y, Curve>();
+        assert!(signer::address_of(fee_admin) == global_config::get_fee_admin(), ERR_NOT_ADMIN);
+
+        global_config::assert_valid_fee(fee);
+
+        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        pool.fee = fee;
+    }
+
+    /// Get DAO fee for specific pool together with denominator (numerator, denominator).
+    public fun get_dao_fees_config<X, Y, Curve>(): (u64, u64) acquires LiquidityPool {
+        (get_dao_fee<X, Y, Curve>(), DAO_FEE_SCALE)
+    }
+
+    /// Get DAO fee for specific pool.
+    public fun get_dao_fee<X, Y, Curve>(): u64 acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+
+        let pool = borrow_global<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        pool.dao_fee
+    }
+
+    /// Set DAO fee for specific pool.
+    public entry fun set_dao_fee<X, Y, Curve>(fee_admin: &signer, dao_fee: u64) acquires LiquidityPool {
+        assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
+        assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
+        assert_pool_unlocked<X, Y, Curve>();
+        assert!(signer::address_of(fee_admin) == global_config::get_fee_admin(), ERR_NOT_ADMIN);
+
+        global_config::assert_valid_dao_fee(dao_fee);
+
+        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        pool.dao_fee = dao_fee;
     }
 
     // Events

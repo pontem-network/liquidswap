@@ -68,9 +68,6 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_cum_price == 0, 22);
         assert!(y_cum_price == 0, 23);
         assert!(ts == 0, 24);
-
-        // Check if it's locked.
-        assert!(!liquidity_pool::is_pool_locked<BTC, USDT, Uncorrelated>(), 25);
     }
 
     #[test(emergency_acc = @emergency_admin)]
@@ -116,9 +113,6 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_cumm_price == 0, 9);
         assert!(y_cumm_price == 0, 10);
         assert!(ts == 0, 11);
-
-        // Check if it's locked.
-        assert!(!liquidity_pool::is_pool_locked<USDC, USDT, Stable>(), 12);
     }
 
     #[test]

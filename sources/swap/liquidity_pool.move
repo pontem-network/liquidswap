@@ -97,7 +97,6 @@ module liquidswap::liquidity_pool {
     /// To make the execution into a single transaction, the flash loan function must return a resource
     /// that cannot be copied, cannot be saved, cannot be dropped, or cloned.
     struct Flashloan<phantom X, phantom Y, phantom Curve> {
-        pool_addr: address,
         x_loan: u64,
         y_loan: u64
     }
@@ -398,11 +397,7 @@ module liquidswap::liquidity_pool {
         update_oracle(pool, reserve_x, reserve_y);
 
         // Return loaned amount.
-        (x_loaned, y_loaned, Flashloan<X, Y, Curve> {
-            pool_addr: @liquidswap_pool_account,
-            x_loan,
-            y_loan,
-        })
+        (x_loaned, y_loaned, Flashloan<X, Y, Curve> { x_loan, y_loan })
     }
 
     /// Pay flash loan coins.
@@ -422,14 +417,14 @@ module liquidswap::liquidity_pool {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
 
-        let Flashloan { pool_addr, x_loan, y_loan } = loan;
+        let Flashloan { x_loan, y_loan } = loan;
 
         let x_in_val = coin::value(&x_in);
         let y_in_val = coin::value(&y_in);
 
         assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
 
-        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(pool_addr);
+        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
 
         let x_reserve_size = coin::value(&pool.coin_x_reserve);
         let y_reserve_size = coin::value(&pool.coin_y_reserve);

@@ -21,7 +21,7 @@ Update your `Move.toml` with
 ```toml
 [dependencies.Liquidswap]
 git = 'https://github.com/pontem-network/liquidswap.git'
-rev = 'v0.3.0'
+rev = 'v0.3.1'
 
 [dependencies.TestCoins]
 git = 'https://github.com/pontem-network/test-coins.git'

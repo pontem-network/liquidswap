@@ -190,7 +190,9 @@ module liquidswap::liquidity_pool {
 
         let lp_coins_total = coin_helper::supply<LP<X, Y, Curve>>();
 
-        let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, Curve>();
+        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        let x_reserve_size = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size = coin::value(&pool.coin_y_reserve);
 
         let x_provided_val = coin::value<X>(&coin_x);
         let y_provided_val = coin::value<Y>(&coin_y);
@@ -210,7 +212,6 @@ module liquidswap::liquidity_pool {
         };
         assert!(provided_liq > 0, ERR_NOT_ENOUGH_LIQUIDITY);
 
-        let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         coin::merge(&mut pool.coin_x_reserve, coin_x);
         coin::merge(&mut pool.coin_y_reserve, coin_y);
 
@@ -298,8 +299,9 @@ module liquidswap::liquidity_pool {
 
         assert!(x_in_val > 0 || y_in_val > 0, ERR_EMPTY_COIN_IN);
 
-        let (x_reserve_size, y_reserve_size) = get_reserves_size<X, Y, Curve>();
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
+        let x_reserve_size = coin::value(&pool.coin_x_reserve);
+        let y_reserve_size = coin::value(&pool.coin_y_reserve);
 
         // Deposit new coins to liquidity pool.
         coin::merge(&mut pool.coin_x_reserve, x_in);

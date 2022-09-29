@@ -167,12 +167,14 @@ module liquidswap::liquidity_pool {
         dao_storage::register<X, Y, Curve>(&pool_account);
 
         let events_store = EventsStore<X, Y, Curve> {
-            pool_created_handle: account::new_event_handle<PoolCreatedEvent<X, Y, Curve>>(&pool_account),
-            liquidity_added_handle: account::new_event_handle<LiquidityAddedEvent<X, Y, Curve>>(&pool_account),
-            liquidity_removed_handle: account::new_event_handle<LiquidityRemovedEvent<X, Y, Curve>>(&pool_account),
-            swap_handle: account::new_event_handle<SwapEvent<X, Y, Curve>>(&pool_account),
-            loan_handle: account::new_event_handle<FlashloanEvent<X, Y, Curve>>(&pool_account),
-            oracle_updated_handle: account::new_event_handle<OracleUpdatedEvent<X, Y, Curve>>(&pool_account),
+            pool_created_handle: account::new_event_handle(&pool_account),
+            liquidity_added_handle: account::new_event_handle(&pool_account),
+            liquidity_removed_handle: account::new_event_handle(&pool_account),
+            swap_handle: account::new_event_handle(&pool_account),
+            flashloan_handle: account::new_event_handle(&pool_account),
+            oracle_updated_handle: account::new_event_handle(&pool_account),
+            update_fee_handle: account::new_event_handle(&pool_account),
+            update_dao_fee_handle: account::new_event_handle(&pool_account),
         };
         event::emit_event(
             &mut events_store.pool_created_handle,
@@ -386,14 +388,6 @@ module liquidswap::liquidity_pool {
         // The pool will be locked after the loan until payment.
         pool.locked = true;
 
-        let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(@liquidswap_pool_account);
-        event::emit_event(
-            &mut events_store.loan_handle,
-            FlashloanEvent<X, Y, Curve> {
-                x_loan,
-                y_loan,
-            });
-
         update_oracle(pool, reserve_x, reserve_y);
 
         // Return loaned amount.
@@ -411,7 +405,7 @@ module liquidswap::liquidity_pool {
         x_in: Coin<X>,
         y_in: Coin<Y>,
         loan: Flashloan<X, Y, Curve>
-    ) acquires LiquidityPool {
+    ) acquires LiquidityPool, EventsStore {
         assert_no_emergency();
 
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
@@ -463,6 +457,16 @@ module liquidswap::liquidity_pool {
 
         // The pool will be unlocked after payment.
         pool.locked = false;
+
+        let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(@liquidswap_pool_account);
+        event::emit_event(
+            &mut events_store.flashloan_handle,
+            FlashloanEvent<X, Y, Curve> {
+                x_in: x_in_val,
+                x_out: x_loan,
+                y_in: y_in_val,
+                y_out: y_loan,
+            });
     }
 
     // Private functions.
@@ -688,7 +692,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Set fee for specific pool.
-    public entry fun set_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool {
+    public entry fun set_fee<X, Y, Curve>(fee_admin: &signer, fee: u64) acquires LiquidityPool, EventsStore {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert_pool_unlocked<X, Y, Curve>();
@@ -698,6 +702,12 @@ module liquidswap::liquidity_pool {
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.fee = fee;
+
+        let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(@liquidswap_pool_account);
+        event::emit_event(
+            &mut events_store.update_fee_handle,
+            UpdateFeeEvent<X, Y, Curve> { new_fee: fee }
+        );
     }
 
     /// Get DAO fee for specific pool together with denominator (numerator, denominator).
@@ -715,7 +725,7 @@ module liquidswap::liquidity_pool {
     }
 
     /// Set DAO fee for specific pool.
-    public entry fun set_dao_fee<X, Y, Curve>(fee_admin: &signer, dao_fee: u64) acquires LiquidityPool {
+    public entry fun set_dao_fee<X, Y, Curve>(fee_admin: &signer, dao_fee: u64) acquires LiquidityPool, EventsStore {
         assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_PAIR_ORDERING);
         assert!(exists<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account), ERR_POOL_DOES_NOT_EXIST);
         assert_pool_unlocked<X, Y, Curve>();
@@ -725,6 +735,12 @@ module liquidswap::liquidity_pool {
 
         let pool = borrow_global_mut<LiquidityPool<X, Y, Curve>>(@liquidswap_pool_account);
         pool.dao_fee = dao_fee;
+
+        let events_store = borrow_global_mut<EventsStore<X, Y, Curve>>(@liquidswap_pool_account);
+        event::emit_event(
+            &mut events_store.update_dao_fee_handle,
+            UpdateDAOFeeEvent<X, Y, Curve> { new_fee: dao_fee }
+        );
     }
 
     // Events
@@ -733,8 +749,10 @@ module liquidswap::liquidity_pool {
         liquidity_added_handle: event::EventHandle<LiquidityAddedEvent<X, Y, Curve>>,
         liquidity_removed_handle: event::EventHandle<LiquidityRemovedEvent<X, Y, Curve>>,
         swap_handle: event::EventHandle<SwapEvent<X, Y, Curve>>,
-        loan_handle: event::EventHandle<FlashloanEvent<X, Y, Curve>>,
-        oracle_updated_handle: event::EventHandle<OracleUpdatedEvent<X, Y, Curve>>
+        flashloan_handle: event::EventHandle<FlashloanEvent<X, Y, Curve>>,
+        oracle_updated_handle: event::EventHandle<OracleUpdatedEvent<X, Y, Curve>>,
+        update_fee_handle: event::EventHandle<UpdateFeeEvent<X, Y, Curve>>,
+        update_dao_fee_handle: event::EventHandle<UpdateDAOFeeEvent<X, Y, Curve>>,
     }
 
     struct PoolCreatedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
@@ -761,13 +779,23 @@ module liquidswap::liquidity_pool {
     }
 
     struct FlashloanEvent<phantom X, phantom Y, phantom Curve> has drop, store {
-        x_loan: u64,
-        y_loan: u64,
+        x_in: u64,
+        x_out: u64,
+        y_in: u64,
+        y_out: u64,
     }
 
     struct OracleUpdatedEvent<phantom X, phantom Y, phantom Curve> has drop, store {
         last_price_x_cumulative: u128,
         last_price_y_cumulative: u128,
+    }
+
+    struct UpdateFeeEvent<phantom X, phantom Y, phantom Curve> has drop, store {
+        new_fee: u64,
+    }
+
+    struct UpdateDAOFeeEvent<phantom X, phantom Y, phantom Curve> has drop, store {
+        new_fee: u64,
     }
 
     #[test_only]

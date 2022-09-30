@@ -2,6 +2,9 @@
 module liquidswap::global_config {
     use std::signer;
 
+    use aptos_std::event::{Self, EventHandle};
+    use aptos_framework::account;
+
     use liquidswap::curves;
 
     friend liquidswap::liquidity_pool;
@@ -44,8 +47,17 @@ module liquidswap::global_config {
         default_dao_fee: u64,
     }
 
+    /// Event store for configuration module.
+    struct EventsStore has key {
+        default_uncorrelated_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
+        default_stable_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
+        default_dao_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
+    }
+
     /// Initializes admin contracts when initializing the liquidity pool.
     public(friend) fun initialize(liquidswap_admin: &signer) {
+        assert!(signer::address_of(liquidswap_admin) == @liquidswap, ERR_UNREACHABLE);
+
         move_to(liquidswap_admin, GlobalConfig {
             dao_admin_address: @dao_admin,
             emergency_admin_address: @emergency_admin,
@@ -54,6 +66,14 @@ module liquidswap::global_config {
             default_stable_fee: 4,          // 0.04%
             default_dao_fee: 33,            // 33%
         });
+        move_to(
+            liquidswap_admin,
+            EventsStore {
+                default_uncorrelated_fee_handle: account::new_event_handle(liquidswap_admin),
+                default_stable_fee_handle: account::new_event_handle(liquidswap_admin),
+                default_dao_fee_handle: account::new_event_handle(liquidswap_admin),
+            }
+        )
     }
 
     /// Get DAO admin address.
@@ -127,19 +147,28 @@ module liquidswap::global_config {
     }
 
     /// Set new default fee.
-    public entry fun set_default_fee<Curve>(fee_admin: &signer, default_fee: u64) acquires GlobalConfig {
+    public entry fun set_default_fee<Curve>(fee_admin: &signer, default_fee: u64) acquires GlobalConfig, EventsStore {
         curves::assert_valid_curve<Curve>();
-
         assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
-        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
 
+        let config = borrow_global_mut<GlobalConfig>(@liquidswap);
         assert!(config.fee_admin_address == signer::address_of(fee_admin), ERR_NOT_ADMIN);
+
         assert_valid_fee(default_fee);
 
+        let events_store = borrow_global_mut<EventsStore>(@liquidswap);
         if (curves::is_stable<Curve>()) {
             config.default_stable_fee = default_fee;
+            event::emit_event(
+                &mut events_store.default_stable_fee_handle,
+                UpdateDefaultFeeEvent { fee: default_fee }
+            );
         } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee = default_fee;
+            event::emit_event(
+                &mut events_store.default_uncorrelated_fee_handle,
+                UpdateDefaultFeeEvent { fee: default_fee }
+            );
         } else {
             abort ERR_UNREACHABLE
         };
@@ -154,7 +183,7 @@ module liquidswap::global_config {
     }
 
     /// Set default DAO fee.
-    public entry fun set_default_dao_fee(fee_admin: &signer, default_fee: u64) acquires GlobalConfig {
+    public entry fun set_default_dao_fee(fee_admin: &signer, default_fee: u64) acquires GlobalConfig, EventsStore {
         assert!(exists<GlobalConfig>(@liquidswap), ERR_CONFIG_DOES_NOT_EXIST);
 
         let config = borrow_global_mut<GlobalConfig>(@liquidswap);
@@ -163,6 +192,12 @@ module liquidswap::global_config {
         assert_valid_dao_fee(default_fee);
 
         config.default_dao_fee = default_fee;
+
+        let event_store = borrow_global_mut<EventsStore>(@liquidswap);
+        event::emit_event(
+            &mut event_store.default_dao_fee_handle,
+            UpdateDefaultFeeEvent { fee: default_fee }
+        );
     }
 
     /// Aborts if fee is valid.
@@ -173,6 +208,11 @@ module liquidswap::global_config {
     /// Aborts if dao fee is valid.
     public fun assert_valid_dao_fee(dao_fee: u64) {
         assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
+    }
+
+    /// Event struct when fee updates.
+    struct UpdateDefaultFeeEvent has drop, store {
+        fee: u64,
     }
 
     #[test_only]

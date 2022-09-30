@@ -88,8 +88,8 @@ module liquidswap::liquidity_pool {
         x_scale: u64,
         y_scale: u64,
         locked: bool,
-        fee: u64,           // 1 - 35
-        dao_fee: u64,       // 0 - 100
+        fee: u64,           // 1 - 100 (0.01% - 1%)
+        dao_fee: u64,       // 0 - 100 (0% - 100%)
     }
 
     /// Flash loan resource.

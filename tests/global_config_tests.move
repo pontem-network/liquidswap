@@ -186,7 +186,7 @@ module liquidswap::global_config_tests {
     fun test_set_default_fee_fail_if_invalid_amount_of_fee(fee_admin: signer) {
         global_config::initialize_for_test();
 
-        global_config::set_default_fee<Uncorrelated>(&fee_admin, 36);
+        global_config::set_default_fee<Uncorrelated>(&fee_admin, 101);
     }
 
     #[test(fee_admin = @fee_admin)]

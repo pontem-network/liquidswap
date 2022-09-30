@@ -28,8 +28,8 @@ module liquidswap::global_config {
     /// Minimum value of fee, 0.01%
     const MIN_FEE: u64 = 1;
 
-    /// Maximum value of fee, 0.35%
-    const MAX_FEE: u64 = 35;
+    /// Maximum value of fee, 1%
+    const MAX_FEE: u64 = 100;
 
     /// Minimum value of dao fee, 0%
     const MIN_DAO_FEE: u64 = 0;

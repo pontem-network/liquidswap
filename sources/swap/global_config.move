@@ -5,7 +5,7 @@ module liquidswap::global_config {
     use aptos_std::event::{Self, EventHandle};
     use aptos_framework::account;
 
-    use liquidswap::curves::{Self, Uncorrelated, Stable};
+    use liquidswap::curves;
 
     friend liquidswap::liquidity_pool;
 
@@ -47,10 +47,11 @@ module liquidswap::global_config {
         default_dao_fee: u64,
     }
 
+    /// Event store for configuration module.
     struct EventsStore has key {
-        default_uncorrelated_fee_handle: EventHandle<UpdateDefaultFeeEvent<Uncorrelated>>,
-        default_stable_fee_handle: EventHandle<UpdateDefaultFeeEvent<Stable>>,
-        default_dao_fee_handle: EventHandle<UpdateDefaultDAOFeeEvent>,
+        default_uncorrelated_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
+        default_stable_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
+        default_dao_fee_handle: EventHandle<UpdateDefaultFeeEvent>,
     }
 
     /// Initializes admin contracts when initializing the liquidity pool.
@@ -160,13 +161,13 @@ module liquidswap::global_config {
             config.default_stable_fee = default_fee;
             event::emit_event(
                 &mut events_store.default_stable_fee_handle,
-                UpdateDefaultFeeEvent<Stable> { fee: default_fee }
+                UpdateDefaultFeeEvent { fee: default_fee }
             );
         } else if (curves::is_uncorrelated<Curve>()) {
             config.default_uncorrelated_fee = default_fee;
             event::emit_event(
                 &mut events_store.default_uncorrelated_fee_handle,
-                UpdateDefaultFeeEvent<Uncorrelated> { fee: default_fee }
+                UpdateDefaultFeeEvent { fee: default_fee }
             );
         } else {
             abort ERR_UNREACHABLE
@@ -195,7 +196,7 @@ module liquidswap::global_config {
         let event_store = borrow_global_mut<EventsStore>(@liquidswap);
         event::emit_event(
             &mut event_store.default_dao_fee_handle,
-            UpdateDefaultDAOFeeEvent { fee: default_fee }
+            UpdateDefaultFeeEvent { fee: default_fee }
         );
     }
 
@@ -209,11 +210,8 @@ module liquidswap::global_config {
         assert!(MIN_DAO_FEE <= dao_fee && dao_fee <= MAX_DAO_FEE, ERR_INVALID_FEE);
     }
 
-    struct UpdateDefaultFeeEvent<phantom Curve> has drop, store {
-        fee: u64,
-    }
-
-    struct UpdateDefaultDAOFeeEvent has drop, store {
+    /// Event struct when fee updates.
+    struct UpdateDefaultFeeEvent has drop, store {
         fee: u64,
     }
 

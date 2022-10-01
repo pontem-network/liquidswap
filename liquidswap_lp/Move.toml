@@ -1,6 +1,7 @@
 [package]
 name = 'LiquidswapLP'
 version = '1.0.0'
+upgrade_policy = "immutable"
 
 [addresses]
 liquidswap_lp = "0x385068db10693e06512ed54b1e6e8f1fb9945bb7a78c28a45585939ce953f99e"

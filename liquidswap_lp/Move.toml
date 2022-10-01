@@ -8,6 +8,6 @@ liquidswap_lp = "0x385068db10693e06512ed54b1e6e8f1fb9945bb7a78c28a45585939ce953f
 
 [dev-dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "843b204dce971d98449b82624f4f684c7a18b991"
+rev = "985f19d40457a5f09f2d741b1feca6bf7ba1f8a6"
 subdir = "aptos-move/framework/move-stdlib"
 

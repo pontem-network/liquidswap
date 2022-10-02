@@ -1,6 +1,6 @@
 [package]
 name = "Liquidswap"
-version = "0.3.1"
+version = "0.4.0"
 upgrade_policy = "immutable"
 
 [addresses]
@@ -40,4 +40,3 @@ rev = "v0.3.7"
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
 rev = "v0.3.8"
-

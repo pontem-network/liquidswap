@@ -4,6 +4,7 @@ module liquidswap::liquidity_pool_tests {
     use std::signer;
     use std::string::utf8;
 
+    use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::timestamp;
     use liquidswap_lp::lp_coin::LP;
@@ -14,7 +15,7 @@ module liquidswap::liquidity_pool_tests {
     use liquidswap::global_config;
     use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_helpers::test_pool::{Self, initialize_liquidity_pool};
+    use test_helpers::test_pool::{Self, initialize_liquidity_pool, create_liquidswap_admin};
 
     fun setup_btc_usdt_pool(): (signer, signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
@@ -29,6 +30,14 @@ module liquidswap::liquidity_pool_tests {
     }
 
     // Register pool tests.
+
+    #[test]
+    fun test_liquidswap_pool_account_address() {
+        let liquidswap_admin = create_liquidswap_admin();
+        let (liquidswap_pool_acc, _) =
+            account::create_resource_account(&liquidswap_admin, b"liquidswap_account_seed");
+        assert!(signer::address_of(&liquidswap_pool_acc) == @liquidswap_pool_account, 1);
+    }
 
     #[test]
     fun test_liquidswap_lp_and_liquidswap_pool_account_are_the_same() {

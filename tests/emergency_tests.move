@@ -1,8 +1,12 @@
 #[test_only]
 module liquidswap::emergency_tests {
-    use liquidswap::global_config;
+    use std::signer;
+
+    use aptos_framework::account;
+
     use liquidswap::emergency;
-    use test_helpers::test_pool;
+    use liquidswap::global_config;
+    use test_helpers::test_pool::{Self, create_liquidswap_admin};
 
     #[test(emergency_acc = @emergency_admin, coin_admin = @test_coin_admin)]
     public fun test_end_to_end(emergency_acc: signer, coin_admin: signer) {
@@ -25,6 +29,14 @@ module liquidswap::emergency_tests {
         assert!(emergency::is_disabled() == false, 3);
         emergency::disable_forever(&coin_admin);
         assert!(emergency::is_disabled() == true, 4);
+    }
+
+    #[test]
+    fun test_emergency_account_address_equality() {
+        let liquidswap_admin = create_liquidswap_admin();
+        let (emergency_acc, _) =
+            account::create_resource_account(&liquidswap_admin, b"emergency_account_seed");
+        assert!(signer::address_of(&emergency_acc) == @liquidswap_emergency_account, 1);
     }
 
     #[test(emergency_acc = @0x13)]

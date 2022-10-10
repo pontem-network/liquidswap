@@ -12,6 +12,10 @@ module test_coin_admin::test_coins {
 
     struct USDC {}
 
+    struct ETH {}
+
+    struct DAI {}
+
     struct Capabilities<phantom CoinType> has key {
         mint_cap: MintCapability<CoinType>,
         burn_cap: BurnCapability<CoinType>,
@@ -73,6 +77,24 @@ module test_coin_admin::test_coins {
                 true,
             );
 
+        let (eth_burn_cap, eth_freeze_cap, eth_mint_cap) =
+            coin::initialize<ETH>(
+                coin_admin,
+                utf8(b"ETH"),
+                utf8(b"ETH"),
+                8,
+                true
+            );
+
+        let (dai_burn_cap, dai_freeze_cap, dai_mint_cap) =
+            coin::initialize<DAI>(
+                coin_admin,
+                utf8(b"DAI"),
+                utf8(b"DAI"),
+                8,
+                true
+            );
+
         move_to(coin_admin, Capabilities<USDT> {
             mint_cap: usdt_mint_cap,
             burn_cap: usdt_burn_cap,
@@ -88,9 +110,21 @@ module test_coin_admin::test_coins {
             burn_cap: usdc_burn_cap,
         });
 
+        move_to(coin_admin, Capabilities<ETH>{
+            mint_cap: eth_mint_cap,
+            burn_cap: eth_burn_cap
+        });
+
+        move_to(coin_admin, Capabilities<DAI>{
+            mint_cap: dai_mint_cap,
+            burn_cap: dai_burn_cap
+        });
+
         coin::destroy_freeze_cap(usdt_freeze_cap);
         coin::destroy_freeze_cap(usdc_freeze_cap);
         coin::destroy_freeze_cap(btc_freeze_cap);
+        coin::destroy_freeze_cap(eth_freeze_cap);
+        coin::destroy_freeze_cap(dai_freeze_cap);
     }
 
     public fun mint<CoinType>(coin_admin: &signer, amount: u64): Coin<CoinType> acquires Capabilities {

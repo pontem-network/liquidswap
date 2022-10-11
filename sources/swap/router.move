@@ -19,9 +19,9 @@ module liquidswap::router {
     const ERR_WRONG_RESERVE: u64 = 201;
     /// Wrong order of coin parameters.
     const ERR_WRONG_COIN_ORDER: u64 = 208;
-    /// Insuficient amount in Y reserves.
+    /// Insufficient amount in Y reserves.
     const ERR_INSUFFICIENT_Y_AMOUNT: u64 = 202;
-    /// Insuficient amount in X reserves.
+    /// Insufficient amount in X reserves.
     const ERR_INSUFFICIENT_X_AMOUNT: u64 = 203;
     /// Overlimit of X coins to swap.
     const ERR_OVERLIMIT_X: u64 = 204;

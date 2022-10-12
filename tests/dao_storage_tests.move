@@ -2,17 +2,22 @@
 module liquidswap::dao_storage_tests {
     use std::signer;
 
+    use aptos_framework::account;
     use aptos_framework::coin;
+
     use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::dao_storage;
+    use liquidswap::global_config;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
-    use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
-    use liquidswap::global_config;
+
+    fun dao_admin(): signer {
+        account::create_account_for_test(@dao_admin)
+    }
 
     #[test]
     fun test_register() {
@@ -57,13 +62,11 @@ module liquidswap::dao_storage_tests {
         dao_storage::deposit_for_test<BTC, USDT, Uncorrelated>(lp_owner_addr, btc_coins, usdt_coins);
     }
 
-    #[test(dao_admin_acc = @dao_admin)]
-    fun test_withdraw(dao_admin_acc: signer) {
+    #[test]
+    fun test_withdraw() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
         dao_storage::register_for_test<BTC, USDT, Uncorrelated>(&lp_owner);
-
-        create_account(&dao_admin_acc);
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -71,8 +74,9 @@ module liquidswap::dao_storage_tests {
 
         dao_storage::deposit_for_test<BTC, USDT, Uncorrelated>(lp_owner_addr, btc_coins, usdt_coins);
 
+        let dao_admin = dao_admin();
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, lp_owner_addr, 100000000, 0);
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin, lp_owner_addr, 100000000, 0);
         assert!(coin::value(&x) == 100000000, 0);
         assert!(coin::value(&y) == 0, 1);
 
@@ -80,7 +84,7 @@ module liquidswap::dao_storage_tests {
         assert!(x_val == 0, 2);
         assert!(y_val == 1000000, 3);
 
-        global_config::set_dao_admin(&dao_admin_acc, signer::address_of(&coin_admin));
+        global_config::set_dao_admin(&dao_admin, signer::address_of(&coin_admin));
         let (x0, y0) =
             dao_storage::withdraw<BTC, USDT, Uncorrelated>(&coin_admin, lp_owner_addr, 0, 1000000);
         assert!(coin::value(&x0) == 0, 4);
@@ -92,14 +96,12 @@ module liquidswap::dao_storage_tests {
         test_coins::burn(&coin_admin, y0);
     }
 
-    #[test(dao_admin_acc = @dao_admin)]
+    #[test]
     #[expected_failure(abort_code = 65542)]
-    fun test_withdraw_fail_if_more_deposited(dao_admin_acc: signer) {
+    fun test_withdraw_fail_if_more_deposited() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
         dao_storage::register_for_test<BTC, USDT, Uncorrelated>(&lp_owner);
-
-        create_account(&dao_admin_acc);
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -107,21 +109,20 @@ module liquidswap::dao_storage_tests {
 
         dao_storage::deposit_for_test<BTC, USDT, Uncorrelated>(lp_owner_addr, btc_coins, usdt_coins);
 
+        let dao_admin = dao_admin();
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, lp_owner_addr, 200000000, 0);
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin, lp_owner_addr, 200000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(dao_admin_acc = @0xca)]
+    #[test]
     #[expected_failure(abort_code = 402)]
-    fun test_withdraw_fail_if_not_dao_admin(dao_admin_acc: signer) {
+    fun test_withdraw_fail_if_not_dao_admin() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
         dao_storage::register_for_test<BTC, USDT, Uncorrelated>(&lp_owner);
-
-        create_account(&dao_admin_acc);
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
@@ -129,18 +130,17 @@ module liquidswap::dao_storage_tests {
 
         dao_storage::deposit_for_test<BTC, USDT, Uncorrelated>(lp_owner_addr, btc_coins, usdt_coins);
 
+        let not_dao_admin = account::create_account_for_test(@0xca);
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, lp_owner_addr, 100000000, 0);
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&not_dao_admin, lp_owner_addr, 100000000, 0);
 
         test_coins::burn(&coin_admin, x);
         test_coins::burn(&coin_admin, y);
     }
 
-    #[test(dao_admin_acc = @dao_admin)]
-    fun test_split_third_of_fees_into_dao_storage_account(dao_admin_acc: signer) {
+    #[test]
+    fun test_split_third_of_fees_into_dao_storage_account() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
-
-        create_account(&dao_admin_acc);
 
         // 0.3% fee
         router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
@@ -168,8 +168,9 @@ module liquidswap::dao_storage_tests {
         assert!(dao_x == 1, 4);
         assert!(dao_y == 0, 5);
 
+        let dao_admin = dao_admin();
         let (x, y) =
-            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin_acc, @liquidswap_pool_account, 1, 0);
+            dao_storage::withdraw<BTC, USDT, Uncorrelated>(&dao_admin, @liquidswap_pool_account, 1, 0);
         assert!(coin::value(&x) == 1, 6);
         assert!(coin::value(&y) == 0, 7);
 

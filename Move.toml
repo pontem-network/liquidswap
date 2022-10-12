@@ -23,10 +23,10 @@ test_lp_owner = "0x12"
 test_pool_addr = "0x2540b6f8a87ac1cff2de9f5f742854b448cd4521e96f840eda05e63e4e944ed6"
 
 [dependencies.LiquidswapLP]
-local = "./liquidswap_lp/"
+local = "./liquidswap_lp"
 
 [dependencies.LiquidswapInit]
-local = "./liquidswap_init/"
+local = "./liquidswap_init"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

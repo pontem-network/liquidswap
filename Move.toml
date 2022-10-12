@@ -40,3 +40,7 @@ rev = "v0.3.7"
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
 rev = "v0.3.8"
+
+[dev-dependencies.TestCoins]
+git = "https://github.com/pontem-network/test-coins.git"
+rev = "v0.1.2"

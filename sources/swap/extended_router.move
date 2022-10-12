@@ -1,5 +1,5 @@
 module liquidswap::extended_router {
-    /// This is the extended router that supports multi path swap.
+    // This is the extended router that supports multi path swap.
     use aptos_framework::coin::{Coin, Self};
 
     use liquidswap::coin_helper::{Self};

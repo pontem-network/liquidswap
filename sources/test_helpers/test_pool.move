@@ -1,30 +1,69 @@
 #[test_only]
-module test_helpers::test_pool {
+module liquidswap::test_pool {
     use std::signer;
 
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::genesis;
+
     use liquidswap_lp::lp_coin::LP;
+    use test_coins::coins;
+    use test_coins_extended::coins_extended;
 
     use liquidswap::liquidity_pool;
     use liquidswap::lp_account;
-    use test_coin_admin::test_coins;
+    use test_coins_extended::usdd;
 
-    public fun create_lp_owner(): signer {
-        let pool_owner = account::create_account_for_test(@test_lp_owner);
+    public fun coin_admin(): signer {
+        account::create_account_for_test(@test_coins)
+    }
+
+    public fun coin_extended_admin(): signer {
+        account::create_account_for_test(@test_coins_extended)
+    }
+
+    public fun register_test_coins(): (signer, signer) {
+        let coins_admin = coin_admin();
+        coins::register_coins(&coins_admin);
+
+        let coins_extended_admin = coin_extended_admin();
+        coins_extended::register_coins(&coins_extended_admin);
+
+        (coins_admin, coins_extended_admin)
+    }
+
+    public fun create_lp_user(): signer {
+        let pool_owner = account::create_account_for_test(@test_lp_user);
         pool_owner
     }
 
-    public fun create_liquidswap_admin(): signer {
-        let admin = account::create_account_for_test(@liquidswap);
-        admin
+    public fun setup_btc_usdt_coins_and_lp_user(): (signer, signer) {
+        genesis::setup();
+
+        let (coins_admin, _) = register_test_coins();
+        initialize_liquidity_pool();
+
+        (coins_admin, create_lp_user())
     }
 
-    public fun create_coin_admin_and_lp_owner(): (signer, signer) {
-        let coin_admin = test_coins::create_coin_admin();
-        let lp_owner = create_lp_owner();
-        (coin_admin, lp_owner)
+    public fun setup_usdc_usdt_coins_and_lp_user(): (signer, signer, signer) {
+        genesis::setup();
+
+        let (coins_admin, coins_extended_admin) = register_test_coins();
+        initialize_liquidity_pool();
+
+        (coins_admin, coins_extended_admin, create_lp_user())
+    }
+
+    public fun setup_usdd_usdt_coins_and_lp_user(): (signer, signer, signer) {
+        genesis::setup();
+
+        let (coins_admin, coins_extended_admin) = register_test_coins();
+        usdd::register_usdd(&coins_extended_admin);
+
+        initialize_liquidity_pool();
+
+        (coins_admin, coins_extended_admin, create_lp_user())
     }
 
     public fun initialize_liquidity_pool() {
@@ -41,24 +80,14 @@ module test_helpers::test_pool {
         liquidity_pool::initialize(&liquidswap_admin);
     }
 
-    public fun setup_coins_and_lp_owner(): (signer, signer) {
-        genesis::setup();
-
-        initialize_liquidity_pool();
-
-        let coin_admin = test_coins::create_admin_with_coins();
-        let lp_owner = create_lp_owner();
-        (coin_admin, lp_owner)
-    }
-
-    public fun mint_liquidity<X, Y, Curve>(lp_owner: &signer, coin_x: Coin<X>, coin_y: Coin<Y>): u64 {
-        let lp_owner_addr = signer::address_of(lp_owner);
+    public fun mint_liquidity<X, Y, Curve>(lp_user: &signer, coin_x: Coin<X>, coin_y: Coin<Y>): u64 {
+        let lp_user_addr = signer::address_of(lp_user);
         let lp_coins = liquidity_pool::mint<X, Y, Curve>(coin_x, coin_y);
         let lp_coins_val = coin::value(&lp_coins);
-        if (!coin::is_account_registered<LP<X, Y, Curve>>(lp_owner_addr)) {
-            coin::register<LP<X, Y, Curve>>(lp_owner);
+        if (!coin::is_account_registered<LP<X, Y, Curve>>(lp_user_addr)) {
+            coin::register<LP<X, Y, Curve>>(lp_user);
         };
-        coin::deposit(lp_owner_addr, lp_coins);
+        coin::deposit(lp_user_addr, lp_coins);
         lp_coins_val
     }
 }

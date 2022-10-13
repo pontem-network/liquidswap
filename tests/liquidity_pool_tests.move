@@ -7,33 +7,66 @@ module liquidswap::liquidity_pool_tests {
     use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::timestamp;
+
     use liquidswap_lp::lp_coin::LP;
+    use test_coins::coins;
 
     use liquidswap::coin_helper::supply;
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::emergency;
     use liquidswap::global_config;
     use liquidswap::liquidity_pool;
-    use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_helpers::test_pool::{Self, initialize_liquidity_pool, create_liquidswap_admin};
+    use liquidswap::test_pool;
+    use test_coins::coins::{BTC, USDT};
+    use test_coins_extended::coins_extended::USDC;
+    use aptos_framework::genesis;
+    use liquidswap::test_pool::{register_test_coins, initialize_liquidity_pool};
+    use test_coins_extended::usdd;
+    use test_coins_extended::usdd::USDD;
 
-    fun setup_btc_usdt_pool(): (signer, signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
-        (coin_admin, lp_owner)
+    public fun create_lp_user(): signer {
+        let pool_owner = account::create_account_for_test(@test_lp_user);
+        pool_owner
     }
 
-    fun setup_usdc_usdt_pool(): (signer, signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<USDC, USDT, Stable>(&lp_owner);
-        (coin_admin, lp_owner)
+    public fun create_coin_admin_and_lp_user(): (signer, signer) {
+        let coin_admin = test_pool::coin_admin();
+        let lp_user = create_lp_user();
+        (coin_admin, lp_user)
+    }
+
+    fun setup_btc_usdt_pool(): (signer, signer) {
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
+        (coin_admin, lp_user)
+    }
+
+    fun setup_usdc_usdt_pool(): (signer, signer, signer) {
+        let (coin_admin, coin_extended_admin, lp_user) =
+            test_pool::setup_usdc_usdt_coins_and_lp_user();
+        liquidity_pool::register<USDC, USDT, Stable>(&lp_user);
+        (coin_admin, coin_extended_admin, lp_user)
+    }
+
+    fun setup_usdd_usdt_pool(): (signer, signer, signer) {
+        genesis::setup();
+
+        let (coin_admin, coin_extended_admin) = register_test_coins();
+        usdd::register_usdd(&coin_extended_admin);
+
+        initialize_liquidity_pool();
+
+        let lp_user = create_lp_user();
+        liquidity_pool::register<USDD, USDT, Stable>(&lp_user);
+
+        (coin_admin, coin_extended_admin, lp_user)
     }
 
     // Register pool tests.
 
     #[test]
     fun test_liquidswap_pool_account_address() {
-        let liquidswap_admin = create_liquidswap_admin();
+        let liquidswap_admin = account::create_account_for_test(@liquidswap);
         let (liquidswap_pool_acc, _) =
             account::create_resource_account(&liquidswap_admin, b"liquidswap_account_seed");
         assert!(signer::address_of(&liquidswap_pool_acc) == @liquidswap_pool_account, 1);
@@ -46,9 +79,9 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_create_empty_pool_uncorrelated() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
 
         assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 10);
         assert!(coin::is_coin_initialized<LP<BTC, USDT, Uncorrelated>>(), 11);
@@ -87,19 +120,19 @@ module liquidswap::liquidity_pool_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     fun test_create_pool_emergency_fails(emergency_acc: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         emergency::pause(&emergency_acc);
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+            &lp_user);
     }
 
     #[test]
     fun test_create_empty_pool_stable() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         liquidity_pool::register<USDC, USDT, Stable>(
-            &lp_owner);
+            &lp_user);
 
         let (x_res_val, y_res_val) =
             liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
@@ -108,7 +141,7 @@ module liquidswap::liquidity_pool_tests {
 
         // Check scales.
         let (x_scale, y_scale) = liquidity_pool::get_decimals_scales<USDC, USDT, Stable>();
-        assert!(x_scale == 10000, 2);
+        assert!(x_scale == 1000000, 2);
         assert!(y_scale == 1000000, 3);
 
         // Check created LP.
@@ -135,11 +168,10 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 100)]
     fun test_fail_if_coin_generics_provided_in_the_wrong_order() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        
         liquidity_pool::register<BTC, USDT, Uncorrelated>(
-            &lp_owner);
+            &lp_user);
 
         // here generics are provided as USDT-BTC, but pool is BTC-USDT. `reverse` parameter is irrelevant
         let (_x_price, _y_price, _) =
@@ -149,64 +181,63 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 3001)]
     fun test_fail_if_x_is_not_coin() {
-        let (coin_admin, lp_owner) = test_pool::create_coin_admin_and_lp_owner();
+        let (coin_admin, lp_user) = create_coin_admin_and_lp_user();
 
-        test_coins::register_coin<USDT>(&coin_admin, b"USDT", b"USDT", 6);
+        coins::register_coins(&coin_admin);
 
-        initialize_liquidity_pool();
+        test_pool::initialize_liquidity_pool();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<USDC, USDT, Uncorrelated>(&lp_user);
     }
 
     #[test]
     #[expected_failure(abort_code = 3001)]
     fun test_fail_if_y_is_not_coin() {
-        let (coin_admin, lp_owner) = test_pool::create_coin_admin_and_lp_owner();
+        let (coin_admin, lp_user) = create_coin_admin_and_lp_user();
+        coins::register_coins(&coin_admin);
 
-        test_coins::register_coin<BTC>(&coin_admin, b"BTC", b"BTC", 8);
+        test_pool::initialize_liquidity_pool();
 
-        initialize_liquidity_pool();
-
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDC, Uncorrelated>(&lp_user);
     }
 
     #[test]
     #[expected_failure(abort_code = 101)]
     fun test_fail_if_pool_already_exists() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
     }
 
     // Add liquidity tests.
     #[test]
     #[expected_failure(abort_code = 107)]
     fun test_fail_if_pool_for_this_pair_does_not_exist() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 100000000;
         let usdt_liq_val = 28000000000;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdc_liq = test_coins::mint<USDC>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
-        test_pool::mint_liquidity<BTC, USDC, Uncorrelated>(&lp_owner, btc_liq, usdc_liq);
+        test_pool::mint_liquidity<BTC, USDT, Stable>(&lp_user, btc_liq, usdt_liq);
     }
 
     #[test]
     fun test_add_liquidity_to_empty_pool() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 100000000;
         let usdt_liq_val = 28000000000;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
         timestamp::fast_forward_seconds(1660338836);
 
         let lp_coins_val =
-            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
 
         let expected_liquidity = 1673320053 - 1000;
         assert!(lp_coins_val == expected_liquidity, 0);
@@ -225,40 +256,40 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 102)]
     fun test_add_liquidity_less_than_minimal() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 1000;
         let usdt_liq_val = 1000;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
     }
 
     #[test]
     #[expected_failure(abort_code = 102)]
     fun test_fail_if_adding_zero_liquidity_initially() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 0;
         let usdt_liq_val = 0;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
     }
 
     #[test]
     fun test_add_liquidity_minimal() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 1001;
         let usdt_liq_val = 1001;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
         let lp_coins_val =
-            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
 
         let expected_liquidity = 1001 - 1000;
         assert!(lp_coins_val == expected_liquidity, 0);
@@ -272,32 +303,32 @@ module liquidswap::liquidity_pool_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     fun test_add_liquidity_emergency_stop_fails(emergency_acc: signer) {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 1001;
         let usdt_liq_val = 1001;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
         emergency::pause(&emergency_acc);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
     }
 
     #[test]
     fun test_add_liquidity_after_initial_liquidity_added() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
         let btc_liq_val = 100000000;
         let usdt_liq_val = 28000000000;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val);
 
         let initial_ts = 1660338836;
         timestamp::fast_forward_seconds(initial_ts);
 
         let lp_coins_val =
-            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
 
         let expected_liquidity = 1673320053 - 1000;
         assert!(lp_coins_val == expected_liquidity, 0);
@@ -315,11 +346,11 @@ module liquidswap::liquidity_pool_tests {
         timestamp::fast_forward_seconds(360);
 
         let expected_liquidity_2 = 3346638106;
-        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val * 2);
-        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val * 2);
+        let btc_liq = coins::mint<BTC>(&coin_admin, btc_liq_val * 2);
+        let usdt_liq = coins::mint<USDT>(&coin_admin, usdt_liq_val * 2);
 
         let lp_coins_val =
-            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_liq, usdt_liq);
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_liq, usdt_liq);
 
         assert!(lp_coins_val == expected_liquidity_2, 7);
         assert!(supply<LP<BTC, USDT, Uncorrelated>>() == ((expected_liquidity_2 + expected_liquidity) as u128), 8);
@@ -337,38 +368,38 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 103)]
     fun test_add_liquidity_zero_for_pool_with_existing_liquidity() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100100);
 
         let lp_coins_val =
-            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+            test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
         assert!(lp_coins_val == 99100, 0);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
         assert!(x_res == 100100, 1);
         assert!(y_res == 100100, 2);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, coin::zero(), coin::zero());
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, coin::zero(), coin::zero());
     }
 
     // Test burn liquidity.
     #[test]
     #[expected_failure(abort_code = 106)]
     fun test_fail_if_trying_to_burn_zero_values() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 2000000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 560000000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 2000000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 560000000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
         let (btc_return, usdt_return) =
             liquidity_pool::burn<BTC, USDT, Uncorrelated>(coin::zero());
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
     }
 
 
@@ -377,9 +408,9 @@ module liquidswap::liquidity_pool_tests {
     fun test_burn_liquidity_at_pool_registration() {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 2000000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 560000000000000);
-        
+        let btc_coins = coins::mint<BTC>(&coin_admin, 2000000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 560000000000000);
+
         let lp_coins =
             liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
         assert!(coin::value(&lp_coins) == 33466401060363, 0);
@@ -398,8 +429,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 0, 5);
         assert!(y_res == 0, 6);
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
     }
 
     #[test]
@@ -410,8 +441,8 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(1660517742);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 2000000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 560000000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 2000000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 560000000000000);
 
         let lp_coins_initial =
             liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
@@ -420,8 +451,8 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(7200);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 50000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 14000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 50000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 14000000000);
 
         let lp_coins_user =
             liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
@@ -432,8 +463,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_return) == 2000000000000, 0);
         assert!(coin::value(&usdt_return) == 560000000000008, 1);
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
 
         let (btc_return, usdt_return) =
             liquidity_pool::burn<BTC, USDT, Uncorrelated>(lp_coins_user);
@@ -441,8 +472,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_return) == 50000000, 2);
         assert!(coin::value(&usdt_return) == 13999999992, 3);
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
         assert!(x_res == 0, 4);
@@ -458,8 +489,8 @@ module liquidswap::liquidity_pool_tests {
     fun test_overflow_and_emergency_exit() {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 18446744073709551615);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 18446744073709551615);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 18446744073709551615);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 18446744073709551615);
 
         // Now we can't swap or add liquidity, if cumulative price is still has space, it wouldn never overflow,
         // we are able to exit.
@@ -477,16 +508,16 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 0, 2);
         assert!(y_res == 0, 3);
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
     }
 
     #[test(emergency_acc = @emergency_admin)]
     fun test_emergency_exit(emergency_acc: signer) {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 18446744073709551615);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 18446744073709551615);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 18446744073709551615);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 18446744073709551615);
 
         // Now we can't swap or add liquidity, if cumulative price is still has space, it wouldn never overflow,
         // we are able to exit.
@@ -503,21 +534,21 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_return) == 18446744073709551615, 1);
         assert!(coin::value(&usdt_return) == 18446744073709551615, 2);
 
-        test_coins::burn(&coin_admin, btc_return);
-        test_coins::burn(&coin_admin, usdt_return);
+        coins::burn(&coin_admin, btc_return);
+        coins::burn(&coin_admin, usdt_return);
     }
 
     // Test swap.
     #[test]
     fun test_swap_coins() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100100);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 2);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -530,22 +561,22 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 100099, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     fun test_swap_coins_emergency_fails(emergency_acc: signer) {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100100);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
         emergency::pause(&emergency_acc);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 2);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -553,19 +584,19 @@ module liquidswap::liquidity_pool_tests {
             );
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_max_amounts() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 18446744073709550615);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 18446744073709551615);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 18446744073709550615);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 18446744073709551615);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 1000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -573,23 +604,23 @@ module liquidswap::liquidity_pool_tests {
             );
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_1() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
         timestamp::fast_forward_seconds(1660545565);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
         timestamp::fast_forward_seconds(20);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 100000000);
         let (btc_zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -608,7 +639,7 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(3600);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 1000000);
         let (btc_coins, usdt_zero) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 coin::zero<BTC>(), 3632,
@@ -626,21 +657,21 @@ module liquidswap::liquidity_pool_tests {
 
         coin::destroy_zero(btc_zero);
         coin::destroy_zero(usdt_zero);
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_1_fail() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 100000000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -649,18 +680,18 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&usdt_coins) == 27640424964, 0);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 104)]
     fun test_swap_coins_zero_fail() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
         let (btc_coins, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
@@ -668,20 +699,20 @@ module liquidswap::liquidity_pool_tests {
                 coin::zero<USDT>(), 1
             );
 
-        test_coins::burn(&coin_admin, usdt_coins);
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_coins);
     }
 
     #[test]
     fun test_swap_coins_vice_versa() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 28000000000);
         let (btc_coins, zero) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 coin::zero<BTC>(), 98715803,
@@ -694,20 +725,20 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 2827972000000, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_vice_versa_fail() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 28000000000);
         let (btc_coins, zero) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 coin::zero<BTC>(), 98715804,
@@ -716,20 +747,20 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_coins) == 98715804, 0);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
     }
 
     #[test]
     fun test_swap_two_coins_success() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
-        let btc_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 28000000000);
+        let btc_to_exchange = coins::mint<BTC>(&coin_admin, 100000000);
         let (btc_coins, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_to_exchange, 99900003,
@@ -743,22 +774,22 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 9999999997, 2);
         assert!(y_res == 2800112001961, 3);
 
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_two_coins_failure() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 2800000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 28000000000);
-        let btc_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 28000000000);
+        let btc_to_exchange = coins::mint<BTC>(&coin_admin, 100000000);
         let (btc_coins, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_to_exchange, 99900003,
@@ -772,167 +803,167 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 9999999997, 2);
         assert!(y_res == 2800112001960, 3);
 
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_cannot_swap_coins_and_reduce_value_of_pool() {
-        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+        let (coin_admin, lp_user) = setup_btc_usdt_pool();
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100100);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100100);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100100);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100100);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
         // 1 minus fee for 1
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 1);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 1);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 1
             );
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdd_usdt_pool();
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 1000000);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 1);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 99
             );
         assert!(coin::value(&usdt_coins) == 99, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 1000001, 1);
         assert!(y_res == 99999901, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type_1() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdd_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 15000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 1500000000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 7078017525);
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 7078017525);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 672790928423
             );
         assert!(coin::value(&usdt_coins) == 672790928423, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 22076601922, 1);
         assert!(y_res == 827209071577, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type_2() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdd_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 15000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 1500000000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 152);
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 152);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 15199
             );
         assert!(coin::value(&usdt_coins) == 15199, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 15000000152, 1);
         assert!(y_res == 1499999984801, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type_3() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdd_usdt_pool();
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 15000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 1500000000000);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 6748155);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 6748155);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 672791099
             );
         assert!(coin::value(&usdt_coins) == 672791099, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 15006746806, 1);
         assert!(y_res == 1499327208901, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type_1_unit() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdd_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 10000);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 996999
             );
         assert!(coin::value(&usdt_coins) == 996999, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 1009998, 1);
         assert!(y_res == 99003001, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_1_unit_fail() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
+        let usdc_coins_to_exchange = coins::mint<USDC>(&coin_extended_admin, 10000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<USDC, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
@@ -945,21 +976,21 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 99003000, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_fails() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 1);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdc_coins_to_exchange = coins::mint<USDC>(&coin_extended_admin, 1);
         let (zero, usdt_coins) =
             liquidity_pool::swap<USDC, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
@@ -972,19 +1003,19 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 99999901, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
-    fun test_swap_coins_with_stable_curve_type_vice_versa() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+    fun test_swap_coins_with_stable_curve_type_vice_versa_0() {
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 999901);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 999901);
         let (usdc_coins, zero) =
             liquidity_pool::swap<USDC, USDT, Stable>(
                 coin::zero<USDC>(), 9969,
@@ -997,20 +1028,20 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 990031, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdc_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
     }
 
     #[test]
     fun test_swap_coins_two_coins_with_stable_curve() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 1000000);
+        let usdc_coins_to_exchange = coins::mint<USDC>(&coin_extended_admin, 10000);
 
         let (usdc_coins, usdt_coins) =
             liquidity_pool::swap<USDC, USDT, Stable>(
@@ -1025,22 +1056,22 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 1000029, 2);
         assert!(y_res == 100002701, 3);
 
-        test_coins::burn(&coin_admin, usdc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_two_coins_with_stable_curve_fail() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
-        
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 10000);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
+
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 1000000);
+        let usdc_coins_to_exchange = coins::mint<USDC>(&coin_extended_admin, 10000);
 
         let (usdc_coins, usdt_coins) =
             liquidity_pool::swap<USDC, USDT, Stable>(
@@ -1055,55 +1086,51 @@ module liquidswap::liquidity_pool_tests {
         assert!(x_res == 1000020, 2);
         assert!(y_res == 100001901, 3);
 
-        test_coins::burn(&coin_admin, usdc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdc_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coins_with_stable_curve_type_vice_versa_1() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 15000000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 1500000000000);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1500000000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 1500000000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 125804314);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 125804314);
         let (usdc_coins, zero) =
             liquidity_pool::swap<USDC, USDT, Stable>(
-                coin::zero<USDC>(), 1254269,
+                coin::zero<USDC>(), 125426900,
                 usdt_coins_to_exchange, 0
             );
-        assert!(coin::value(&usdc_coins) == 1254269, 0);
+        assert!(coin::value(&usdc_coins) == 125426900, 0);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdc_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_swap_coins_with_stable_curve_type_vice_versa_fail() {
-        let (coin_admin, lp_owner) = setup_usdc_usdt_pool();
+        let (coin_admin, coin_extended_admin, lp_user) = setup_usdc_usdt_pool();
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 1000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000000);
+        let usdc_coins = coins::mint<USDC>(&coin_extended_admin, 1000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 100000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 1000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 1000000);
         let (usdc_coins, zero) =
             liquidity_pool::swap<USDC, USDT, Stable>(
-                coin::zero<USDC>(), 9996,
+                coin::zero<USDC>(), 999600,
                 usdt_coins_to_exchange, 0
             );
-        assert!(coin::value(&usdc_coins) == 9996, 0);
-
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
-        assert!(y_res == 100999000, 1);
-        assert!(x_res == 990030, 2);
+        assert!(coin::value(&usdc_coins) == 999600, 0);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdc_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
     }
 
     // Getters.
@@ -1152,8 +1179,8 @@ module liquidswap::liquidity_pool_tests {
     fun test_end_to_end() {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
-        let btc_coins_initial = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins_initial = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins_initial = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins_initial = coins::mint<USDT>(&coin_admin, 2800000000000);
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1169,8 +1196,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_cum_price == 0, 3);
         assert!(ts == 1660545565, 4);
 
-        let btc_coins_user = test_coins::mint<BTC>(&coin_admin, 1500000000);
-        let usdt_coins_user = test_coins::mint<USDT>(&coin_admin, 420000000000);
+        let btc_coins_user = coins::mint<BTC>(&coin_admin, 1500000000);
+        let usdt_coins_user = coins::mint<USDT>(&coin_admin, 420000000000);
 
         let lp_coins_user =
             liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins_user, usdt_coins_user);
@@ -1186,7 +1213,7 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(3600);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2500000000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 2500000000);
         let (btc_zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -1212,8 +1239,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_earned_user) == 912880434, 15);
         assert!(coin::value(&usdt_earned_user) == 172592460234, 16);
 
-        test_coins::burn(&coin_admin, btc_earned_user);
-        test_coins::burn(&coin_admin, usdt_earned_user);
+        coins::burn(&coin_admin, btc_earned_user);
+        coins::burn(&coin_admin, usdt_earned_user);
 
         let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
         assert!(x_res == 13084619566, 17);
@@ -1226,7 +1253,7 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(3600);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 10000000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 10000000000);
         let (btc_coins, usdt_zero) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 coin::zero<BTC>(), 52521904,
@@ -1271,20 +1298,20 @@ module liquidswap::liquidity_pool_tests {
 
         coin::destroy_zero(btc_zero);
         coin::destroy_zero(usdt_zero);
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
-        test_coins::burn(&coin_admin, btc_earned_user);
-        test_coins::burn(&coin_admin, usdt_earned_user);
-        test_coins::burn(&coin_admin, btc_earned_initial);
-        test_coins::burn(&coin_admin, usdt_earned_initial);
+        coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_earned_user);
+        coins::burn(&coin_admin, usdt_earned_user);
+        coins::burn(&coin_admin, btc_earned_initial);
+        coins::burn(&coin_admin, usdt_earned_initial);
     }
 
     #[test(emergency_acc = @emergency_admin)]
     fun test_end_to_end_emergency(emergency_acc: signer) {
         let (coin_admin, _) = setup_btc_usdt_pool();
 
-        let btc_coins_initial = test_coins::mint<BTC>(&coin_admin, 10000000000);
-        let usdt_coins_initial = test_coins::mint<USDT>(&coin_admin, 2800000000000);
+        let btc_coins_initial = coins::mint<BTC>(&coin_admin, 10000000000);
+        let usdt_coins_initial = coins::mint<USDT>(&coin_admin, 2800000000000);
 
         timestamp::fast_forward_seconds(1660545565);
 
@@ -1300,8 +1327,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_cum_price == 0, 3);
         assert!(ts == 1660545565, 4);
 
-        let btc_coins_user = test_coins::mint<BTC>(&coin_admin, 1500000000);
-        let usdt_coins_user = test_coins::mint<USDT>(&coin_admin, 420000000000);
+        let btc_coins_user = coins::mint<BTC>(&coin_admin, 1500000000);
+        let usdt_coins_user = coins::mint<USDT>(&coin_admin, 420000000000);
 
         let lp_coins_user =
             liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins_user, usdt_coins_user);
@@ -1317,7 +1344,7 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(3600);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 2500000000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 2500000000);
         let (btc_zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -1344,8 +1371,8 @@ module liquidswap::liquidity_pool_tests {
         assert!(coin::value(&btc_earned_user) == 912880434, 16);
         assert!(coin::value(&usdt_earned_user) == 172592460234, 17);
 
-        test_coins::burn(&coin_admin, btc_earned_user);
-        test_coins::burn(&coin_admin, usdt_earned_user);
+        coins::burn(&coin_admin, btc_earned_user);
+        coins::burn(&coin_admin, usdt_earned_user);
 
         emergency::resume(&emergency_acc);
 
@@ -1360,7 +1387,7 @@ module liquidswap::liquidity_pool_tests {
 
         timestamp::fast_forward_seconds(3600);
 
-        let usdt_coins_to_exchange = test_coins::mint<USDT>(&coin_admin, 10000000000);
+        let usdt_coins_to_exchange = coins::mint<USDT>(&coin_admin, 10000000000);
         let (btc_coins, usdt_zero) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 coin::zero<BTC>(), 52521904,
@@ -1405,12 +1432,12 @@ module liquidswap::liquidity_pool_tests {
 
         coin::destroy_zero(btc_zero);
         coin::destroy_zero(usdt_zero);
-        test_coins::burn(&coin_admin, btc_coins);
-        test_coins::burn(&coin_admin, usdt_coins);
-        test_coins::burn(&coin_admin, btc_earned_user);
-        test_coins::burn(&coin_admin, usdt_earned_user);
-        test_coins::burn(&coin_admin, btc_earned_initial);
-        test_coins::burn(&coin_admin, usdt_earned_initial);
+        coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, btc_earned_user);
+        coins::burn(&coin_admin, usdt_earned_user);
+        coins::burn(&coin_admin, btc_earned_initial);
+        coins::burn(&coin_admin, usdt_earned_initial);
     }
 
     // Compute LP
@@ -1683,12 +1710,12 @@ module liquidswap::liquidity_pool_tests {
     // Update cumulative price itself.
     #[test]
     fun test_cumulative_price_0() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::fast_forward_seconds(1660545565);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             1660545565 - 3600,
             18446744073709551615,
             18446744073709551615,
@@ -1703,12 +1730,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_1() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::fast_forward_seconds(1660545565);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             1660545565 - 3600,
             0,
             0,
@@ -1723,12 +1750,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_2() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::fast_forward_seconds(1660545565);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             0,
             10,
             10,
@@ -1743,12 +1770,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_3() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::fast_forward_seconds(3600);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             0,
             0,
             0,
@@ -1763,12 +1790,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_max_time() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             0,
             18446744073709551615,
             18446744073709551615,
@@ -1783,12 +1810,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_overflow_0() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::fast_forward_seconds(1);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             0,
             340282366920938463463374607431768211455,
             340282366920938463463374607431768211455,
@@ -1803,12 +1830,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test]
     fun test_cumulative_price_overflow_1() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         timestamp::update_global_time_for_test(18446744073709551615);
 
         let (x_cum_price, y_cum_price, ts) = liquidity_pool::update_cumulative_price_for_test<BTC, USDT>(
-            &lp_owner,
+            &lp_user,
             0,
             340282366920938463463374607431768211455,
             340282366920938463463374607431768211455,
@@ -1824,24 +1851,24 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 10001)]
     fun test_fail_if_invalid_curve_is_passed() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        liquidity_pool::register<BTC, USDT, BTC>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, BTC>(&lp_user);
     }
 
     #[test]
     #[expected_failure(abort_code = 109)]
     fun test_cannot_initialize_pool_with_non_admin_account() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        liquidity_pool::initialize(&lp_owner);
+        liquidity_pool::initialize(&lp_user);
     }
 
     #[test]
     #[expected_failure(abort_code = 100)]
     fun test_get_fee_fail_if_pair_is_not_sorted() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         let _ = liquidity_pool::get_fee<USDT, BTC, Uncorrelated>();
     }
 
@@ -1854,8 +1881,8 @@ module liquidswap::liquidity_pool_tests {
     #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 100)]
     fun test_set_fee_fail_if_pair_is_not_sorted(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_fee<USDT, BTC, Uncorrelated>(&fee_admin, 10);
     }
 
@@ -1868,24 +1895,24 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 112)]
     fun test_set_fee_fail_if_user_is_not_admin() {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
     }
 
     #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 302)]
     fun test_set_fee_fail_if_invalid_amount_of_fee(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_fee<BTC, USDT, Uncorrelated>(&fee_admin, 0);
     }
 
     #[test]
     #[expected_failure(abort_code = 100)]
     fun test_get_dao_fee_fail_if_pair_is_not_sorted() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         let _ = liquidity_pool::get_dao_fee<USDT, BTC, Uncorrelated>();
     }
 
@@ -1898,8 +1925,8 @@ module liquidswap::liquidity_pool_tests {
     #[test(dao_admin = @dao_admin)]
     #[expected_failure(abort_code = 100)]
     fun test_set_dao_fee_fail_if_pair_is_not_sorted(dao_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_dao_fee<USDT, BTC, Uncorrelated>(&dao_admin, 10);
     }
 
@@ -1912,16 +1939,16 @@ module liquidswap::liquidity_pool_tests {
     #[test]
     #[expected_failure(abort_code = 112)]
     fun test_set_dao_fee_fail_if_user_is_not_admin() {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&coin_admin, 10);
     }
 
     #[test(fee_admin = @fee_admin)]
     #[expected_failure(abort_code = 302)]
     fun test_set_dao_fee_fail_if_invalid_amount_of_fee(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
         liquidity_pool::set_dao_fee<BTC, USDT, Uncorrelated>(&fee_admin, 101);
     }
 
@@ -1966,7 +1993,7 @@ module liquidswap::liquidity_pool_tests {
 
     #[test(fee_admin = @fee_admin, dao_admin = @dao_admin)]
     fun test_get_stable_fee_config(fee_admin: signer, dao_admin: signer) {
-        let (_, _) = setup_usdc_usdt_pool();
+        let (_, _, _) = setup_usdc_usdt_pool();
         let (fee, d) = liquidity_pool::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 4, 1);
         assert!(d == 10000, 2);
@@ -2033,20 +2060,20 @@ module liquidswap::liquidity_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code=107)]
+    #[expected_failure(abort_code = 107)]
     fun test_get_dao_fees_config_fail_doesnt_exists() {
         let (_fee, _d) = liquidity_pool::get_dao_fees_config<BTC, USDT, Uncorrelated>();
     }
 
     #[test]
-    #[expected_failure(abort_code=100)]
+    #[expected_failure(abort_code = 100)]
     fun test_get_dao_fees_config_fails_wrong_ordering() {
         let (_, _) = setup_btc_usdt_pool();
         let (_fee, _d) = liquidity_pool::get_dao_fees_config<USDT, BTC, Uncorrelated>();
     }
 
     #[test]
-    #[expected_failure(abort_code=100)]
+    #[expected_failure(abort_code = 100)]
     fun test_get_fees_config_fails_wrong_ordering() {
         let (_, _) = setup_btc_usdt_pool();
         let (_fee, _d) = liquidity_pool::get_dao_fees_config<USDT, BTC, Uncorrelated>();
@@ -2054,12 +2081,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test(fee_admin = @fee_admin)]
     fun test_pool_with_custom_default_fee(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Uncorrelated>(&fee_admin, 33);
         global_config::set_default_dao_fee(&fee_admin, 66);
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
 
         let (fee, _) = liquidity_pool::get_fees_config<BTC, USDT, Uncorrelated>();
         assert!(fee == 33, 1);
@@ -2072,12 +2099,12 @@ module liquidswap::liquidity_pool_tests {
 
     #[test(fee_admin = @fee_admin)]
     fun test_stable_pool_with_custom_default_fee(fee_admin: signer) {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Stable>(&fee_admin, 6);
         global_config::set_default_dao_fee(&fee_admin, 66);
 
-        liquidity_pool::register<USDC, USDT, Stable>(&lp_owner);
+        liquidity_pool::register<USDC, USDT, Stable>(&lp_user);
 
         let (fee, _) = liquidity_pool::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 6, 1);
@@ -2090,19 +2117,19 @@ module liquidswap::liquidity_pool_tests {
 
     #[test(fee_admin = @fee_admin)]
     fun test_swap_coins_with_min_fees(fee_admin: signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Uncorrelated>(&fee_admin, 1);
         global_config::set_default_dao_fee(&fee_admin, 0);
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 28000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 28000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 100000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -2115,24 +2142,24 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 27972030767, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(fee_admin = @fee_admin)]
     fun test_swap_coins_with_max_fees(fee_admin: signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Uncorrelated>(&fee_admin, 35);
         global_config::set_default_dao_fee(&fee_admin, 100);
 
-        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner);
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_user);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 28000000000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 100000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 28000000000);
 
-        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_owner, btc_coins, usdt_coins);
+        test_pool::mint_liquidity<BTC, USDT, Uncorrelated>(&lp_user, btc_coins, usdt_coins);
 
-        let btc_coins_to_exchange = test_coins::mint<BTC>(&coin_admin, 100000);
+        let btc_coins_to_exchange = coins::mint<BTC>(&coin_admin, 100000);
         let (zero, usdt_coins) =
             liquidity_pool::swap<BTC, USDT, Uncorrelated>(
                 btc_coins_to_exchange, 0,
@@ -2145,66 +2172,67 @@ module liquidswap::liquidity_pool_tests {
         assert!(y_res == 27972125777, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(fee_admin = @fee_admin)]
     fun test_swap_coins_with_min_fees_for_stable_curve(fee_admin: signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (coin_admin, coin_extended_admin, lp_user) =
+            test_pool::setup_usdd_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Stable>(&fee_admin, 1);
         global_config::set_default_dao_fee(&fee_admin, 0);
 
-        liquidity_pool::register<USDC, USDT, Stable>(&lp_owner);
+        liquidity_pool::register<USDD, USDT, Stable>(&lp_user);
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 100000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10000000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 100000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 10000000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 100000);
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 100000);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 9998999
             );
         assert!(coin::value(&usdt_coins) == 9998999, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 100100000, 1);
         assert!(y_res == 9990001001, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test(fee_admin = @fee_admin)]
     fun test_swap_coins_with_max_fees_for_stable_curve(fee_admin: signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (coin_admin, coin_extended_admin, lp_user) = test_pool::setup_usdd_usdt_coins_and_lp_user();
 
         global_config::set_default_fee<Stable>(&fee_admin, 35);
         global_config::set_default_dao_fee(&fee_admin, 100);
 
-        liquidity_pool::register<USDC, USDT, Stable>(&lp_owner);
+        liquidity_pool::register<USDD, USDT, Stable>(&lp_user);
 
-        let usdc_coins = test_coins::mint<USDC>(&coin_admin, 100000000);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10000000000);
+        let usdc_coins = coins::mint<USDD>(&coin_extended_admin, 100000000);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 10000000000);
 
-        test_pool::mint_liquidity<USDC, USDT, Stable>(&lp_owner, usdc_coins, usdt_coins);
+        test_pool::mint_liquidity<USDD, USDT, Stable>(&lp_user, usdc_coins, usdt_coins);
 
-        let usdc_coins_to_exchange = test_coins::mint<USDC>(&coin_admin, 100000);
+        let usdc_coins_to_exchange = coins::mint<USDD>(&coin_extended_admin, 100000);
         let (zero, usdt_coins) =
-            liquidity_pool::swap<USDC, USDT, Stable>(
+            liquidity_pool::swap<USDD, USDT, Stable>(
                 usdc_coins_to_exchange, 0,
                 coin::zero<USDT>(), 9964999
             );
         assert!(coin::value(&usdt_coins) == 9964999, 0);
 
-        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDC, USDT, Stable>();
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<USDD, USDT, Stable>();
         assert!(x_res == 100099650, 1);
         assert!(y_res == 9990035001, 2);
 
         coin::destroy_zero(zero);
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 }

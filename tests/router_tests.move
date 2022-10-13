@@ -4,59 +4,91 @@ module liquidswap::router_tests {
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
+
     use liquidswap_lp::lp_coin::LP;
+    use test_coins::coins;
 
     use liquidswap::curves::{Uncorrelated, Stable};
     use liquidswap::liquidity_pool;
     use liquidswap::router;
-    use test_coin_admin::test_coins::{Self, USDT, BTC, USDC};
-    use test_helpers::test_pool;
+    use liquidswap::test_pool;
+    use test_coins::coins::{BTC, USDT};
+    use test_coins_extended::coins_extended::USDC;
+    use test_coins_extended::usdd::USDD;
+    use aptos_framework::genesis;
+    use liquidswap::test_pool::create_lp_user;
+    use test_coins_extended::usdd;
 
     const MAX_U64: u64 = 18446744073709551615;
 
     fun register_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (coin_admin, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
         
-        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        router::register_pool<BTC, USDT, Uncorrelated>(&lp_user);
 
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let lp_user_addr = signer::address_of(&lp_user);
         if (x_val != 0 && y_val != 0) {
-            let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
-            let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
+            let btc_coins = coins::mint<BTC>(&coin_admin, x_val);
+            let usdt_coins = coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
                 liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_coins, usdt_coins);
-            coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
-            coin::deposit<LP<BTC, USDT, Uncorrelated>>(lp_owner_addr, lp_coins);
+            coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_user);
+            coin::deposit<LP<BTC, USDT, Uncorrelated>>(lp_user_addr, lp_coins);
         };
 
-        (coin_admin, lp_owner)
+        (coin_admin, lp_user)
     }
 
-    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer) {
-        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+    fun register_stable_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, signer) {
+        let (coin_admin, coin_extended_admin, lp_user) =
+            test_pool::setup_usdc_usdt_coins_and_lp_user();
 
-        router::register_pool<USDC, USDT, Stable>(&lp_owner);
+        router::register_pool<USDC, USDT, Stable>(&lp_user);
 
-        let lp_owner_addr = signer::address_of(&lp_owner);
+        let lp_user_addr = signer::address_of(&lp_user);
         if (x_val != 0 && y_val != 0) {
-            let usdc_coins = test_coins::mint<USDC>(&coin_admin, x_val);
-            let usdt_coins = test_coins::mint<USDT>(&coin_admin, y_val);
+            let usdc_coins = coins::mint<USDC>(&coin_extended_admin, x_val);
+            let usdt_coins = coins::mint<USDT>(&coin_admin, y_val);
             let lp_coins =
                 liquidity_pool::mint<USDC, USDT, Stable>(usdc_coins, usdt_coins);
-            coin::register<LP<USDC, USDT, Stable>>(&lp_owner);
-            coin::deposit<LP<USDC, USDT, Stable>>(lp_owner_addr, lp_coins);
+            coin::register<LP<USDC, USDT, Stable>>(&lp_user);
+            coin::deposit<LP<USDC, USDT, Stable>>(lp_user_addr, lp_coins);
         };
 
-        (coin_admin, lp_owner)
+        (coin_admin, coin_extended_admin, lp_user)
+    }
+
+    fun register_usdd_pool_with_liquidity(x_val: u64, y_val: u64): (signer, signer, signer) {
+        genesis::setup();
+
+        let (coin_admin, coin_extended_admin) = test_pool::register_test_coins();
+        usdd::register_usdd(&coin_extended_admin);
+
+        test_pool::initialize_liquidity_pool();
+
+        let lp_user = create_lp_user();
+
+        router::register_pool<USDD, USDT, Stable>(&lp_user);
+
+        let lp_user_addr = signer::address_of(&lp_user);
+        if (x_val != 0 && y_val != 0) {
+            let usdc_coins = coins::mint<USDD>(&coin_extended_admin, x_val);
+            let usdt_coins = coins::mint<USDT>(&coin_admin, y_val);
+            let lp_coins =
+                liquidity_pool::mint<USDD, USDT, Stable>(usdc_coins, usdt_coins);
+            coin::register<LP<USDD, USDT, Stable>>(&lp_user);
+            coin::deposit<LP<USDD, USDT, Stable>>(lp_user_addr, lp_coins);
+        };
+
+        (coin_admin, coin_extended_admin, lp_user)
     }
 
     #[test]
     fun test_add_initial_liquidity() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(0, 0);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(0, 0);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint(&coin_admin, 10100);
-        
+        let btc_coins = coins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 10100);
 
         let (coin_x, coin_y, lp_coins) =
             router::add_liquidity<BTC, USDT, Uncorrelated>(
@@ -71,22 +103,21 @@ module liquidswap::router_tests {
         // 1010 - 1000 = 10
         assert!(coin::value(&lp_coins) == 10, 2);
 
-        coin::register<BTC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
-        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
+        coin::register<BTC>(&lp_user);
+        coin::register<USDT>(&lp_user);
+        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
+        coin::deposit(signer::address_of(&lp_user), lp_coins);
     }
 
     #[test]
     fun test_add_liquidity_to_pool() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
-        
+        let btc_coins = coins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 9000);
 
         let (coin_x, coin_y, lp_coins) =
             router::add_liquidity<BTC, USDT, Uncorrelated>(
@@ -101,21 +132,21 @@ module liquidswap::router_tests {
         // 8.91 ~ 8
         assert!(coin::value(&lp_coins) == 8, 2);
 
-        coin::register<BTC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<BTC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
+        coin::deposit(signer::address_of(&lp_user), lp_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 208)]
     fun test_cannot_add_liquidity_to_pool_in_reverse_order() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 9000);
 
         let (coin_y, coin_x, lp_coins) =
             router::add_liquidity<USDT, BTC, Uncorrelated>(
@@ -124,21 +155,21 @@ module liquidswap::router_tests {
                 btc_coins,
                 10,
             );
-        coin::register<BTC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<BTC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
+        coin::deposit(signer::address_of(&lp_user), lp_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 203)]
     fun test_add_liquidity_to_fail_with_insufficient_x_coins() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(0, 0);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(0, 0);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 9000);
 
         let (coin_y, coin_x, lp_coins) = router::add_liquidity<BTC, USDT, Uncorrelated>(
             btc_coins,
@@ -147,18 +178,18 @@ module liquidswap::router_tests {
             9000,
         );
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
+        coin::deposit(signer::address_of(&lp_user), lp_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 202)]
     fun test_add_liquidity_to_fail_with_insufficient_y_coins() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(0, 0);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(0, 0);
 
-        let btc_coins = test_coins::mint<BTC>(&coin_admin, 101);
-        let usdt_coins = test_coins::mint<USDT>(&coin_admin, 9000);
+        let btc_coins = coins::mint<BTC>(&coin_admin, 101);
+        let usdt_coins = coins::mint<USDT>(&coin_admin, 9000);
 
         let (coin_y, coin_x, lp_coins) = router::add_liquidity<BTC, USDT, Uncorrelated>(
             btc_coins,
@@ -167,18 +198,18 @@ module liquidswap::router_tests {
             10000,
         );
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
-        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
+        coin::deposit(signer::address_of(&lp_user), lp_coins);
     }
 
     #[test]
     fun test_remove_liquidity() {
-        let (_, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (_, lp_user) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         
-        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_owner, lp_coins_val);
+        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_user, lp_coins_val);
 
         let (x_out, y_out) = router::get_reserves_for_lp_coins<BTC, USDT, Uncorrelated>(
             lp_coins_val
@@ -193,11 +224,11 @@ module liquidswap::router_tests {
         assert!(coin::value(&coin_x) == x_out, 2);
         assert!(coin::value(&coin_y) == y_out, 3);
 
-        coin::register<BTC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<BTC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
     }
 
     // TODO: test that one can't remove liquidity with reverse coin order
@@ -206,11 +237,11 @@ module liquidswap::router_tests {
     #[test]
     #[expected_failure(abort_code = 205)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_x() {
-        let (_, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (_, lp_user) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         
-        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_owner, lp_coins_val);
+        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_user, lp_coins_val);
 
         let (x_out, y_out) = router::get_reserves_for_lp_coins<BTC, USDT, Uncorrelated>(
             lp_coins_val
@@ -218,18 +249,18 @@ module liquidswap::router_tests {
         let (coin_x, coin_y) =
             router::remove_liquidity<BTC, USDT, Uncorrelated>(lp_coins_to_burn, x_out * 2, y_out);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
     }
 
     #[test]
     #[expected_failure(abort_code = 205)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_y() {
-        let (_, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (_, lp_user) = register_pool_with_liquidity(101, 10100);
 
         let lp_coins_val = 2u64;
         
-        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_owner, lp_coins_val);
+        let lp_coins_to_burn = coin::withdraw<LP<BTC, USDT, Uncorrelated>>(&lp_user, lp_coins_val);
 
         let (x_out, y_out) = router::get_reserves_for_lp_coins<BTC, USDT, Uncorrelated>(
             lp_coins_val
@@ -237,8 +268,8 @@ module liquidswap::router_tests {
         let (coin_x, coin_y) =
             router::remove_liquidity<BTC, USDT, Uncorrelated>(lp_coins_to_burn, x_out, y_out * 2);
 
-        coin::deposit(signer::address_of(&lp_owner), coin_x);
-        coin::deposit(signer::address_of(&lp_owner), coin_y);
+        coin::deposit(signer::address_of(&lp_user), coin_x);
+        coin::deposit(signer::address_of(&lp_user), coin_y);
     }
 
     #[test]
@@ -246,7 +277,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
         let btc_coins_swap_val = 1;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
         let usdt_amount_out = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_coins_swap_val);
 
         let usdt_coins = router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
@@ -255,7 +286,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
@@ -263,7 +294,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(1230000000, 147600000000);
 
         let btc_to_swap_val = 572123800;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_to_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_to_swap_val);
 
         let usdt_to_get_val = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_to_swap_val);
 
@@ -273,7 +304,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_to_get_val, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
@@ -281,7 +312,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let usdt_to_swap_val = 257817560;
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
 
         let btc_to_get_val = router::get_amount_out<USDT, BTC, Uncorrelated>(usdt_to_swap_val);
 
@@ -291,14 +322,14 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == btc_to_get_val, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_exact_coin_for_coin_reverse() {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
-        let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 110);
+        let usdt_coins_to_swap = coins::mint<USDT>(&coin_admin, 110);
 
         let btc_coins = router::swap_exact_coin_for_coin<USDT, BTC, Uncorrelated>(
             usdt_coins_to_swap,
@@ -306,7 +337,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&btc_coins) == 1, 0);
 
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
     }
 
     #[test]
@@ -315,7 +346,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
         let btc_coins_swap_val = 1;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
         let usdt_amount_out = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_coins_swap_val);
 
         let usdt_coins = router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
@@ -323,14 +354,14 @@ module liquidswap::router_tests {
             usdt_amount_out * 2,
         );
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_swap_coin_for_exact_coin() {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, 1);
 
         let (remainder, usdt_coins) =
             router::swap_coin_for_exact_coin<BTC, USDT, Uncorrelated>(
@@ -341,7 +372,7 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdt_coins) == 98, 0);
         assert!(coin::value(&remainder) == 0, 1);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
         coin::destroy_zero(remainder);
     }
 
@@ -351,7 +382,7 @@ module liquidswap::router_tests {
 
         let usdt_coins_to_get = 5292719411;
         let btc_coins_to_swap_val = router::get_amount_in<BTC, USDT, Uncorrelated>(usdt_coins_to_get);
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_to_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_coins_to_swap_val);
 
         let (remainder, usdt_coins) =
             router::swap_coin_for_exact_coin<BTC, USDT, Uncorrelated>(
@@ -362,7 +393,7 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdt_coins) == usdt_coins_to_get, 0);
         assert!(coin::value(&remainder) == 0, 1);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
         coin::destroy_zero(remainder);
     }
 
@@ -373,7 +404,7 @@ module liquidswap::router_tests {
         let btc_coins_to_get = 185200481;
         let usdt_coins_to_swap_val = router::get_amount_in<USDT, BTC, Uncorrelated>(btc_coins_to_get);
 
-        let usdc_coins_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_coins_to_swap_val);
+        let usdc_coins_to_swap = coins::mint<USDT>(&coin_admin, usdt_coins_to_swap_val);
 
         let (remainder, btc_coins) =
             router::swap_coin_for_exact_coin<USDT, BTC, Uncorrelated>(
@@ -384,7 +415,7 @@ module liquidswap::router_tests {
         assert!(coin::value(&btc_coins) == btc_coins_to_get, 1);
         assert!(coin::value(&remainder) == 0, 2);
 
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
         coin::destroy_zero(remainder);
     }
 
@@ -394,7 +425,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let btc_coins_to_swap_val = 100000000;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_to_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_coins_to_swap_val);
         let usdt_to_get = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_coins_to_swap_val) + 1;
 
         let (remainder, usdt_coins) =
@@ -406,7 +437,7 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdt_coins) == usdt_to_get, 1);
         assert!(coin::value(&remainder) == 0, 2);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
         coin::destroy_zero(remainder);
     }
 
@@ -414,7 +445,7 @@ module liquidswap::router_tests {
     fun test_swap_coin_for_exact_coin_reverse() {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
-        let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 1114);
+        let usdt_coins_to_swap = coins::mint<USDT>(&coin_admin, 1114);
 
         let (remainder, btc_coins) =
             router::swap_coin_for_exact_coin<USDT, BTC, Uncorrelated>(
@@ -425,17 +456,17 @@ module liquidswap::router_tests {
         assert!(coin::value(&btc_coins) == 10, 0);
         assert!(coin::value(&remainder) == 0, 1);
 
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
         coin::destroy_zero(remainder);
     }
 
     #[test]
     #[expected_failure(abort_code = 205)]
     fun test_fail_if_price_fell_behind_threshold() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
         
-        let btc_coin_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
+        let btc_coin_to_swap = coins::mint<BTC>(&coin_admin, 1);
 
         let usdt_coins =
             router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
@@ -443,17 +474,17 @@ module liquidswap::router_tests {
                 102,
             );
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_coins);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 104)]
     fun test_fail_if_swap_zero_coin() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
         
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 0);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, 0);
 
         let usdt_coins =
             router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
@@ -461,16 +492,16 @@ module liquidswap::router_tests {
                 0,
             );
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_coins);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_coins);
     }
 
     #[test]
     fun test_returned_usdt_proportially_decrease_for_big_swaps() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
         
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 200);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, 200);
 
         let usdt_coins =
             router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
@@ -484,15 +515,15 @@ module liquidswap::router_tests {
         assert!(usdt_reserve == 3396, 2);
         assert!(router::current_price<USDT, BTC, Uncorrelated>() == 11, 3);
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_coins);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_coins);
     }
 
     #[test]
     fun test_pool_exists() {
-        let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        let (_, lp_user) = test_pool::setup_btc_usdt_coins_and_lp_user();
 
-        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        router::register_pool<BTC, USDT, Uncorrelated>(&lp_user);
 
         assert!(router::is_swap_exists<BTC, USDT, Uncorrelated>(), 0);
         assert!(router::is_swap_exists<USDT, BTC, Uncorrelated>(), 1);
@@ -500,8 +531,8 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_cumulative_prices_after_swaps() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
-        coin::register<USDT>(&lp_owner);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
+        coin::register<USDT>(&lp_user);
 
         
         let (btc_price, usdt_price, ts) =
@@ -513,13 +544,13 @@ module liquidswap::router_tests {
         // 2 seconds
         timestamp::update_global_time_for_test(2000000);
 
-        let btc_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
+        let btc_to_swap = coins::mint<BTC>(&coin_admin, 1);
         let usdts =
             router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
                 btc_to_swap,
                 95,
             );
-        coin::deposit(signer::address_of(&lp_owner), usdts);
+        coin::deposit(signer::address_of(&lp_user), usdts);
 
         let (btc_cum_price, usdt_cum_price, last_timestamp) =
             router::get_cumulative_prices<BTC, USDT, Uncorrelated>();
@@ -530,13 +561,13 @@ module liquidswap::router_tests {
         // 4 seconds
         timestamp::update_global_time_for_test(4000000);
 
-        let btc_to_swap = test_coins::mint<BTC>(&coin_admin, 2);
+        let btc_to_swap = coins::mint<BTC>(&coin_admin, 2);
         let usdts =
             router::swap_exact_coin_for_coin<BTC, USDT, Uncorrelated>(
                 btc_to_swap,
                 190,
             );
-        coin::deposit(signer::address_of(&lp_owner), usdts);
+        coin::deposit(signer::address_of(&lp_user), usdts);
 
         let (btc_cum_price, usdt_cum_price, last_timestamp) =
             router::get_cumulative_prices<BTC, USDT, Uncorrelated>();
@@ -547,12 +578,12 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_stable_curve_swap_exact() {
-        let (coin_admin, lp_owner) =
+        let (_, coin_extended_admin, lp_user) =
             register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdc_to_swap_val = 1258044;
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let usdt_to_get = router::get_amount_out<USDC, USDT, Stable>(usdc_to_swap_val);
 
         let usdt_swapped = router::swap_exact_coin_for_coin<USDC, USDT, Stable>(
@@ -562,17 +593,17 @@ module liquidswap::router_tests {
 
         assert!(coin::value(&usdt_swapped) == usdt_to_get, 1);
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
     fun test_stable_curve_swap_exact_1() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, coin_extended_admin, lp_user) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdc_to_swap_val = 67482132;
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let usdt_to_get = router::get_amount_out<USDC, USDT, Stable>(usdc_to_swap_val);
 
         let usdt_swapped = router::swap_exact_coin_for_coin<USDC, USDT, Stable>(
@@ -581,17 +612,17 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_swapped) == usdt_to_get, 1);
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
     fun test_stable_curve_swap_exact_2() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, coin_extended_admin, lp_user) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdc_to_swap_val = 1207482132;
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let usdt_to_get = router::get_amount_out<USDC, USDT, Stable>(usdc_to_swap_val);
 
         let usdt_swapped = router::swap_exact_coin_for_coin<USDC, USDT, Stable>(
@@ -600,21 +631,17 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_swapped) == usdt_to_get, 1);
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
     fun test_stable_curve_swap_exact_3() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
-
-        
-
-        
+        let (_, coin_extended_admin, lp_user) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
 
         let usdc_to_swap_val = 32207482132;
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let usdt_to_get = router::get_amount_out<USDC, USDT, Stable>(usdc_to_swap_val);
 
         let usdt_swapped = router::swap_exact_coin_for_coin<USDC, USDT, Stable>(
@@ -623,21 +650,19 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_swapped) == usdt_to_get, 1);
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
     fun test_stable_curve_swap_exact_vice_versa() {
-        let (coin_admin, lp_owner) = 
+        let (coin_admin, _, lp_user) =
             register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
 
         // Let's swap USDT -> USDC.
         let usdt_to_swap_val = 1254269;
         let usdc_to_get_val = router::get_amount_out<USDT, USDC, Stable>(usdt_to_swap_val);
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
 
         let usdc_swapped = router::swap_exact_coin_for_coin<USDT, USDC, Stable>(
             usdt_to_swap,
@@ -645,21 +670,17 @@ module liquidswap::router_tests {
         );
 
         assert!(coin::value(&usdc_swapped) == usdc_to_get_val, 1);
-        coin::register<USDC>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdc_swapped);
+        coin::register<USDC>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdc_swapped);
     }
 
     #[test]
     fun test_stable_curve_swap_exact_vice_versa_1() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
-
-        
+        let (coin_admin, _, lp_user) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdt_to_swap_val = 125426939;
         let usdc_to_get_val = router::get_amount_out<USDT, USDC, Stable>(usdt_to_swap_val);
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
 
         let usdc_swapped = router::swap_exact_coin_for_coin<USDT, USDC, Stable>(
             usdt_to_swap,
@@ -667,20 +688,18 @@ module liquidswap::router_tests {
         );
 
         assert!(coin::value(&usdc_swapped) == usdc_to_get_val, 1);
-        coin::register<USDC>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdc_swapped);
+        coin::register<USDC>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdc_swapped);
     }
 
     #[test]
     fun test_stable_curve_exact_swap() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
+        let (coin_admin, _, lp_user) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdc_to_get_val = 1254269;
         let usdt_to_swap_val = router::get_amount_in<USDT, USDC, Stable>(usdc_to_get_val);
 
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
         let (usdt_reminder, usdc_swapped) = router::swap_coin_for_exact_coin<USDT, USDC, Stable>(
             usdt_to_swap,
             usdc_to_get_val,
@@ -689,25 +708,21 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdt_reminder) == 0, 1);
         assert!(coin::value(&usdc_swapped) == usdc_to_get_val, 2);
 
-        coin::register<USDC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<USDC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), usdt_reminder);
-        coin::deposit(signer::address_of(&lp_owner), usdc_swapped);
+        coin::deposit(signer::address_of(&lp_user), usdt_reminder);
+        coin::deposit(signer::address_of(&lp_user), usdc_swapped);
     }
 
     #[test]
     fun test_stable_curve_exact_swap_vice_versa() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
-
-        
+        let (_, coin_extended_admin, lp_user) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
 
         let usdt_to_get_val = 125804401;
         let usdc_to_swap_val = router::get_amount_in<USDC, USDT, Stable>(usdt_to_get_val);
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let (usdc_reminder, usdt_swapped) = router::swap_coin_for_exact_coin<USDC, USDT, Stable>(
             usdc_to_swap,
             usdt_to_get_val,
@@ -716,18 +731,18 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdc_reminder) == 0, 1);
         assert!(coin::value(&usdt_swapped) == usdt_to_get_val, 2);
 
-        coin::register<USDC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<USDC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), usdc_reminder);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::deposit(signer::address_of(&lp_user), usdc_reminder);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
-    fun test_stable_get_amount_in() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+    fun test_stable_get_amount_in_0() {
+        let (_, _, _) = register_usdd_pool_with_liquidity(15000000000, 1500000000000);
 
-        let amount_in = router::get_amount_in<USDC, USDT, Stable>(67279092);
+        let amount_in = router::get_amount_in<USDD, USDT, Stable>(67279092);
         assert!(amount_in == 673061, 0);
     }
 
@@ -757,50 +772,51 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_stable_get_amount_in_1() {
-        let (_, _) = register_stable_pool_with_liquidity(20000000000, 1000000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(2000000000000, 1000000000000);
 
         let amount_in = router::get_amount_in<USDC, USDT, Stable>(67279092);
-        assert!(amount_in == 724846, 0);
+        assert!(amount_in == 72484514, 0);
     }
 
     #[test]
     fun test_stable_get_amount_in_2() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_usdd_pool_with_liquidity(15000000000, 1500000000000);
 
-        let amount_in = router::get_amount_in<USDC, USDT, Stable>(15000);
+        let amount_in = router::get_amount_in<USDD, USDT, Stable>(15000);
         assert!(amount_in == 152, 0);
     }
 
     #[test]
     fun test_stable_get_amount_in_3() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let amount_in = router::get_amount_in<USDT, USDC, Stable>(158282982);
-        assert!(amount_in == 15834641356, 0);
+        assert!(amount_in == 158346322, 0);
     }
 
     #[test]
     fun test_stable_get_amount_in_4() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_usdd_pool_with_liquidity(15000000000, 1500000000000);
 
-        let amount_in = router::get_amount_in<USDT, USDC, Stable>(1);
+        let amount_in = router::get_amount_in<USDT, USDD, Stable>(1);
         assert!(amount_in == 102, 0);
     }
 
     #[test]
     fun test_stable_get_amount_in_5() {
-        let (_, _) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
+        let (_, _, _) = register_usdd_pool_with_liquidity(2930000000000, 293000000000000);
 
-        let amount_in = router::get_amount_in<USDT, USDC, Stable>(57212828231);
+        let amount_in = router::get_amount_in<USDT, USDD, Stable>(57212828231);
         assert!(amount_in == 5723593558779, 0);
     }
 
     #[test]
-    fun test_stable_get_amount_out() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+    fun test_stable_get_amount_out_0() {
+        let (_, _, _) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(674816);
-        assert!(amount_out == 67454699, 0);
+        std::debug::print(&amount_out);
+        assert!(amount_out == 674546, 0);
     }
 
     #[test]
@@ -829,31 +845,31 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_stable_get_amount_out_1() {
-        let (_, _) = register_stable_pool_with_liquidity(25000000000, 1500000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(2500000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(323859);
-        assert!(amount_out == 31376814, 0);
+        assert!(amount_out == 313769, 0);
     }
 
     #[test]
     fun test_stable_get_amount_out_2() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDC, USDT, Stable>(58201);
-        assert!(amount_out == 5817799, 0);
+        assert!(amount_out == 58177, 0);
     }
 
     #[test]
     fun test_stable_get_amount_out_3() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDT, USDC, Stable>(15000);
-        assert!(amount_out == 149, 0);
+        assert!(amount_out == 14993, 0);
     }
 
     #[test]
     fun test_stable_get_amount_out_4() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let amount_out = router::get_amount_out<USDT, USDC, Stable>(1);
         assert!(amount_out == 0, 0);
@@ -861,24 +877,20 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_stable_get_amount_out_5() {
-        let (_, _) = register_stable_pool_with_liquidity(2930000000000, 293000000000000);
+        let (_, _, _) = register_stable_pool_with_liquidity(293000000000000, 293000000000000);
 
         let amount_out = router::get_amount_out<USDT, USDC, Stable>(572123482812);
-        assert!(amount_out == 5718946312, 0);
+        assert!(amount_out == 571894631292, 0);
     }
 
     #[test]
     fun test_stable_curve_exact_swap_vice_vera_1() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
-
-        
+        let (_, coin_extended_admin, lp_user) = register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let usdt_to_get_val = 672790928312;
         let usdc_to_swap_val = router::get_amount_in<USDC, USDT, Stable>(usdt_to_get_val);
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let (usdc_reminder, usdt_swapped) = router::swap_coin_for_exact_coin<USDC, USDT, Stable>(
             usdc_to_swap,
             usdt_to_get_val,
@@ -887,25 +899,22 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdc_reminder) == 0, 1);
         assert!(coin::value(&usdt_swapped) == usdt_to_get_val, 2);
 
-        coin::register<USDC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<USDC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), usdc_reminder);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::deposit(signer::address_of(&lp_user), usdc_reminder);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
     fun test_stable_curve_exact_swap_vice_versa_2() {
-        let (coin_admin, lp_owner) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
-
-        
-
-        
+        let (_, coin_extended_admin, lp_user) =
+            register_stable_pool_with_liquidity(1500000000000, 1500000000000);
 
         let usdt_to_get_val = 672790928;
         let usdc_to_swap_val = router::get_amount_in<USDC, USDT, Stable>(usdt_to_get_val);
 
-        let usdc_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_to_swap_val);
+        let usdc_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_to_swap_val);
         let (usdc_reminder, usdt_swapped) = router::swap_coin_for_exact_coin<USDC, USDT, Stable>(
             usdc_to_swap,
             usdt_to_get_val,
@@ -914,11 +923,11 @@ module liquidswap::router_tests {
         assert!(coin::value(&usdc_reminder) == 0, 1);
         assert!(coin::value(&usdt_swapped) == usdt_to_get_val, 2);
 
-        coin::register<USDC>(&lp_owner);
-        coin::register<USDT>(&lp_owner);
+        coin::register<USDC>(&lp_user);
+        coin::register<USDT>(&lp_user);
 
-        coin::deposit(signer::address_of(&lp_owner), usdc_reminder);
-        coin::deposit(signer::address_of(&lp_owner), usdt_swapped);
+        coin::deposit(signer::address_of(&lp_user), usdc_reminder);
+        coin::deposit(signer::address_of(&lp_user), usdt_swapped);
     }
 
     #[test]
@@ -953,11 +962,11 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_get_decimals_scales_stables() {
-        let (_, _) = register_stable_pool_with_liquidity(15000000000, 1500000000000);
+        let (_, _, _) = register_usdd_pool_with_liquidity(15000000000, 1500000000000);
 
-        let (x, y) = router::get_decimals_scales<USDC, USDT, Stable>();
+        let (x, y) = router::get_decimals_scales<USDD, USDT, Stable>();
 
-        // USDC 4 decimals
+        // USDD 4 decimals
         assert!(x == 10000, 0);
         // USDT 6 decimals
         assert!(y == 1000000, 1);
@@ -979,7 +988,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
         let btc_coins_swap_val = 1;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_coins_swap_val);
         let usdt_amount_out = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_coins_swap_val);
 
         let usdt_coins = router::swap_coin_for_coin_unchecked<BTC, USDT, Uncorrelated>(
@@ -988,48 +997,49 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
-    fun test_stable_swap_coin_for_coin_unchecked() {
-        let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
+    fun test_stable_swap_coin_for_coin_unchecked_forward() {
+        let (coin_admin, coin_extended_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let usdc_coins_swap_val = 100;
-        let usdc_coins_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_coins_swap_val);
-        let usdt_amount_out = router::get_amount_out<USDC, USDT, Stable>(usdc_coins_swap_val);
+        let usdc_coins_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_coins_swap_val);
+        let usdc_amount_out = router::get_amount_out<USDC, USDT, Stable>(usdc_coins_swap_val);
 
         let usdt_coins = router::swap_coin_for_coin_unchecked<USDC, USDT, Stable>(
             usdc_coins_to_swap,
-            usdt_amount_out,
+            usdc_amount_out,
         );
-        assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
+        assert!(coin::value(&usdt_coins) == usdc_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     fun test_stable_swap_coin_for_coin_unchecked_reverse() {
-        let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
+        let (coin_admin, coin_extended_admin, _) =
+            register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let usdt_to_swap_val = 10000;
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
-        let usdt_amount_out = router::get_amount_out<USDT, USDC, Stable>(usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdc_amount_out = router::get_amount_out<USDT, USDC, Stable>(usdt_to_swap_val);
 
-        let usdt_coins = router::swap_coin_for_coin_unchecked<USDT, USDC, Stable>(
+        let usdc_coins = router::swap_coin_for_coin_unchecked<USDT, USDC, Stable>(
             usdt_to_swap,
-            usdt_amount_out,
+            usdc_amount_out,
         );
-        assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
+        assert!(coin::value(&usdc_coins) == usdc_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
     }
 
     #[test]
     fun test_swap_coin_for_coin_unchecked_reverse() {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
-        let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, 110);
+        let usdt_coins_to_swap = coins::mint<USDT>(&coin_admin, 110);
 
         let btc_coins = router::swap_coin_for_coin_unchecked<USDT, BTC, Uncorrelated>(
             usdt_coins_to_swap,
@@ -1037,7 +1047,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&btc_coins) == 1, 0);
 
-        test_coins::burn(&coin_admin, btc_coins);
+        coins::burn(&coin_admin, btc_coins);
     }
 
     #[test]
@@ -1045,7 +1055,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(1230000000, 147600000000);
 
         let btc_to_swap_val = 572123800;
-        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, btc_to_swap_val);
+        let btc_coins_to_swap = coins::mint<BTC>(&coin_admin, btc_to_swap_val);
 
         let usdt_to_get_val = router::get_amount_out<BTC, USDT, Uncorrelated>(btc_to_swap_val) - 1;
 
@@ -1055,7 +1065,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_to_get_val, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
@@ -1063,7 +1073,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let usdt_to_swap_val = 257817560;
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
 
         let btc_to_get_val = router::get_amount_out<USDT, BTC, Uncorrelated>(usdt_to_swap_val) - 134567;
 
@@ -1073,16 +1083,16 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == btc_to_get_val, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_fail_if_price_fell_behind_threshold_unchecked() {
-        let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
+        let (coin_admin, lp_user) = register_pool_with_liquidity(101, 10100);
 
         
-        let btc_coin_to_swap = test_coins::mint<BTC>(&coin_admin, 1);
+        let btc_coin_to_swap = coins::mint<BTC>(&coin_admin, 1);
 
         let usdt_coins =
             router::swap_coin_for_coin_unchecked<BTC, USDT, Uncorrelated>(
@@ -1090,17 +1100,17 @@ module liquidswap::router_tests {
                 102,
             );
 
-        coin::register<USDT>(&lp_owner);
-        coin::deposit(signer::address_of(&lp_owner), usdt_coins);
+        coin::register<USDT>(&lp_user);
+        coin::deposit(signer::address_of(&lp_user), usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked() {
-        let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
+        let (coin_admin, coin_extended_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let usdc_coins_swap_val = 100;
-        let usdc_coins_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_coins_swap_val);
+        let usdc_coins_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_coins_swap_val);
         let usdt_amount_out = router::get_amount_out<USDC, USDT, Stable>(usdc_coins_swap_val);
 
         let usdt_coins = router::swap_coin_for_coin_unchecked<USDC, USDT, Stable>(
@@ -1109,16 +1119,16 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1() {
-        let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
+        let (coin_admin, coin_extended_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let usdc_coins_swap_val = 999999;
-        let usdc_coins_to_swap = test_coins::mint<USDC>(&coin_admin, usdc_coins_swap_val);
+        let usdc_coins_to_swap = coins::mint<USDC>(&coin_extended_admin, usdc_coins_swap_val);
         let usdt_amount_out = router::get_amount_out<USDC, USDT, Stable>(usdc_coins_swap_val);
 
         let usdt_coins = router::swap_coin_for_coin_unchecked<USDC, USDT, Stable>(
@@ -1127,17 +1137,18 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == usdt_amount_out, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
     #[expected_failure(abort_code = 105)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2() {
-        let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
+        let (coin_admin, coin_extended_admin, _) =
+            register_stable_pool_with_liquidity(150000000, 15000000000);
 
         let usdc_coins_to_get = 999999;
         let usdt_coins_to_swap_val = router::get_amount_in<USDT, USDC, Stable>(usdc_coins_to_get);
-        let usdt_coins_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_coins_to_swap_val);
+        let usdt_coins_to_swap = coins::mint<USDT>(&coin_admin, usdt_coins_to_swap_val);
 
         let usdc_coins = router::swap_coin_for_coin_unchecked<USDT, USDC, Stable>(
             usdt_coins_to_swap,
@@ -1145,7 +1156,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdc_coins) == usdc_coins_to_get, 0);
 
-        test_coins::burn(&coin_admin, usdc_coins);
+        coins::burn(&coin_extended_admin, usdc_coins);
     }
 
     #[test]
@@ -1154,7 +1165,7 @@ module liquidswap::router_tests {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
         let usdt_to_swap_val = 257817560;
-        let usdt_to_swap = test_coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
+        let usdt_to_swap = coins::mint<USDT>(&coin_admin, usdt_to_swap_val);
 
         let btc_to_get_val = router::get_amount_out<USDT, BTC, Uncorrelated>(usdt_to_swap_val) + 1;
 
@@ -1164,7 +1175,7 @@ module liquidswap::router_tests {
         );
         assert!(coin::value(&usdt_coins) == btc_to_get_val, 0);
 
-        test_coins::burn(&coin_admin, usdt_coins);
+        coins::burn(&coin_admin, usdt_coins);
     }
 
     #[test]
@@ -1258,7 +1269,7 @@ module liquidswap::router_tests {
 
     #[test]
     fun test_fee_config_for_stable_curve() {
-        let (_, _) = register_stable_pool_with_liquidity(10000, 10000);
+        let (_, _, _) = register_stable_pool_with_liquidity(10000, 10000);
 
         let (fee, d) = router::get_fees_config<USDC, USDT, Stable>();
         assert!(fee == 4, 1);

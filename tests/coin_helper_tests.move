@@ -8,7 +8,10 @@ module liquidswap::coin_helper_tests {
 
     use liquidswap::coin_helper;
     use liquidswap::curves::{Uncorrelated, Stable};
-    use test_coin_admin::test_coins::{Self, BTC, USDT, create_coin_admin};
+    use test_coins::coins;
+    use aptos_framework::account;
+    use test_coins::coins::{BTC, USDT};
+    use liquidswap::test_pool;
 
     fun register_coins_for_lp_names(
         btc_name: vector<u8>,
@@ -16,8 +19,8 @@ module liquidswap::coin_helper_tests {
         usdt_name: vector<u8>,
         usdt_symbol: vector<u8>
     ) {
-        let coin_admin = create_coin_admin();
-        let (coin1_burn_cap, coin1_freeze_cap, coin1_mint_cap) =
+        let coin_admin = account::create_account_for_test(@test_coins);
+        let (burn_cap, freeze_cap, mint_cap) =
             coin::initialize<BTC>(
                 &coin_admin,
                 utf8(btc_name),
@@ -25,11 +28,11 @@ module liquidswap::coin_helper_tests {
                 6,
                 true
             );
-        coin::destroy_mint_cap(coin1_mint_cap);
-        coin::destroy_burn_cap(coin1_burn_cap);
-        coin::destroy_freeze_cap(coin1_freeze_cap);
+        coin::destroy_mint_cap(mint_cap);
+        coin::destroy_burn_cap(burn_cap);
+        coin::destroy_freeze_cap(freeze_cap);
 
-        let (coin2_burn_cap, coin2_freeze_cap, coin2_mint_cap) =
+        let (burn_cap, freeze_cap, mint_cap) =
             coin::initialize<USDT>(
                 &coin_admin,
                 utf8(usdt_name),
@@ -37,9 +40,9 @@ module liquidswap::coin_helper_tests {
                 8,
                 true
             );
-        coin::destroy_mint_cap(coin2_mint_cap);
-        coin::destroy_burn_cap(coin2_burn_cap);
-        coin::destroy_freeze_cap(coin2_freeze_cap);
+        coin::destroy_mint_cap(mint_cap);
+        coin::destroy_burn_cap(burn_cap);
+        coin::destroy_freeze_cap(freeze_cap);
     }
 
     fun generate_lp_name_and_symbol_for_coins<Curve>(): (String, String) {
@@ -50,19 +53,19 @@ module liquidswap::coin_helper_tests {
     fun test_end_to_end() {
         genesis::setup();
 
-        let coin_admin = test_coins::create_admin_with_coins();
+        let (coin_admin, _) = test_pool::register_test_coins();
 
         coin_helper::assert_is_coin<USDT>();
         coin_helper::assert_is_coin<BTC>();
 
-        let coins_minted = test_coins::mint<USDT>(&coin_admin, 1000000000);
+        let coins_minted = coins::mint<USDT>(&coin_admin, 1000000000);
 
         let usdt_supply = coin_helper::supply<USDT>();
         let btc_supply = coin_helper::supply<BTC>();
         assert!(usdt_supply == 1000000000, 0);
         assert!(btc_supply == 0, 1);
 
-        test_coins::burn(&coin_admin, coins_minted);
+        coins::burn(&coin_admin, coins_minted);
         usdt_supply = coin_helper::supply<USDT>();
         assert!(usdt_supply == 0, 2);
 
@@ -88,7 +91,7 @@ module liquidswap::coin_helper_tests {
     fun test_cant_be_same_coin_failure() {
         genesis::setup();
 
-        test_coins::create_admin_with_coins();
+        test_pool::register_test_coins();
 
         coin_helper::assert_is_coin<USDT>();
         let _ = coin_helper::is_sorted<USDT, USDT>();

@@ -19,7 +19,7 @@ liquidswap_emergency_account = "0x65f12ace6df9511f3b5b59c17ea5961808034965a439a9
 test_coin_admin = "0x11"
 test_helpers = "0x12"
 
-test_lp_owner = "0x12"
+test_lp_user = "0x12"
 test_pool_addr = "0x2540b6f8a87ac1cff2de9f5f742854b448cd4521e96f840eda05e63e4e944ed6"
 
 [dependencies.LiquidswapLP]
@@ -41,6 +41,7 @@ rev = "v0.3.7"
 git = "https://github.com/pontem-network/U256.git"
 rev = "v0.3.8"
 
-[dev-dependencies.TestCoins]
-git = "https://github.com/pontem-network/test-coins.git"
-rev = "v0.1.2"
+[dependencies.TestCoins]
+#git = "https://github.com/pontem-network/test-coins.git"
+#rev = "v0.1.2"
+local = "../test-coins"

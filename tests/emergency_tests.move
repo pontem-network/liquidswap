@@ -6,11 +6,16 @@ module liquidswap::emergency_tests {
 
     use liquidswap::emergency;
     use liquidswap::global_config;
-    use test_helpers::test_pool::{Self, create_liquidswap_admin};
+    use liquidswap::test_pool::initialize_liquidity_pool;
+
+    public fun create_liquidswap_admin(): signer {
+        let admin = account::create_account_for_test(@liquidswap);
+        admin
+    }
 
     #[test(emergency_acc = @emergency_admin, coin_admin = @test_coin_admin)]
     public fun test_end_to_end(emergency_acc: signer, coin_admin: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::assert_no_emergency();
         assert!(emergency::is_emergency() == false, 0);
@@ -42,7 +47,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @0x13)]
     #[expected_failure(abort_code = 4000)]
     public fun test_wrong_account_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
     }
@@ -50,7 +55,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     public fun test_emergency_second_time_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
         emergency::pause(&emergency_acc);
@@ -59,7 +64,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin, tmp = @0x13)]
     #[expected_failure(abort_code = 4000)]
     public fun test_resume_wrong_account_fails(emergency_acc: signer, tmp: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
         assert!(emergency::is_emergency() == true, 1);
@@ -69,7 +74,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4003)]
     public fun test_resume_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::resume(&emergency_acc);
     }
@@ -77,7 +82,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4001)]
     public fun test_emergency_assert_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
         emergency::assert_no_emergency();
@@ -85,14 +90,14 @@ module liquidswap::emergency_tests {
 
     #[test]
     public fun test_emergency_assert() {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::assert_no_emergency();
     }
 
     #[test(emergency_acc = @emergency_admin)]
     public fun test_is_emergency(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
         assert!(emergency::is_emergency() == true, 0);
@@ -102,7 +107,7 @@ module liquidswap::emergency_tests {
 
     #[test(emergency_acc = @emergency_admin)]
     public fun test_disable(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         assert!(emergency::is_disabled() == false, 0);
         emergency::disable_forever(&emergency_acc);
@@ -111,7 +116,7 @@ module liquidswap::emergency_tests {
 
     #[test(emergency_acc = @emergency_admin)]
     public fun test_disable_during_pause(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         assert!(emergency::is_disabled() == false, 0);
         emergency::pause(&emergency_acc);
@@ -122,7 +127,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4002)]
     public fun test_resume_after_disable_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::pause(&emergency_acc);
         emergency::disable_forever(&emergency_acc);
@@ -132,7 +137,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4002)]
     public fun test_pause_after_disable_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::disable_forever(&emergency_acc);
         emergency::pause(&emergency_acc);
@@ -141,7 +146,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @emergency_admin)]
     #[expected_failure(abort_code = 4002)]
     public fun test_disable_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::disable_forever(&emergency_acc);
         emergency::disable_forever(&emergency_acc);
@@ -150,7 +155,7 @@ module liquidswap::emergency_tests {
     #[test(emergency_acc = @0x13)]
     #[expected_failure(abort_code = 4000)]
     public fun test_disable_wrong_account_fails(emergency_acc: signer) {
-        test_pool::initialize_liquidity_pool();
+        initialize_liquidity_pool();
 
         emergency::disable_forever(&emergency_acc);
     }

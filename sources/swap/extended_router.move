@@ -20,11 +20,10 @@ module liquidswap::extended_router {
     ): Coin<Y> {
         let (zero, coin_out, coin_mid, zero_mid, coin_mid_val);
 
+        coin_mid_val = router::get_amount_out<X, Z, Curve1>(coin::value(&coin_in));
         if (coin_helper::is_sorted<X, Z>()) {
-            coin_mid_val = router::get_amount_out<X, Z, Curve1>(coin::value(&coin_in));
             (zero_mid, coin_mid) = liquidity_pool::swap<X, Z, Curve1>(coin_in, 0, coin::zero(), coin_mid_val);
         } else {
-            coin_mid_val = router::get_amount_out<Z, X, Curve1>(coin::value(&coin_in));
             (coin_mid, zero_mid) = liquidity_pool::swap<Z, X, Curve1>(coin::zero(), coin_mid_val, coin_in, 0);
         };
 

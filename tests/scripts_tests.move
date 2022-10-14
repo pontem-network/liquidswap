@@ -186,11 +186,11 @@ module liquidswap::scripts_tests {
         scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
-            950,
+            907,
         );
 
         assert!(coin::balance<BTC>(lp_owner_addr) == 0, 1);
-        assert!(coin::balance<USDT>(lp_owner_addr) == 700, 2);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
 
     }
 

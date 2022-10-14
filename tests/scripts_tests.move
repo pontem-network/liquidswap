@@ -171,4 +171,67 @@ module liquidswap::scripts_tests {
         assert!(coin::balance<BTC>(lp_owner_addr) == 2, 1);
         assert!(coin::balance<USDT>(lp_owner_addr) == 700, 2);
     }
+
+    #[test]
+    public entry fun test_unchecked_swap_common() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
+
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
+        coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            907,
+        );
+
+        assert!(coin::balance<BTC>(lp_owner_addr) == 0, 1);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
+
+    }
+
+    #[test]
+    public entry fun test_unchecked_swap_can_use_worse_price() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
+
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
+        coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            700,
+        );
+
+        assert!(coin::balance<BTC>(lp_owner_addr) == 0, 1);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 700, 2);
+
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 105)]
+    public entry fun test_unchecked_swap_fails_if_price_better_than_available_requested() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
+
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
+        coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            1100,
+        );
+    }
 }

@@ -137,4 +137,21 @@ module liquidswap::scripts {
         coin::deposit(account_addr, coin_x);
         coin::deposit(account_addr, coin_y);
     }
+
+    /// Swap `coin_in` of X for a `coin_out` of Y.
+    /// Does not check optimality of the swap, and fails if the `X` to `Y` price ratio cannot be satisfied.
+    /// * `coin_in` - how much of coins `X` to swap.
+    /// * `coin_out` - how much of coins `Y` should be returned.
+    public entry fun swap_unchecked<X, Y, Curve>(
+        account: &signer,
+        coin_in: u64,
+        coin_out: u64,
+    ) {
+        let coin_x = coin::withdraw<X>(account, coin_in);
+
+        let coin_y = router::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
+
+        let account_addr = signer::address_of(account);
+        coin::deposit(account_addr, coin_y);
+    }
 }

@@ -3,13 +3,13 @@ module liquidswap::router {
     // !!! FOR AUDITOR!!!
     // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
+    use liquidswap_lp::lp_coin::LP;
 
     use liquidswap::coin_helper::{Self, supply};
     use liquidswap::curves;
+    use liquidswap::liquidity_pool;
     use liquidswap::math;
     use liquidswap::stable_curve;
-    use liquidswap::liquidity_pool;
-    use liquidswap_lp::lp_coin::LP;
 
     // Errors codes.
 
@@ -439,7 +439,13 @@ module liquidswap::router {
                 (reserve_in as u128),
             ) as u64) + 1;
 
-            (coin_in * fee_scale / fee_multiplier) + 1
+            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_scale);
+            let coin_in_val = if (coin_in_val_scaled % (fee_multiplier as u128) != 0) {
+                (coin_in_val_scaled / (fee_multiplier as u128)) + 1
+            } else {
+                coin_in_val_scaled / (fee_multiplier as u128)
+            };
+            (coin_in_val as u64)
         } else if (curves::is_uncorrelated<Curve>()) {
             let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
 

@@ -35,7 +35,7 @@ module liquidswap::stable_curve {
 
         let _a = u256::mul(_x, _y);
 
-        // ((_x * _x) / 1e18 + (_y * _y) / 1e18)
+        // ((_x * _x) / 1e8 + (_y * _y) / 1e8)
         let _b = u256::add(
             u256::mul(_x, _x),
             u256::mul(_y, _y),
@@ -147,13 +147,11 @@ module liquidswap::stable_curve {
     }
 
     /// Trying to find suitable `y` value.
-    /// * `x0` - total reserve x (include `coin_in`) with transformed decimals.
+    /// * `x0` - total reserve x (include `coin_in`/exclude `coin_out`) with transformed decimals.
     /// * `xy` - lp value (see `lp_value` func).
-    /// * `y` - reserves out with transformed decimals.
+    /// * `y` - reserves y with transformed decimals.
     fun get_y(x0: U256, xy: U256, y: U256): U256 {
         let i = 0;
-
-        let one_u256 = u256::from_u128(1);
 
         while (i < 255) {
             let k = f(x0, y);
@@ -161,12 +159,9 @@ module liquidswap::stable_curve {
             let _dy = u256::zero();
             let cmp = u256::compare(&k, &xy);
             if (cmp == 1) {
-                _dy = u256::add(
-                    u256::div(
-                        u256::sub(xy, k),
-                        d(x0, y),
-                    ),
-                    one_u256    // Round up
+                _dy = u256::div(
+                    u256::sub(xy, k),
+                    d(x0, y),
                 );
                 y = u256::add(y, _dy);
             } else {
@@ -176,8 +171,8 @@ module liquidswap::stable_curve {
                 );
                 y = u256::sub(y, _dy);
             };
-            cmp = u256::compare(&_dy, &one_u256);
-            if (cmp == 0 || cmp == 1) {
+            cmp = u256::compare(&_dy, &u256::zero());
+            if (cmp == 0) {
                 return y
             };
 
@@ -187,24 +182,24 @@ module liquidswap::stable_curve {
         y
     }
 
-    /// Implements x0*y^3 + x0^3*y = x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18
+    /// Implements x0*y^3 + x0^3*y = x0*(y*y/1e8*y/1e8)/1e8+(x0*x0/1e8*x0/1e8)*y/1e8
     fun f(x0_u256: U256, y_u256: U256): U256 {
-        // x0*(y*y/1e18*y/1e18)/1e18
+        // x0*(y*y/1e8*y/1e8)/1e8
         let yy = u256::mul(y_u256, y_u256);
         let yyy = u256::mul(yy, y_u256);
 
-        let a = u256::mul(x0_u256, yyy);
+        let xyyy = u256::mul(x0_u256, yyy);
 
-        //(x0*x0/1e18*x0/1e18)*y/1e18
+        //(x0*x0/1e8*x0/1e8)*y/1e8
         let xx = u256::mul(x0_u256, x0_u256);
         let xxx = u256::mul(xx, x0_u256);
-        let b = u256::mul(xxx, y_u256);
+        let xxxy = u256::mul(xxx, y_u256);
 
         // a + b
-        u256::add(a, b)
+        u256::add(xyyy, xxxy)
     }
 
-    /// Implements 3 * x0 * y^2 + x0^3 = 3 * x0 * (y * y / 1e8) / 1e8 + (x0 * x0 / 1e8 * x0) / 1e8
+    /// Implements 3*x0*y^2 + x0^3 = 3*x0*(y*y/1e8)/1e8 + (x0*x0/1e8*x0)/1e8
     fun d(x0_u256: U256, y_u256: U256): U256 {
         let three_u256 = u256::from_u128(3);
 
@@ -212,9 +207,9 @@ module liquidswap::stable_curve {
         let x3 = u256::mul(three_u256, x0_u256);
         let yy = u256::mul(y_u256, y_u256);
         let xyy3 = u256::mul(x3, yy);
-        let xx = u256::mul(x0_u256, x0_u256);
 
         // x0 * x0 / 1e8 * x0 / 1e8
+        let xx = u256::mul(x0_u256, x0_u256);
         let xxx = u256::mul(xx, x0_u256);
 
         u256::add(xyy3, xxx)

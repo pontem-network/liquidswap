@@ -1358,4 +1358,24 @@ module liquidswap::router_tests {
 
         let _ = router::get_amount_in<BTC, USDT, Uncorrelated>(28000000000);
     }
+    
+    #[test]
+    #[expected_failure(abort_code = 208)]
+    fun test_add_liquidity_with_imbalanced_reserves() {
+        // 100 BTC, 28000 USDT
+        let (coin_admin, lp_owner) = register_pool_with_liquidity(1, 10000000);
+
+        coin::register<BTC>(&lp_owner);
+        coin::register<USDT>(&lp_owner);
+
+        let btc_in = test_coins::mint<BTC>(&coin_admin, 2658758714820000);
+        let usdt_in = test_coins::mint<USDT>(&coin_admin, 1000);
+        let (btc_out, usdt_out, lp_out) =
+            router::add_liquidity<BTC, USDT, Uncorrelated>(btc_in, 1, usdt_in, 1);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_out);
+        coin::deposit(lp_owner_addr, usdt_out);
+        coin::deposit(lp_owner_addr, lp_out);
+    }
 }

@@ -31,6 +31,11 @@ module liquidswap::router {
     const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 206;
     /// Marks the unreachable place in code
     const ERR_UNREACHABLE: u64 = 207;
+    /// Provided coins amount cannot be converted without the overflow at the current price
+    const ERR_COIN_CONVERSION_OVERFLOW: u64 = 208;
+
+    // Consts
+    const MAX_U64: u128 = 18446744073709551615;
 
     // Public functions.
 
@@ -294,7 +299,8 @@ module liquidswap::router {
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price
-        let res = math::mul_div(coin_in, reserve_out, reserve_in);
+        let res = (coin_in as u128) * (reserve_out as u128) / (reserve_in as u128);
+        assert!(res <= MAX_U64, ERR_COIN_CONVERSION_OVERFLOW);
         (res as u64)
     }
 

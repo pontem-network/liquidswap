@@ -1,0 +1,6 @@
+[package]
+name = 'LiquidswapRouterV2'
+version = '1.0.0'
+
+[dependencies.Liquidswap]
+local = ".."

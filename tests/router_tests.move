@@ -1308,4 +1308,54 @@ module liquidswap::router_tests {
     fun test_get_dao_fee_fail_if_pool_does_not_exists() {
         router::get_dao_fee<BTC, USDT, Uncorrelated>();
     }
+
+    #[test]
+    fun test_get_amount_out_does_not_overflow_on_liquidity_close_to_u64_max() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(2658758714820000, 28000000000);
+
+        let _ = router::get_amount_out<BTC, USDT, Uncorrelated>(1);
+    }
+
+    #[test]
+    fun test_get_amount_out_does_not_overflow_on_coin_in_close_to_u64_max() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(2658758, 280000);
+
+        let _ = router::get_amount_out<BTC, USDT, Uncorrelated>(2658758714820000);
+    }
+
+    #[test]
+    fun test_get_amount_in_does_not_overflow_on_liquidity_x_close_to_u64_max() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(2658758714820000, 28000000000);
+
+        let _ = router::get_amount_in<BTC, USDT, Uncorrelated>(1);
+    }
+
+    #[test]
+    fun test_get_amount_in_does_not_overflow_on_liquidity_y_close_to_u64_max() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(28000000000, 2658758714820000);
+
+        let _ = router::get_amount_in<BTC, USDT, Uncorrelated>(1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 202)]
+    fun test_get_amount_in_aborts_if_coin_out_bigger_than_reserves() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(28000000000, 28000000000);
+
+        let _ = router::get_amount_in<BTC, USDT, Uncorrelated>(2658758714820000);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 202)]
+    fun test_get_amount_in_if_coin_out_exactly_equals_reserve_out() {
+        // 100 BTC, 28000 USDT
+        let (_, _) = register_pool_with_liquidity(28000000000, 28000000000);
+
+        let _ = router::get_amount_in<BTC, USDT, Uncorrelated>(28000000000);
+    }
 }

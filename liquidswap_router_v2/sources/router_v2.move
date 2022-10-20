@@ -1,7 +1,5 @@
-/// Router for Liquidity Pool, similar to Uniswap router.
+/// Router v2 for Liquidity Pool, similar to Uniswap router.
 module liquidswap::router_v2 {
-    // !!! FOR AUDITOR!!!
-    // Look at math part of this contract.
     use aptos_framework::coin::{Coin, Self};
 
     use liquidswap::coin_helper::{Self, supply};
@@ -444,8 +442,6 @@ module liquidswap::router_v2 {
         let reserve_out_u128 = (reserve_out as u128);
 
         if (curves::is_stable<Curve>()) {
-            // !!!FOR AUDITOR!!!
-            // Double check it.
             let coin_in = (stable_curve::coin_in(
                 coin_out_u128,
                 scale_out,

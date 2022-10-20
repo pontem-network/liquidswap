@@ -31,8 +31,11 @@ jobs:
       - name: Build
         run: aptos move compile
 
-      - name: Test
+      - name: Test Liquidswap
         run: aptos move test
+
+      - name: Test LiquidswapRouterV2
+        run: aptos move test --package-dir ./liquidswap_router_v2
 
       - name: Prove math.move
         run: aptos move prove --filter math

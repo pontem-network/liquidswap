@@ -372,8 +372,11 @@ module liquidswap::router {
         let fee_multiplier = fee_scale - fee_pct;
 
         if (curves::is_stable<Curve>()) {
-            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_multiplier);
-            let coin_in_val_after_fees = (coin_in_val_scaled - 1) / (fee_scale as u128) + 1;
+            let coin_in_val_after_fees = math::mul_div_up_u128(
+                (coin_in as u128),
+                (fee_multiplier as u128),
+                (fee_scale as u128)
+            );
 
             (stable_curve::coin_out(
                 (coin_in_val_after_fees as u128),
@@ -427,28 +430,20 @@ module liquidswap::router {
         if (curves::is_stable<Curve>()) {
             // !!!FOR AUDITOR!!!
             // Double check it.
-            let coin_in = (stable_curve::coin_in(
+            let coin_in = stable_curve::coin_in(
                 (coin_out as u128),
                 scale_out,
                 scale_in,
                 (reserve_out as u128),
                 (reserve_in as u128),
-            ) as u64) + 1;
+            );
 
-            let coin_in_val_scaled = math::mul_to_u128(coin_in, fee_scale);
-            let coin_in_val = (coin_in_val_scaled - 1) / (fee_multiplier as u128) + 1;
-
-            (coin_in_val as u64)
+            math::mul_div_up_u128(coin_in, (fee_scale as u128), (fee_multiplier as u128))
         } else if (curves::is_uncorrelated<Curve>()) {
-            let new_reserves_out = (reserve_out - coin_out) * fee_multiplier;
+            let new_reserves_out = (((reserve_out - coin_out) * fee_multiplier) as u128);
 
             // coin_out * reserve_in * fee_scale / new reserves out
-            let coin_in = math::mul_div(
-                coin_out, // y
-                reserve_in * fee_scale,
-                new_reserves_out
-            ) + 1;
-            coin_in
+            math::mul_div_up_u128((coin_out as u128), ((reserve_in * fee_scale) as u128), new_reserves_out)
         } else {
             abort ERR_UNREACHABLE
         }

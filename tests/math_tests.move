@@ -27,6 +27,18 @@ module liquidswap::math_tests {
     }
 
     #[test]
+    fun test_mul_div_up_u128() {
+        let a = math::mul_div_up_u128((MAX_u64 as u128), (MAX_u64 as u128), (MAX_u64 as u128));
+        assert!(a == MAX_u64, 0);
+
+        a = math::mul_div_up_u128((MAX_u64 as u128) * 2, 2, (MAX_u64 as u128));
+        assert!(a == 4, 1);
+
+        a = math::mul_div_up_u128(100, 20, 99);
+        assert!(a == 21, 2);
+    }
+
+    #[test]
     #[expected_failure(abort_code = 2000)]
     fun test_mul_div_zero() {
         let _ = math::mul_div(10, 20, 0);
@@ -36,6 +48,12 @@ module liquidswap::math_tests {
     #[expected_failure(abort_code = 2000)]
     fun test_mul_div_u128_zero() {
         let _ = math::mul_div_u128(10, 20, 0);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 2000)]
+    fun test_mul_div_up_u128_zero() {
+        let _ = math::mul_div_up_u128(10, 20, 0);
     }
 
     #[test]

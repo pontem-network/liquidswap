@@ -41,6 +41,14 @@ module liquidswap::math {
         (r as u64)
     }
 
+    /// Implements: (`x` * `y` - 1) / `z` + 1.
+    /// Rounds up return value
+    public fun mul_div_up_u128(x: u128, y: u128, z: u128): u64 {
+        assert!(z != 0, ERR_DIVIDE_BY_ZERO);
+        let r = (x * y - 1) / z + 1;
+        (r as u64)
+    }
+
     /// Multiple two u64 and get u128, e.g. ((`x` * `y`) as u128).
     public fun mul_to_u128(x: u64, y: u64): u128 {
         (x as u128) * (y as u128)

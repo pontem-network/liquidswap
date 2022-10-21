@@ -81,7 +81,7 @@ module liquidswap::stable_curve {
         let total_reserve = u256::add(amount_in, reserve_in_u256);
         let y = u256::sub(
             reserve_out_u256,
-            get_y(total_reserve, xy, reserve_out_u256),
+            get_y_out(total_reserve, xy, reserve_out_u256),
         );
 
         let r = u256::div(
@@ -132,10 +132,10 @@ module liquidswap::stable_curve {
 
         let total_reserve = u256::sub(reserve_out_u256, amount_out);
         let x = u256::sub(
-            get_y(total_reserve, xy, reserve_in_u256),
+            get_y_in(total_reserve, xy, reserve_in_u256),
             reserve_in_u256,
         );
-        let r = u256::div(
+        let r = div_up_u256(
             u256::mul(
                 x,
                 u256::from_u64(scale_in),
@@ -146,11 +146,11 @@ module liquidswap::stable_curve {
         u256::as_u128(r)
     }
 
-    /// Trying to find suitable `y` value.
-    /// * `x0` - total reserve x (include `coin_in`/exclude `coin_out`) with transformed decimals.
+    /// Trying to find suitable `y` value for coin_out.
+    /// * `x0` - total reserve x (include `coin_in`) with transformed decimals.
     /// * `xy` - lp value (see `lp_value` func).
     /// * `y` - reserves y with transformed decimals.
-    fun get_y(x0: U256, xy: U256, y: U256): U256 {
+    fun get_y_out(x0: U256, xy: U256, y: U256): U256 {
         let i = 0;
 
         while (i < 255) {
@@ -173,6 +173,36 @@ module liquidswap::stable_curve {
             };
             cmp = u256::compare(&_dy, &u256::zero());
             if (cmp == 0) {
+                return y
+            };
+
+            i = i + 1;
+        };
+
+        y
+    }
+
+    /// Trying to find suitable `y` value for coin_in.
+    /// * `x0` - total reserve x (exclude `coin_out`) with transformed decimals.
+    /// * `xy` - lp value (see `lp_value` func).
+    /// * `y` - reserves y with transformed decimals.
+    fun get_y_in(x0: U256, xy: U256, y: U256): U256 {
+        let i = 0;
+
+        while (i < 255) {
+            let k = f(x0, y);
+
+            let _dy = u256::zero();
+            let cmp = u256::compare(&k, &xy);
+            if (cmp == 1) {
+                _dy = div_up_u256(u256::sub(xy, k), d(x0, y));
+                y = u256::add(y, _dy);
+            } else {
+                _dy = div_up_u256(u256::sub(k, xy), d(x0, y));
+                y = u256::sub(y, _dy);
+            };
+            cmp = u256::compare(&_dy, &u256::from_u128(1));
+            if (cmp == 0 || cmp == 1) {
                 return y
             };
 
@@ -215,6 +245,20 @@ module liquidswap::stable_curve {
         u256::add(xyy3, xxx)
     }
 
+    /// Implements: (`x` - 1) / `y` + 1.
+    /// Rounds up return value
+    fun div_up_u256(x: U256, y: U256): U256 {
+        let one_u256 = u256::from_u128(1);
+
+        u256::add(
+            u256::div(
+                u256::sub(x, one_u256),
+                y,
+            ),
+            one_u256,
+        )
+    }
+
     #[test]
     fun test_coin_out() {
         let out = coin_out(
@@ -248,7 +292,7 @@ module liquidswap::stable_curve {
             2558285805075701,
             25582858050757
         );
-        assert!(in == 2513058000, 0);
+        assert!(in == 2513058001, 0);
     }
 
     #[test]

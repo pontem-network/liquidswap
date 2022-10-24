@@ -37,5 +37,8 @@ jobs:
       - name: Test LiquidswapRouterV2
         run: aptos move test --package-dir ./liquidswap_router_v2
 
+      - name: Test LiquidswapRouterV3
+        run: aptos move test --package-dir ./liquidswap_router_v3
+
       - name: Prove math.move
         run: aptos move prove --filter math

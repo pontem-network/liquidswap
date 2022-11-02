@@ -6,6 +6,7 @@ module liquidswap::router_v3 {
     use liquidswap::coin_helper::{Self, supply};
     use liquidswap::curves;
     use liquidswap::liquidity_pool;
+    use liquidswap::math;
     use liquidswap::math_v2;
     use liquidswap::stable_curve_v2;
 
@@ -29,6 +30,11 @@ module liquidswap::router_v3 {
     const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 206;
     /// Marks the unreachable place in code
     const ERR_UNREACHABLE: u64 = 207;
+    /// Provided coins amount cannot be converted without the overflow at the current price
+    const ERR_COIN_CONVERSION_OVERFLOW: u64 = 208;
+
+    // Consts
+    const MAX_U64: u128 = 18446744073709551615;
 
     // Public functions.
 
@@ -292,7 +298,8 @@ module liquidswap::router_v3 {
 
         // exchange_price = reserve_out / reserve_in_size
         // amount_returned = coin_in_val * exchange_price
-        let res = math_v2::mul_div(coin_in, reserve_out, reserve_in);
+        let res = (coin_in as u128) * (reserve_out as u128) / (reserve_in as u128);
+        assert!(res <= MAX_U64, ERR_COIN_CONVERSION_OVERFLOW);
         (res as u64)
     }
 
@@ -305,8 +312,8 @@ module liquidswap::router_v3 {
         let (x_reserve, y_reserve) = get_reserves_size<X, Y, Curve>();
         let lp_coins_total = supply<LP<X, Y, Curve>>();
 
-        let x_to_return_val = math_v2::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
-        let y_to_return_val = math_v2::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
+        let x_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (x_reserve as u128), lp_coins_total);
+        let y_to_return_val = math::mul_div_u128((lp_to_burn_val as u128), (y_reserve as u128), lp_coins_total);
 
         assert!(x_to_return_val > 0 && y_to_return_val > 0, ERR_WRONG_AMOUNT);
 
@@ -387,13 +394,13 @@ module liquidswap::router_v3 {
                 reserve_out_u128
             )
         } else if (curves::is_uncorrelated<Curve>()) {
-            let coin_in_val_after_fees = math_v2::mul_to_u128(coin_in, fee_multiplier);
-            let new_reserve_in = math_v2::mul_to_u128(reserve_in, fee_scale) + coin_in_val_after_fees;
+            let coin_in_val_after_fees = math::mul_to_u128(coin_in, fee_multiplier);
+            let new_reserve_in = math::mul_to_u128(reserve_in, fee_scale) + coin_in_val_after_fees;
 
             // Multiply coin_in by the current exchange rate:
             // current_exchange_rate = reserve_out / reserve_in
             // amount_in_after_fees * current_exchange_rate -> amount_out
-            math_v2::mul_div_u128(coin_in_val_after_fees,
+            math::mul_div_u128(coin_in_val_after_fees,
                 reserve_out_u128,
                 new_reserve_in)
         } else {

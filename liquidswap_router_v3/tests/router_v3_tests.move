@@ -1343,7 +1343,7 @@ module liquidswap::router_v3_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 2001)]
+    #[expected_failure(abort_code=208)]
     fun test_add_liquidity_with_imbalanced_reserves() {
         // 100 BTC, 28000 USDT
         let (coin_admin, lp_owner) = register_pool_with_liquidity(1, 10000000);

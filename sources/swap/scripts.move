@@ -3,18 +3,20 @@ module liquidswap::scripts {
     use std::signer;
 
     use aptos_framework::coin;
-
-    use liquidswap::router;
     use liquidswap_lp::lp_coin::LP;
 
+    use liquidswap::router;
+
     /// Register a new liquidity pool for `X`/`Y` pair.
+    /// * `econia_market_id` - market id with the same assets(X and Y) in Econia.
     ///
     /// Note: X, Y generic coin parameters must be sorted.
-    public entry fun register_pool<X, Y, Curve>(account: &signer) {
-        router::register_pool<X, Y, Curve>(account);
+    public entry fun register_pool<X, Y, Curve>(account: &signer, econia_market_id: u64) {
+        router::register_pool<X, Y, Curve>(account, econia_market_id);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
+    /// * `econia_market_id` - market id with the same assets(X and Y) in Econia.
     /// * `coin_x_val` - amount of coin `X` to add as liquidity.
     /// * `coin_x_val_min` - minimum amount of coin `X` to add as liquidity (slippage).
     /// * `coin_y_val` - minimum amount of coin `Y` to add as liquidity.
@@ -23,12 +25,13 @@ module liquidswap::scripts {
     /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool_and_add_liquidity<X, Y, Curve>(
         account: &signer,
+        econia_market_id: u64,
         coin_x_val: u64,
         coin_x_val_min: u64,
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        router::register_pool<X, Y, Curve>(account);
+        router::register_pool<X, Y, Curve>(account, econia_market_id);
         add_liquidity<X, Y, Curve>(
             account,
             coin_x_val,

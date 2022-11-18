@@ -2,10 +2,18 @@
 module liquidswap::econia_tests {
     use std::signer;
 
+    use aptos_framework::coin;
+    use aptos_framework::timestamp;
+    use liquidswap_lp::lp_coin::LP;
+
     use econia::market;
     use econia::registry;
     use econia::user;
+    use liquidswap::coin_helper;
+    use liquidswap::curves::Uncorrelated;
+    use liquidswap::liquidity_pool;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
+    use test_helpers::test_pool;
 
     /// Ask flag
     const ASK: bool = true;
@@ -17,6 +25,12 @@ module liquidswap::econia_tests {
     const HI_64: u64 = 0xffffffffffffffff;
     /// Custodian ID flag for no delegated custodian
     const NO_CUSTODIAN: u64 = 0;
+
+    fun setup_btc_usdt_pool(): (signer, signer) {
+        let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
+        liquidity_pool::register<BTC, USDT, Uncorrelated>(&lp_owner, 0);
+        (coin_admin, lp_owner)
+    }
 
     // Market parameters
     #[test_only]
@@ -42,13 +56,13 @@ module liquidswap::econia_tests {
     #[test_only]
     const USER_3_GENERAL_CUSTODIAN_ID: u64 = 5;
     #[test_only]
-    const USER_0_START_BASE: u64 =  1000000000000;
+    const USER_0_START_BASE: u64 = 1000000000000;
     #[test_only]
-    const USER_1_START_BASE: u64 =  2000000000000;
+    const USER_1_START_BASE: u64 = 2000000000000;
     #[test_only]
-    const USER_2_START_BASE: u64 =  3000000000000;
+    const USER_2_START_BASE: u64 = 3000000000000;
     #[test_only]
-    const USER_3_START_BASE: u64 =  4000000000000;
+    const USER_3_START_BASE: u64 = 4000000000000;
     #[test_only]
     const USER_0_START_QUOTE: u64 = 1500000000000;
     #[test_only]
@@ -64,11 +78,11 @@ module liquidswap::econia_tests {
     #[test_only]
     const USER_3_ASK_PRICE: u64 = 12;
     #[test_only]
-    const USER_1_BID_PRICE: u64 =  5;
+    const USER_1_BID_PRICE: u64 = 5;
     #[test_only]
-    const USER_2_BID_PRICE: u64 =  4;
+    const USER_2_BID_PRICE: u64 = 4;
     #[test_only]
-    const USER_3_BID_PRICE: u64 =  3;
+    const USER_3_BID_PRICE: u64 = 3;
     #[test_only]
     const USER_1_ASK_SIZE: u64 = 9;
     #[test_only]
@@ -94,7 +108,7 @@ module liquidswap::econia_tests {
     /// Return size and price for end-to-end orders on given `side`.
     fun get_end_to_end_orders_size_price_test(
         side: bool
-    ) : (
+    ): (
         u64,
         u64,
         u64,
@@ -257,5 +271,48 @@ module liquidswap::econia_tests {
         // Destroy coins
         test_coins::burn(&coin_admin, base_coins);
         test_coins::burn(&coin_admin, quote_coins);
+    }
+
+    #[test]
+    fun test_add_liquidity_to_empty_pool_and_econia() {
+        let (coin_admin, lp_owner) = setup_btc_usdt_pool();
+
+        let btc_liq_val = 100000000;
+        let usdt_liq_val = 28000000000;
+        let btc_liq = test_coins::mint<BTC>(&coin_admin, btc_liq_val);
+        let usdt_liq = test_coins::mint<USDT>(&coin_admin, usdt_liq_val);
+
+        timestamp::fast_forward_seconds(1660338836);
+
+        let lp_coins =
+            liquidity_pool::mint<BTC, USDT, Uncorrelated>(btc_liq, usdt_liq);
+
+        let expected_liquidity = 1673320053 / 2 - 1000;
+        assert!(coin::value(&lp_coins) == expected_liquidity, 0);
+        assert!(coin_helper::supply<LP<BTC, USDT, Uncorrelated>>() == (expected_liquidity as u128), 1);
+
+        let (x_res, y_res) = liquidity_pool::get_reserves_size<BTC, USDT, Uncorrelated>();
+        assert!(x_res == btc_liq_val / 2, 2);
+        assert!(y_res == usdt_liq_val / 2, 3);
+
+        let (x_price, y_price, ts) = liquidity_pool::get_cumulative_prices<BTC, USDT, Uncorrelated>();
+        assert!(x_price == 0, 4);
+        assert!(y_price == 0, 5);
+        assert!(ts == 1660338836, 6);
+
+        coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
+        coin::deposit(signer::address_of(&lp_owner), lp_coins);
+
+        let market_account_id = user::get_market_account_id(0, 0);
+        let (base_total, base_available, base_ceiling,
+            quote_total, quote_available, quote_ceiling) =
+            user::get_asset_counts_test(@liquidswap_pool_account, market_account_id);
+
+        assert!(base_total == btc_liq_val / 2, 7);
+        assert!(base_available == btc_liq_val / 2, 8);
+        assert!(base_ceiling == btc_liq_val / 2, 9);
+        assert!(quote_total == usdt_liq_val / 2, 10);
+        assert!(quote_available == usdt_liq_val / 2, 11);
+        assert!(quote_ceiling == usdt_liq_val / 2, 12);
     }
 }

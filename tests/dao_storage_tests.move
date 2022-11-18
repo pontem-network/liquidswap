@@ -7,12 +7,12 @@ module liquidswap::dao_storage_tests {
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::dao_storage;
+    use liquidswap::global_config;
     use liquidswap::liquidity_pool;
     use liquidswap::router;
     use test_coin_admin::test_coins::{Self, BTC, USDT};
     use test_helpers::test_account::create_account;
     use test_helpers::test_pool;
-    use liquidswap::global_config;
 
     #[test]
     fun test_register() {
@@ -143,7 +143,7 @@ module liquidswap::dao_storage_tests {
         create_account(&dao_admin_acc);
 
         // 0.3% fee
-        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner, 0);
 
         let btc_coins = test_coins::mint<BTC>(&coin_admin, 100000);
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 100000);

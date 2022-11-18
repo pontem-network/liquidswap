@@ -7,9 +7,11 @@ module test_helpers::test_pool {
     use aptos_framework::genesis;
     use liquidswap_lp::lp_coin::LP;
 
+    use econia::market;
+    use econia::registry;
     use liquidswap::liquidity_pool;
     use liquidswap::lp_account;
-    use test_coin_admin::test_coins;
+    use test_coin_admin::test_coins::{Self, BTC, USDT, USDC};
 
     public fun create_lp_owner(): signer {
         let pool_owner = account::create_account_for_test(@test_lp_owner);
@@ -48,6 +50,14 @@ module test_helpers::test_pool {
 
         let coin_admin = test_coins::create_admin_with_coins();
         let lp_owner = create_lp_owner();
+
+        let econia = account::create_account_for_test(@econia);
+        registry::init_registry(&econia); // Initialize registry
+
+        // Register market accordingly
+        market::register_market_pure_coin<BTC, USDT>(&econia, 10, 25);
+        market::register_market_pure_coin<USDC, USDT>(&econia, 10, 25);
+
         (coin_admin, lp_owner)
     }
 

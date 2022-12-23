@@ -9,9 +9,6 @@ test_user = "0x555"
 [dependencies.Liquidswap]
 local = ".."
 
-[dependencies.LiquidswapRouterV2]
-local = "../liquidswap_router_v2"
-
 [dependencies.Econia]
 git = "https://github.com/econia-labs/econia.git"
 rev = "main"

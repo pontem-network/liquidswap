@@ -18,7 +18,7 @@ module router_v4::router_v4_tests {
     use liquidswap_lp::lp_coin::LP;
     use test_helpers::test_pool;
 
-    const ONE_BTC_COIN: u64 = 1000000;
+    const ONE_BTC_COIN: u64 = 100000000;
 
     const ONE_USDT_COIN: u64 = 1000000;
 
@@ -40,13 +40,13 @@ module router_v4::router_v4_tests {
 
     struct USDT {}
 
-    fun initialize_coin<CoinType>(admin: &signer) {
+    fun initialize_coin<CoinType>(admin: &signer, decimals: u8) {
         let coin_typeinfo = type_info::type_of<CoinType>();
         managed_coin::initialize<CoinType>(
             admin,
             type_info::struct_name(&coin_typeinfo),
             type_info::struct_name(&coin_typeinfo),
-            6,
+            decimals,
             true
         );
     }
@@ -81,28 +81,32 @@ module router_v4::router_v4_tests {
         };
     }
 
-    // fun mint_coin<CoinType>(admin: &signer, amount: u64): Coin<CoinType> acquires Caps {
-    //     let caps = borrow_global<Caps<CoinType>>(signer::address_of(admin));
-    //     coin::mint(amount, &caps.mint)
-    // }
+    fun register_market<Base, Quote>(econia: &signer, lot_size: u64, tick_size: u64): u64 {
+        let utility_coins = assets::mint<UC>(econia, 2000 * ONE_UC_COIN);
+        let market_id =
+            market::register_market_base_coin<BTC, USDT, UC>(lot_size, tick_size, 1, utility_coins);
+        registry::set_recognized_market(econia, market_id);
+        market_id
+    }
 
     #[test]
-    fun test_swap_e2e() {
+    fun test_swap_usdt_to_btc() {
         market::init_test();
         test_pool::initialize_liquidity_pool();
 
         let router_v4_admin = account::create_account_for_test(@router_v4);
-        initialize_coin<BTC>(&router_v4_admin);
-        initialize_coin<USDT>(&router_v4_admin);
+        initialize_coin<BTC>(&router_v4_admin, 8);
+        initialize_coin<USDT>(&router_v4_admin, 6);
 
         let econia = create_signer(@econia);
-        let utility_coins = assets::mint<UC>(&econia, 2000 * ONE_UC_COIN);
-        let market_id =
-            market::register_market_base_coin<BTC, USDT, UC>(1 * ONE_BTC_COIN, 1, 1, utility_coins);
-        registry::set_recognized_market(&econia, market_id);
+        // 0.01
+        let lot_size = 1000000;
+        // 0.01
+        let tick_size = 10000;
+        let market_id = register_market<BTC, USDT>(&econia, lot_size, tick_size);
 
-        // 175 BTC/USDT
-        register_pool_with_liquidity(100 * ONE_BTC_COIN, 17500 * ONE_USDT_COIN);
+        // 125 BTC/USDT
+        register_pool_with_liquidity(1000 * ONE_BTC_COIN, 125000 * ONE_USDT_COIN);
 
         let market_user = account::create_account_for_test(@test_user);
         user::register_market_account<BTC, USDT>(&market_user, market_id, NO_CUSTODIAN);
@@ -113,9 +117,6 @@ module router_v4::router_v4_tests {
         let usdt_coins = mint_coins<USDT>(&router_v4_admin, 100000 * ONE_USDT_COIN);
         user::deposit_coins(@test_user, market_id, NO_CUSTODIAN, usdt_coins);
 
-        // bid: I want to sell BTC and willing to do it for at least this price
-        // ask: I want to buy BTC and willing to pay at most this price
-
         // to sell 1 BTC for 100 BTC/USDT
         let (_, _, _, _) =
             market::place_limit_order_user<BTC, USDT>(
@@ -123,7 +124,7 @@ module router_v4::router_v4_tests {
                 market_id,
                 @econia,
                 ASK,
-                1,
+                100,
                 100,
                 NO_RESTRICTION,
             );
@@ -134,31 +135,88 @@ module router_v4::router_v4_tests {
                 market_id,
                 @econia,
                 ASK,
-                2,
-                150 * ONE_USDT_COIN,
+                200,
+                150,
                 NO_RESTRICTION,
             );
-        // sell 3 BTC for 250 BTC/USDT
+
+        let usdts = mint_coins<USDT>(&router_v4_admin, 170 * ONE_USDT_COIN);
+        // 170 USDT:
+        // 1. 100 USDT swapped from orderbook with price 100 BTC/USDT, giving 1 BTC
+        // 2. remaining 70 USDT swapped with pool with price ~125 BTC/USDT, giving ~0.56 BTC
+        let btcs_swapped =
+            router_v4::swap_exact_coin_for_coin_with_orderbook<USDT, BTC, Uncorrelated>(
+                usdts,
+                120000000,  // 1.2 BTC
+            );
+        assert!(coin::value(&btcs_swapped) == 155761009, 1);
+
+        coin::register<BTC>(&market_user);
+        coin::deposit(@test_user, btcs_swapped);
+    }
+
+    #[test]
+    fun test_swap_btc_to_usdt() {
+        market::init_test();
+        test_pool::initialize_liquidity_pool();
+
+        let router_v4_admin = account::create_account_for_test(@router_v4);
+        initialize_coin<BTC>(&router_v4_admin, 8);
+        initialize_coin<USDT>(&router_v4_admin, 6);
+
+        let econia = create_signer(@econia);
+        // 0.01
+        let lot_size = 1000000;
+        // 0.01
+        let tick_size = 10000;
+        let market_id = register_market<BTC, USDT>(&econia, lot_size, tick_size);
+
+        // 125 BTC/USDT
+        register_pool_with_liquidity(1000 * ONE_BTC_COIN, 125000 * ONE_USDT_COIN);
+
+        let market_user = account::create_account_for_test(@test_user);
+        user::register_market_account<BTC, USDT>(&market_user, market_id, NO_CUSTODIAN);
+
+        let btc_coins = mint_coins<BTC>(&router_v4_admin, 100 * ONE_BTC_COIN);
+        user::deposit_coins(@test_user, market_id, NO_CUSTODIAN, btc_coins);
+
+        let usdt_coins = mint_coins<USDT>(&router_v4_admin, 100000 * ONE_USDT_COIN);
+        user::deposit_coins(@test_user, market_id, NO_CUSTODIAN, usdt_coins);
+
+        // to sell 1 BTC for 150 BTC/USDT
         let (_, _, _, _) =
             market::place_limit_order_user<BTC, USDT>(
                 &market_user,
                 market_id,
                 @econia,
-                ASK,
-                3,
-                250 * ONE_USDT_COIN,
+                BID,
+                100,
+                150,
+                NO_RESTRICTION,
+            );
+        // sell 2 BTC for 100 BTC/USDT
+        let (_, _, _, _) =
+            market::place_limit_order_user<BTC, USDT>(
+                &market_user,
+                market_id,
+                @econia,
+                BID,
+                200,
+                100,
                 NO_RESTRICTION,
             );
 
-        let usdts = mint_coins<USDT>(&router_v4_admin, 180 * ONE_USDT_COIN);
-        // 1_015_076
-        let btcs_swapped =
-            router_v4::swap_exact_coin_for_coin_with_orderbook<USDT, BTC, Uncorrelated>(
-                usdts,
-                1 * ONE_BTC_COIN,
+        // 150 USDT from 1 BTC (orderbook)
+        // ~62 USDT from 0.5 BTC (swap)
+        let btcs = mint_coins<BTC>(&router_v4_admin, 150000000);  // 1.5 BTC
+        let usdts_swapped =
+            router_v4::swap_exact_coin_for_coin_with_orderbook<BTC, USDT, Uncorrelated>(
+                btcs,
+                180 * ONE_USDT_COIN,
             );
+        assert!(coin::value(&usdts_swapped) == 212206452, 1);
 
-        coin::register<BTC>(&market_user);
-        coin::deposit(@test_user, btcs_swapped);
+        coin::register<USDT>(&market_user);
+        coin::deposit(@test_user, usdts_swapped);
     }
 }

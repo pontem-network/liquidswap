@@ -180,7 +180,7 @@ module liquidswap::router_v4 {
             let (market_id, lot_size, tick_size, _, _) =
                 registry::get_recognized_market_info_base_coin_by_type<Y, X>();
 
-            let price_per_lot = get_price_per_lot<Y, X>(expected_coin_y_amount, coin_x_amount, lot_size, tick_size);
+            let price_per_lot = get_price_in_ticks_per_lot<Y, X>(expected_coin_y_amount, coin_x_amount, lot_size, tick_size);
 
             let (coin_y, coin_x, _, _, _) =
                 market::swap_coins<Y, X>(
@@ -201,7 +201,7 @@ module liquidswap::router_v4 {
             let (market_id, lot_size, tick_size, _, _) =
                 registry::get_recognized_market_info_base_coin_by_type<X, Y>();
 
-            let price = get_price_per_lot<X, Y>(coin_x_amount, expected_coin_y_amount, lot_size, tick_size);
+            let price_per_lot = get_price_in_ticks_per_lot<X, Y>(coin_x_amount, expected_coin_y_amount, lot_size, tick_size);
 
             let (coin_x, coin_y, _, _, _) =
                 market::swap_coins<X, Y>(
@@ -212,7 +212,7 @@ module liquidswap::router_v4 {
                     (MAX_U64 as u64),
                     0,
                     (MAX_U64 as u64),
-                    price,
+                    price_per_lot,
                     coin_x,
                     coin::zero()
                 );
@@ -222,7 +222,7 @@ module liquidswap::router_v4 {
         }
     }
 
-    fun get_price_per_lot<Base, Quote>(base_amount: u64, quote_amount: u64, lot_size: u64, tick_size: u64): u64 {
+    fun get_price_in_ticks_per_lot<Base, Quote>(base_amount: u64, quote_amount: u64, lot_size: u64, tick_size: u64): u64 {
         let base_decimals = (coin::decimals<Base>() as u64);
         let quote_decimals = (coin::decimals<Quote>() as u64);
 

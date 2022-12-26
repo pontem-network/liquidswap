@@ -54,129 +54,25 @@ module liquidswap::router_v4 {
         liquidity_pool::register<X, Y, Curve>(account);
     }
 
-    // /// Add liquidity to pool `X`/`Y` with rationality checks.
-    // /// * `coin_x` - coin X to add as liquidity.
-    // /// * `min_coin_x_val` - minimum amount of coin X to add as liquidity.
-    // /// * `coin_y` - coin Y to add as liquidity.
-    // /// * `min_coin_y_val` - minimum amount of coin Y to add as liquidity.
-    // /// Returns remainders of coins X and Y, and LP coins: `(Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>)`.
-    // ///
-    // /// Note: X, Y generic coin parameters must be sorted.
-    // public fun add_liquidity<X, Y, Curve>(
-    //     coin_x: Coin<X>,
-    //     min_coin_x_val: u64,
-    //     coin_y: Coin<Y>,
-    //     min_coin_y_val: u64,
-    // ): (Coin<X>, Coin<Y>, Coin<LP<X, Y, Curve>>) {
-    //     assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
-    //
-    //     let coin_x_val = coin::value(&coin_x);
-    //     let coin_y_val = coin::value(&coin_y);
-    //
-    //     assert!(coin_x_val >= min_coin_x_val, ERR_INSUFFICIENT_X_AMOUNT);
-    //     assert!(coin_y_val >= min_coin_y_val, ERR_INSUFFICIENT_Y_AMOUNT);
-    //
-    //     let (optimal_x, optimal_y) =
-    //         calc_optimal_coin_values<X, Y, Curve>(
-    //             coin_x_val,
-    //             coin_y_val,
-    //             min_coin_x_val,
-    //             min_coin_y_val
-    //         );
-    //
-    //     let coin_x_opt = coin::extract(&mut coin_x, optimal_x);
-    //     let coin_y_opt = coin::extract(&mut coin_y, optimal_y);
-    //
-    //     let lp_coins = liquidity_pool::mint<X, Y, Curve>(coin_x_opt, coin_y_opt);
-    //     (coin_x, coin_y, lp_coins)
-    // }
-
-    // /// Burn liquidity coins `LP` and get coins `X` and `Y` back.
-    // /// * `lp_coins` - `LP` coins to burn.
-    // /// * `min_x_out_val` - minimum amount of `X` coins must be out.
-    // /// * `min_y_out_val` - minimum amount of `Y` coins must be out.
-    // /// Returns both `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
-    // ///
-    // /// Note: X, Y generic coin parameteres should be sorted.
-    // public fun remove_liquidity<X, Y, Curve>(
-    //     lp_coins: Coin<LP<X, Y, Curve>>,
-    //     min_x_out_val: u64,
-    //     min_y_out_val: u64,
-    // ): (Coin<X>, Coin<Y>) {
-    //     assert!(coin_helper::is_sorted<X, Y>(), ERR_WRONG_COIN_ORDER);
-    //
-    //     let (x_out, y_out) = liquidity_pool::burn<X, Y, Curve>(lp_coins);
-    //
-    //     assert!(
-    //         coin::value(&x_out) >= min_x_out_val,
-    //         ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
-    //     );
-    //     assert!(
-    //         coin::value(&y_out) >= min_y_out_val,
-    //         ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM
-    //     );
-    //     (x_out, y_out)
-    // }
-
-    public fun swap_exact_coin_for_coin_with_orderbook<X, Y, Curve>(coin_x: Coin<X>, coin_y_min_val: u64): Coin<Y> {
-        let coin_x_amount = coin::value(&coin_x);
+    /// Swap exact amount of coin `X` for coin `Y`.
+    /// * `coin_in` - coin X to swap.
+    /// * `coin_out_min_val` - minimum amount of coin Y to get out.
+    /// Returns `Coin<Y>`.
+    public fun swap_exact_coin_for_coin_econia<X, Y, Curve>(coin_in: Coin<X>, coin_out_min_val: u64): Coin<Y> {
+        let coin_x_amount = coin::value(&coin_in);
         let coin_y_amount = get_amount_out<X, Y, Curve>(coin_x_amount);
 
-        let (coin_x_remaining, coin_y_swapped) =
-            if (registry::has_recognized_market_base_coin_by_type<Y, X>()) {
-                let (market_id, lot_size, tick_size, _, _) =
-                    registry::get_recognized_market_info_base_coin_by_type<Y, X>();
-
-                let price_per_lot = get_price_per_lot<Y, X>(coin_y_amount, coin_x_amount, lot_size, tick_size);
-
-                let (coin_y, coin_x, _, _, _) =
-                    market::swap_coins<Y, X>(
-                        market_id,
-                        @econia,
-                        BUY,
-                        0,
-                        (MAX_U64 as u64),
-                        0,
-                        (MAX_U64 as u64),
-                        price_per_lot,
-                        coin::zero(),
-                        coin_x
-                    );
-                (coin_x, coin_y)
-            } else if (registry::has_recognized_market_base_coin_by_type<X, Y>()) {
-                // swap From,To with SELL
-                let (market_id, lot_size, tick_size, _, _) =
-                    registry::get_recognized_market_info_base_coin_by_type<X, Y>();
-
-                let price = get_price_per_lot<X, Y>(coin_x_amount, coin_y_amount, lot_size, tick_size);
-
-                let (coin_x, coin_y, _, _, _) =
-                    market::swap_coins<X, Y>(
-                        market_id,
-                        @econia,
-                        SELL,
-                        0,
-                        (MAX_U64 as u64),
-                        0,
-                        (MAX_U64 as u64),
-                        price,
-                        coin_x,
-                        coin::zero()
-                    );
-                (coin_x, coin_y)
-            } else {
-                (coin_x, coin::zero())
-            };
+        let (coin_x_remaining, coin_y_swapped) = swap_coin_for_coin_econia<X, Y>(coin_in, coin_y_amount);
 
         let coin_y_swapped_amount = coin::value(&coin_y_swapped);
         if (coin::value(&coin_x_remaining) == 0) {
-            assert!(coin_y_min_val <= coin_y_swapped_amount, ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
+            assert!(coin_out_min_val <= coin_y_swapped_amount, ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM);
             coin::destroy_zero(coin_x_remaining);
             return coin_y_swapped
         };
 
         let coin_y_min_val =
-            if (coin_y_min_val <= coin_y_swapped_amount) 0 else (coin_y_min_val - coin_y_swapped_amount);
+            if (coin_out_min_val <= coin_y_swapped_amount) 0 else (coin_out_min_val - coin_y_swapped_amount);
 
         let coin_out_ls = swap_exact_coin_for_coin<X, Y, Curve>(coin_x_remaining, coin_y_min_val);
         coin::merge(&mut coin_y_swapped, coin_out_ls);
@@ -184,28 +80,35 @@ module liquidswap::router_v4 {
         coin_y_swapped
     }
 
-    fun get_price_per_lot<Base, Quote>(base_amount: u64, quote_amount: u64, lot_size: u64, tick_size: u64): u64 {
-        let base_decimals = (coin::decimals<Base>() as u64);
-        let quote_decimals = (coin::decimals<Quote>() as u64);
+    /// Swap max coin amount `X` for exact coin `Y`.
+    /// * `coin_max_in` - maximum amount of coin X to swap to get `coin_out_val` of coins Y.
+    /// * `coin_out_val` - exact amount of coin Y to get.
+    /// Returns remainder of `coin_max_in` as `Coin<X>` and `Coin<Y>`: `(Coin<X>, Coin<Y>)`.
+    public fun swap_coin_for_exact_coin_econia<X, Y, Curve>(
+        coin_max_in: Coin<X>,
+        coin_out_val: u64,
+    ): (Coin<X>, Coin<Y>) {
+        let coin_x_amount = get_amount_in<X, Y, Curve>(coin_out_val);
+        let coin_y_amount = coin_out_val;
 
-        let price = uq64x64::mul(
-            uq64x64::fraction(quote_amount, base_amount),
-            math64::pow(10, (base_decimals - quote_decimals))
-        );
+        let coin_in = coin::extract(&mut coin_max_in, coin_x_amount);
 
-        // price_ratio_decimal / tick_decimal -> gets price in ticks
-        let price_in_ticks = uq64x64::div(
-            uq64x64::mul(price, math64::pow(10, quote_decimals)),
-            tick_size,
-        );
+        let (coin_x_remaining, coin_y_swapped) = swap_coin_for_coin_econia<X, Y>(coin_in, coin_y_amount);
 
-        // price_whole_decimal * lot_size_decimal -> price in ticks per lot
-        let price_in_ticks_per_lot = uq64x64::div(
-            uq64x64::mul(price_in_ticks, lot_size),
-            math64::pow(10, base_decimals),
-        );
+        let coin_y_swapped_amount = coin::value(&coin_y_swapped);
+        if (coin_out_val <= coin_y_swapped_amount) {
+            coin::merge(&mut coin_x_remaining, coin_max_in);
+            return (coin_x_remaining, coin_y_swapped)
+        };
 
-        uq64x64::decode(price_in_ticks_per_lot)
+        let coin_out_val_remaining = coin_out_val - coin_y_swapped_amount;
+        let (coin_x_left, coin_y) =
+            swap_coin_for_exact_coin<X, Y, Curve>(coin_x_remaining, coin_out_val_remaining);
+
+        coin::merge(&mut coin_y, coin_y_swapped);
+        coin::merge(&mut coin_x_left, coin_max_in);
+
+        (coin_x_left, coin_y)
     }
 
     /// Swap exact amount of coin `X` for coin `Y`.
@@ -268,6 +171,79 @@ module liquidswap::router_v4 {
         coin::destroy_zero(zero);
 
         coin_out
+    }
+
+    fun swap_coin_for_coin_econia<X, Y>(coin_x: Coin<X>, expected_coin_y_amount: u64): (Coin<X>, Coin<Y>) {
+        let coin_x_amount = coin::value(&coin_x);
+
+        if (registry::has_recognized_market_base_coin_by_type<Y, X>()) {
+            let (market_id, lot_size, tick_size, _, _) =
+                registry::get_recognized_market_info_base_coin_by_type<Y, X>();
+
+            let price_per_lot = get_price_per_lot<Y, X>(expected_coin_y_amount, coin_x_amount, lot_size, tick_size);
+
+            let (coin_y, coin_x, _, _, _) =
+                market::swap_coins<Y, X>(
+                    market_id,
+                    @econia,
+                    BUY,
+                    0,
+                    (MAX_U64 as u64),
+                    0,
+                    (MAX_U64 as u64),
+                    price_per_lot,
+                    coin::zero(),
+                    coin_x
+                );
+            (coin_x, coin_y)
+        } else if (registry::has_recognized_market_base_coin_by_type<X, Y>()) {
+            // swap From,To with SELL
+            let (market_id, lot_size, tick_size, _, _) =
+                registry::get_recognized_market_info_base_coin_by_type<X, Y>();
+
+            let price = get_price_per_lot<X, Y>(coin_x_amount, expected_coin_y_amount, lot_size, tick_size);
+
+            let (coin_x, coin_y, _, _, _) =
+                market::swap_coins<X, Y>(
+                    market_id,
+                    @econia,
+                    SELL,
+                    0,
+                    (MAX_U64 as u64),
+                    0,
+                    (MAX_U64 as u64),
+                    price,
+                    coin_x,
+                    coin::zero()
+                );
+            (coin_x, coin_y)
+        } else {
+            (coin_x, coin::zero())
+        }
+    }
+
+    fun get_price_per_lot<Base, Quote>(base_amount: u64, quote_amount: u64, lot_size: u64, tick_size: u64): u64 {
+        let base_decimals = (coin::decimals<Base>() as u64);
+        let quote_decimals = (coin::decimals<Quote>() as u64);
+
+        let price = uq64x64::mul(
+            uq64x64::fraction(quote_amount, base_amount),
+            math64::pow(10, (base_decimals - quote_decimals))
+        );
+
+        // price_ratio_decimal / tick_decimal -> gets price in ticks
+        let price_in_ticks = uq64x64::div(
+            uq64x64::mul(price, math64::pow(10, quote_decimals)),
+            tick_size,
+        );
+
+        // price_whole_decimal * lot_size_decimal -> price in ticks per lot
+        let price_in_ticks_per_lot = uq64x64::div(
+            uq64x64::mul(price_in_ticks, lot_size),
+            math64::pow(10, base_decimals),
+        );
+
+        uq64x64::decode(price_in_ticks_per_lot)
     }
 
     // Getters.

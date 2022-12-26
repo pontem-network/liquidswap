@@ -145,9 +145,9 @@ module router_v4::router_v4_tests {
         // 1. 100 USDT swapped from orderbook with price 100 BTC/USDT, giving 1 BTC
         // 2. remaining 70 USDT swapped with pool with price ~125 BTC/USDT, giving ~0.56 BTC
         let btcs_swapped =
-            router_v4::swap_exact_coin_for_coin_with_orderbook<USDT, BTC, Uncorrelated>(
+            router_v4::swap_exact_coin_for_coin_econia<USDT, BTC, Uncorrelated>(
                 usdts,
-                120000000,  // 1.2 BTC
+                135408397,  // 1.2 BTC
             );
         assert!(coin::value(&btcs_swapped) == 155761009, 1);
 
@@ -210,7 +210,7 @@ module router_v4::router_v4_tests {
         // ~62 USDT from 0.5 BTC (swap)
         let btcs = mint_coins<BTC>(&router_v4_admin, 150000000);  // 1.5 BTC
         let usdts_swapped =
-            router_v4::swap_exact_coin_for_coin_with_orderbook<BTC, USDT, Uncorrelated>(
+            router_v4::swap_exact_coin_for_coin_econia<BTC, USDT, Uncorrelated>(
                 btcs,
                 180 * ONE_USDT_COIN,
             );

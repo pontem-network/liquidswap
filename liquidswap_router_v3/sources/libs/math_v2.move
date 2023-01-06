@@ -40,7 +40,7 @@ module liquidswap::math_v2 {
     }
 
     #[test]
-    #[expected_failure(abort_code = 2000)]
+    #[expected_failure(abort_code = ERR_DIVIDE_BY_ZERO)]
     fun test_mul_div_up_u128_zero() {
         let _ = mul_div_up_u128(10, 20, 0);
     }

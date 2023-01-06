@@ -217,7 +217,7 @@ module liquidswap::scripts_v3_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     public entry fun test_unchecked_swap_fails_if_price_better_than_available_requested() {
         let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
 

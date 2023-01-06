@@ -60,7 +60,7 @@ module liquidswap::compare_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 3000)]
+    #[expected_failure(abort_code = coin_helper::ERR_CANNOT_BE_THE_SAME_COIN)]
     fun test_is_sorted_cannot_be_equal() {
         assert!(coin_helper::is_sorted<AptosCoin, AptosCoin>(), 1);
     }

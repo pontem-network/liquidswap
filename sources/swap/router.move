@@ -17,8 +17,6 @@ module liquidswap::router {
     const ERR_WRONG_AMOUNT: u64 = 200;
     /// Wrong reserve used.
     const ERR_WRONG_RESERVE: u64 = 201;
-    /// Wrong order of coin parameters.
-    const ERR_WRONG_COIN_ORDER: u64 = 208;
     /// Insufficient amount in Y reserves.
     const ERR_INSUFFICIENT_Y_AMOUNT: u64 = 202;
     /// Insufficient amount in X reserves.
@@ -31,6 +29,8 @@ module liquidswap::router {
     const ERR_COIN_VAL_MAX_LESS_THAN_NEEDED: u64 = 206;
     /// Marks the unreachable place in code
     const ERR_UNREACHABLE: u64 = 207;
+    /// Wrong order of coin parameters.
+    const ERR_WRONG_COIN_ORDER: u64 = 208;
 
     // Public functions.
 

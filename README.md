@@ -12,7 +12,7 @@ To integrate Liquidswap into your project vist [integration](https://docs.liquid
 
 ### Build
 
-**Important:** we recommend Aptos CLI v1.0.0, as the newest version contains bugs related to dependencies resolving.
+**Important:** we recommend Aptos CLI v1.0.3.
 
 [Aptos CLI](https://github.com/aptos-labs/aptos-core/releases) required:
 

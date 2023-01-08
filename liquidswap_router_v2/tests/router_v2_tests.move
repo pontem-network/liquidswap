@@ -110,7 +110,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 208)]
+    #[expected_failure(abort_code = router_v2::ERR_WRONG_COIN_ORDER)]
     fun test_cannot_add_liquidity_to_pool_in_reverse_order() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -133,7 +133,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 203)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_X_AMOUNT)]
     fun test_add_liquidity_to_fail_with_insufficient_x_coins() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(0, 0);
 
@@ -153,7 +153,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 202)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_Y_AMOUNT)]
     fun test_add_liquidity_to_fail_with_insufficient_y_coins() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(0, 0);
 
@@ -204,7 +204,7 @@ module liquidswap::router_v2_tests {
     //  (it's checked with generic params, so I don't know)
 
     #[test]
-    #[expected_failure(abort_code = 205)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_x() {
         let (_, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -223,7 +223,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 205)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)]
     fun test_remove_liquidity_to_fail_if_less_than_minimum_y() {
         let (_, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -310,7 +310,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 205)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)]
     fun test_swap_exact_coin_for_coin_to_fail_if_less_than_minimum_out() {
         let (coin_admin, _) = register_pool_with_liquidity(101, 10100);
 
@@ -389,7 +389,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 206)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_VAL_MAX_LESS_THAN_NEEDED)]
     fun test_swap_coin_for_exact_coin_router_check_fails() {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
@@ -430,7 +430,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 205)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_OUT_NUM_LESS_THAN_EXPECTED_MINIMUM)]
     fun test_fail_if_price_fell_behind_threshold() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -448,7 +448,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 104)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_EMPTY_COIN_IN)]
     fun test_fail_if_swap_zero_coin() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -934,19 +934,19 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 200)]
+    #[expected_failure(abort_code = router_v2::ERR_WRONG_AMOUNT)]
     fun test_fail_convert_with_current_price_coin_in_val() {
         router_v2::convert_with_current_price(0, 1, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 201)]
+    #[expected_failure(abort_code = router_v2::ERR_WRONG_RESERVE)]
     fun test_fail_convert_with_current_price_reserve_in_size() {
         router_v2::convert_with_current_price(1, 0, 1);
     }
 
     #[test]
-    #[expected_failure(abort_code = 201)]
+    #[expected_failure(abort_code = router_v2::ERR_WRONG_RESERVE)]
     fun test_fail_convert_with_current_price_reserve_out_size() {
         router_v2::convert_with_current_price(1, 1, 0);
     }
@@ -1077,7 +1077,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_fail_if_price_fell_behind_threshold_unchecked() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(101, 10100);
 
@@ -1095,7 +1095,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked() {
         let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
@@ -1113,7 +1113,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked_1() {
         let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
@@ -1131,7 +1131,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_stable_fail_if_price_fell_behind_threshold_unchecked_2() {
         let (coin_admin, _) = register_stable_pool_with_liquidity(150000000, 15000000000);
 
@@ -1149,7 +1149,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_swap_coin_for_coin_unchecked_fails() {
         let (coin_admin, _) = register_pool_with_liquidity(10000000000, 2800000000000);
 
@@ -1185,7 +1185,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 203)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_X_AMOUNT)]
     fun test_calc_optimal_coin_values_1() {
         // 100 BTC, 2,800,000 USDT
         let (_, _) = register_pool_with_liquidity(10000000000, 2800000000000);
@@ -1215,7 +1215,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 202)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_Y_AMOUNT)]
     fun test_calc_optimal_coin_values_4() {
         // 100 BTC, 28000 USDT
         let (_, _) = register_pool_with_liquidity(10000000000, 28000000000);
@@ -1286,25 +1286,25 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 107)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_DOES_NOT_EXIST)]
     fun test_get_fees_config_fail_if_pool_does_not_exists() {
         router_v2::get_fees_config<BTC, USDT, Uncorrelated>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 107)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_DOES_NOT_EXIST)]
     fun test_get_fee_fail_if_pool_does_not_exists() {
         router_v2::get_fee<BTC, USDT, Uncorrelated>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 107)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_DOES_NOT_EXIST)]
     fun test_get_dao_fees_config_fail_if_pool_does_not_exists() {
         router_v2::get_dao_fees_config<BTC, USDT, Uncorrelated>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 107)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_DOES_NOT_EXIST)]
     fun test_get_dao_fee_fail_if_pool_does_not_exists() {
         router_v2::get_dao_fee<BTC, USDT, Uncorrelated>();
     }
@@ -1342,7 +1342,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 202)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_Y_AMOUNT)]
     fun test_get_amount_in_aborts_if_coin_out_bigger_than_reserves() {
         // 100 BTC, 28000 USDT
         let (_, _) = register_pool_with_liquidity(28000000000, 28000000000);
@@ -1351,7 +1351,7 @@ module liquidswap::router_v2_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 202)]
+    #[expected_failure(abort_code = router_v2::ERR_INSUFFICIENT_Y_AMOUNT)]
     fun test_get_amount_in_if_coin_out_exactly_equals_reserve_out() {
         // 100 BTC, 28000 USDT
         let (_, _) = register_pool_with_liquidity(28000000000, 28000000000);
@@ -1360,7 +1360,7 @@ module liquidswap::router_v2_tests {
     }
     
     #[test]
-    #[expected_failure(abort_code = 208)]
+    #[expected_failure(abort_code = router_v2::ERR_COIN_CONVERSION_OVERFLOW)]
     fun test_add_liquidity_with_imbalanced_reserves() {
         // 100 BTC, 28000 USDT
         let (coin_admin, lp_owner) = register_pool_with_liquidity(1, 10000000);

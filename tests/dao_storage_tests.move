@@ -46,7 +46,7 @@ module liquidswap::dao_storage_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 401)]
+    #[expected_failure(abort_code = dao_storage::ERR_NOT_REGISTERED)]
     fun test_deposit_fail_if_not_registered() {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
@@ -93,7 +93,7 @@ module liquidswap::dao_storage_tests {
     }
 
     #[test(dao_admin_acc = @dao_admin)]
-    #[expected_failure(abort_code = 65542)]
+    #[expected_failure(abort_code = 65542, location = aptos_framework::coin)]
     fun test_withdraw_fail_if_more_deposited(dao_admin_acc: signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
@@ -115,7 +115,7 @@ module liquidswap::dao_storage_tests {
     }
 
     #[test(dao_admin_acc = @0xca)]
-    #[expected_failure(abort_code = 402)]
+    #[expected_failure(abort_code = dao_storage::ERR_NOT_ADMIN_ACCOUNT)]
     fun test_withdraw_fail_if_not_dao_admin(dao_admin_acc: signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 

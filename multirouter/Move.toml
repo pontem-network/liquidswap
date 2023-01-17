@@ -1,0 +1,12 @@
+[package]
+name = "LiquidswapMultirouter"
+version = "1.0.0"
+upgrade_policy = "immutable"
+
+[addresses]
+multirouter = "0x6aa21d7ec18941a4438a3c20134424a3f338c46a4ef8f91df5e7afc20462f3e3"
+
+test_account = "0x13"
+
+[dependencies.LiquidswapRouterV2]
+local = "../liquidswap_router_v2"

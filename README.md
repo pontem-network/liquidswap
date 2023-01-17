@@ -12,6 +12,8 @@ To integrate Liquidswap into your project vist [integration](https://docs.liquid
 
 ### Build
 
+**Important:** we recommend Aptos CLI v1.0.3.
+
 [Aptos CLI](https://github.com/aptos-labs/aptos-core/releases) required:
 
     aptos move compile
@@ -23,6 +25,10 @@ To integrate Liquidswap into your project vist [integration](https://docs.liquid
 ### Security Audits
 
 Look at [section](https://docs.liquidswap.com/#security-audits) in our doc.
+
+### Bounty Program
+
+Read details about our bounty program launched on the [Immunefi platform](https://immunefi.com/bounty/liquidswap/).
 
 ### License
 

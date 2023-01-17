@@ -78,13 +78,13 @@ module liquidswap::coin_helper_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 3001)]
+    #[expected_failure(abort_code = coin_helper::ERR_IS_NOT_COIN)]
     fun test_assert_is_coin_failure() {
         coin_helper::assert_is_coin<USDT>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 3000)]
+    #[expected_failure(abort_code = coin_helper::ERR_CANNOT_BE_THE_SAME_COIN)]
     fun test_cant_be_same_coin_failure() {
         genesis::setup();
 

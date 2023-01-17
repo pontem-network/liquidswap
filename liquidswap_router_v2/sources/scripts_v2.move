@@ -1,17 +1,17 @@
-/// The current module contains pre-deplopyed scripts for LiquidSwap.
-module liquidswap::scripts {
+/// The current module contains pre-deplopyed scripts v2 for LiquidSwap.
+module liquidswap::scripts_v2 {
     use std::signer;
 
     use aptos_framework::coin;
 
-    use liquidswap::router;
+    use liquidswap::router_v2;
     use liquidswap_lp::lp_coin::LP;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     ///
     /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool<X, Y, Curve>(account: &signer) {
-        router::register_pool<X, Y, Curve>(account);
+        router_v2::register_pool<X, Y, Curve>(account);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
@@ -28,7 +28,7 @@ module liquidswap::scripts {
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        router::register_pool<X, Y, Curve>(account);
+        router_v2::register_pool<X, Y, Curve>(account);
         add_liquidity<X, Y, Curve>(
             account,
             coin_x_val,
@@ -56,7 +56,7 @@ module liquidswap::scripts {
         let coin_y = coin::withdraw<Y>(account, coin_y_val);
 
         let (coin_x_remainder, coin_y_remainder, lp_coins) =
-            router::add_liquidity<X, Y, Curve>(
+            router_v2::add_liquidity<X, Y, Curve>(
                 coin_x,
                 coin_x_val_min,
                 coin_y,
@@ -88,7 +88,7 @@ module liquidswap::scripts {
     ) {
         let lp_coins = coin::withdraw<LP<X, Y, Curve>>(account, lp_val);
 
-        let (coin_x, coin_y) = router::remove_liquidity<X, Y, Curve>(
+        let (coin_x, coin_y) = router_v2::remove_liquidity<X, Y, Curve>(
             lp_coins,
             min_x_out_val,
             min_y_out_val,
@@ -109,7 +109,7 @@ module liquidswap::scripts {
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val);
 
-        let coin_y = router::swap_exact_coin_for_coin<X, Y, Curve>(
+        let coin_y = router_v2::swap_exact_coin_for_coin<X, Y, Curve>(
             coin_x,
             coin_out_min_val,
         );
@@ -128,7 +128,7 @@ module liquidswap::scripts {
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val_max);
 
-        let (coin_x, coin_y) = router::swap_coin_for_exact_coin<X, Y, Curve>(
+        let (coin_x, coin_y) = router_v2::swap_coin_for_exact_coin<X, Y, Curve>(
             coin_x,
             coin_out,
         );
@@ -149,7 +149,7 @@ module liquidswap::scripts {
     ) {
         let coin_x = coin::withdraw<X>(account, coin_in);
 
-        let coin_y = router::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
+        let coin_y = router_v2::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
 
         let account_addr = signer::address_of(account);
         coin::deposit(account_addr, coin_y);

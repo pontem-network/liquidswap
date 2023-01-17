@@ -336,7 +336,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test(emergency_acc = @emergency_admin)]
-    #[expected_failure(abort_code = 4001)]
+    #[expected_failure(abort_code = emergency::ERR_EMERGENCY)]
     fun test_fail_if_emergency(emergency_acc: signer) {
         let (_, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -351,7 +351,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 110)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_EMPTY_COIN_LOAN)]
     fun test_fail_if_flashloan_zero_amount() {
         let (_, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -364,7 +364,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_fail_if_pay_less_flashloaned_coins() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -379,7 +379,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 105)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_INCORRECT_SWAP)]
     fun test_fail_if_pay_equal_flashloaned_coins() {
         let (_, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -392,7 +392,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 65542)]
+    #[expected_failure(abort_code = 65542, location = aptos_framework::coin)]
     fun test_fail_if_flashloan_more_than_reserved() {
         let (_, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -405,7 +405,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_mint_when_pool_is_locked() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -428,7 +428,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_swap_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -454,7 +454,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_burn_when_pool_is_locked() {
         let (coin_admin, lp_owner) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -477,7 +477,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_flashloan_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -501,7 +501,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_get_reserves_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -520,7 +520,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_fail_if_get_cumulative_prices_when_pool_is_locked() {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -539,7 +539,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test(fee_admin = @fee_admin)]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_set_fee_fail_if_pool_is_locked(fee_admin: signer) {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 
@@ -558,7 +558,7 @@ module liquidswap::flashloan_tests {
     }
 
     #[test(fee_admin = @fee_admin)]
-    #[expected_failure(abort_code = 111)]
+    #[expected_failure(abort_code = liquidity_pool::ERR_POOL_IS_LOCKED)]
     fun test_set_dao_fee_fail_if_pool_is_locked(fee_admin: signer) {
         let (coin_admin, _) = register_pool_with_liquidity(100000000, 28000000000);
 

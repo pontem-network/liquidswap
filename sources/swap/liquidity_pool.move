@@ -364,7 +364,7 @@ module liquidswap::liquidity_pool {
     /// Because an user usually loans only one coin, yet function allow to loans both coin.
     /// * `x_loan` - expected amount of X coins to loan.
     /// * `y_loan` - expected amount of Y coins to loan.
-    /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y)`.
+    /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y>)`.
     public fun flashloan<X, Y, Curve>(x_loan: u64, y_loan: u64): (Coin<X>, Coin<Y>, Flashloan<X, Y, Curve>)
     acquires LiquidityPool, EventsStore {
         assert_no_emergency();
@@ -400,7 +400,6 @@ module liquidswap::liquidity_pool {
     /// * `x_in` - X coins to pay.
     /// * `y_in` - Y coins to pay.
     /// * `loan` - data about flashloan.
-    /// Returns both loaned X and Y coins: `(Coin<X>, Coin<Y>, Flashloan<X, Y)`.
     public fun pay_flashloan<X, Y, Curve>(
         x_in: Coin<X>,
         y_in: Coin<Y>,

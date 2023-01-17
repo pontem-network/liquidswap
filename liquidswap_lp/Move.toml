@@ -4,10 +4,9 @@ version = '1.0.0'
 upgrade_policy = "immutable"
 
 [addresses]
-liquidswap_lp = "0x8aa500cd155a6087509fa84bc7f0deed3363dd253ecb62b2f110885dacf01c67"
+liquidswap_lp = "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948"
 
 [dev-dependencies.MoveStdlib]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "985f19d40457a5f09f2d741b1feca6bf7ba1f8a6"
+rev = "mainnet"
 subdir = "aptos-move/framework/move-stdlib"
-

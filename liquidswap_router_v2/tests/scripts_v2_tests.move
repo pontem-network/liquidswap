@@ -1,13 +1,13 @@
 #[test_only]
-module liquidswap::scripts_tests {
+module liquidswap::scripts_v2_tests {
     use std::signer;
 
     use aptos_framework::coin;
 
     use liquidswap::curves::Uncorrelated;
     use liquidswap::liquidity_pool;
-    use liquidswap::router;
-    use liquidswap::scripts;
+    use liquidswap::router_v2;
+    use liquidswap::scripts_v2;
     use test_coin_admin::test_coins::{Self, USDT, BTC};
     use test_helpers::test_pool;
     use liquidswap_lp::lp_coin::LP;
@@ -15,7 +15,7 @@ module liquidswap::scripts_tests {
     fun register_pool_with_existing_liquidity(x_val: u64, y_val: u64): (signer, signer) {
         let (coin_admin, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        router::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        router_v2::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
 
         if (x_val != 0 && y_val != 0) {
             let btc_coins = test_coins::mint<BTC>(&coin_admin, x_val);
@@ -32,7 +32,7 @@ module liquidswap::scripts_tests {
     public entry fun test_register_pool_with_script() {
         let (_, lp_owner) = test_pool::setup_coins_and_lp_owner();
 
-        scripts::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
+        scripts_v2::register_pool<BTC, USDT, Uncorrelated>(&lp_owner);
 
         assert!(liquidity_pool::is_pool_exists<BTC, USDT, Uncorrelated>(), 1);
     }
@@ -51,7 +51,7 @@ module liquidswap::scripts_tests {
         coin::deposit(lp_owner_addr, btc_coins);
         coin::deposit(lp_owner_addr, usdt_coins);
 
-        scripts::register_pool_and_add_liquidity<BTC, USDT, Uncorrelated>(
+        scripts_v2::register_pool_and_add_liquidity<BTC, USDT, Uncorrelated>(
             &lp_owner,
             101,
             101,
@@ -82,7 +82,7 @@ module liquidswap::scripts_tests {
 
         coin::register<LP<BTC, USDT, Uncorrelated>>(&lp_owner);
 
-        scripts::add_liquidity<BTC, USDT, Uncorrelated>(
+        scripts_v2::add_liquidity<BTC, USDT, Uncorrelated>(
             &lp_owner,
             101,
             101,
@@ -103,7 +103,7 @@ module liquidswap::scripts_tests {
         let usdt_coins = test_coins::mint<USDT>(&coin_admin, 10100);
 
         let (btc, usdt, lp) =
-            router::add_liquidity<BTC, USDT, Uncorrelated>(
+            router_v2::add_liquidity<BTC, USDT, Uncorrelated>(
                 btc_coins,
                 101,
                 usdt_coins,
@@ -118,7 +118,7 @@ module liquidswap::scripts_tests {
         coin::deposit(lp_owner_addr, usdt);
         coin::deposit(lp_owner_addr, lp);
 
-        scripts::remove_liquidity<BTC, USDT, Uncorrelated>(
+        scripts_v2::remove_liquidity<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             98,
@@ -141,7 +141,7 @@ module liquidswap::scripts_tests {
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
-        scripts::swap<BTC, USDT, Uncorrelated>(
+        scripts_v2::swap<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             900,
@@ -162,7 +162,7 @@ module liquidswap::scripts_tests {
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
-        scripts::swap_into<BTC, USDT, Uncorrelated>(
+        scripts_v2::swap_into<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             700,
@@ -183,7 +183,7 @@ module liquidswap::scripts_tests {
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
-        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+        scripts_v2::swap_unchecked<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             907,
@@ -205,7 +205,7 @@ module liquidswap::scripts_tests {
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
-        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+        scripts_v2::swap_unchecked<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             700,
@@ -228,7 +228,7 @@ module liquidswap::scripts_tests {
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
 
-        scripts::swap_unchecked<BTC, USDT, Uncorrelated>(
+        scripts_v2::swap_unchecked<BTC, USDT, Uncorrelated>(
             &lp_owner,
             10,
             1100,

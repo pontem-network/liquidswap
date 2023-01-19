@@ -24,7 +24,7 @@ jobs:
       - name: Get Aptos
         uses: pontem-network/get-aptos@main
         with:
-          version: aptos-cli-v1.0.3
+          version: aptos-cli-v1.0.4
           token: ${{ secrets.GITHUB_TOKEN }}
           prover: true
 
@@ -36,6 +36,9 @@ jobs:
 
       - name: Test LiquidswapRouterV2
         run: aptos move test --package-dir ./liquidswap_router_v2
+
+      - name: Test Multirouter
+        run: aptos move test --package-dir ./multirouter
 
       - name: Prove math.move
         run: aptos move prove --filter math

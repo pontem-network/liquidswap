@@ -26,7 +26,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, Y, C2>(coin_out_val);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val <= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
 
         // Now we need to extract amount of X from the user.
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
@@ -76,7 +76,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, W, C2>(coin_w_needed);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val <= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
 
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
 
@@ -135,7 +135,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, W, C2>(coin_w_needed);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val <= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
 
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
 

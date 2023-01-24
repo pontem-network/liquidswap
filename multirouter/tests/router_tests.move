@@ -305,8 +305,8 @@ module multirouter::router_tests {
     // Errors.
 
     #[test]
-    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_AMOUNT)]
-    fun test_swap_coin_for_coin_x2_fails_enfucient_amount() {
+    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_IN)]
+    fun test_swap_coin_for_coin_x2_fails_insufficient_amount_in() {
         let account = account::create_account_for_test(@test_account);
 
         let (_, _) = register_x2_pool_with_liquidity(
@@ -322,8 +322,8 @@ module multirouter::router_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_AMOUNT)]
-    fun test_swap_coin_for_coin_x3_fails_enfucient_amount() {
+    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_IN)]
+    fun test_swap_coin_for_coin_x3_fails_insufficient_amount_in() {
         let account = account::create_account_for_test(@test_account);
 
         let (_, _) = register_x3_pool_with_liquidity(
@@ -340,8 +340,8 @@ module multirouter::router_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_AMOUNT)]
-    fun test_swap_coin_for_coin_x4_fails_enfucient_amount() {
+    #[expected_failure(abort_code = multirouter::router::ERR_INSUFFICIENT_IN)]
+    fun test_swap_coin_for_coin_x4_fails_insufficient_amount_in() {
         let account = account::create_account_for_test(@test_account);
 
         let (_, _) = register_x4_pool_with_liquidity(
@@ -367,4 +367,6 @@ module multirouter::router_tests {
             10000000
         );
     }
+
+    // It seems ERR_INSUFFICIENT_OUT is unreachable.
 }

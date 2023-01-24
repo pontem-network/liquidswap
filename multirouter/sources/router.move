@@ -6,8 +6,10 @@ module multirouter::router {
     use liquidswap::liquidity_pool;
     use liquidswap::router_v2;
 
-    /// Insufficient amount .
-    const ERR_INSUFFICIENT_AMOUNT: u64 = 4000;
+    /// Insufficient input amount.
+    const ERR_INSUFFICIENT_IN: u64 = 4000;
+    /// Insufficient input amount (seems unreachable).
+    const ERR_INSUFFICIENT_OUT: u64 = 4001;
 
     /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
     /// It requires paths and curves from `X` to `Z` and the length is 2.
@@ -26,7 +28,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, Y, C2>(coin_out_val);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_IN);
 
         // Now we need to extract amount of X from the user.
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
@@ -52,11 +54,13 @@ module multirouter::router {
             coin_out
         };
 
+        assert!(coin::value(&coin_out) >= coin_out_val, ERR_INSUFFICIENT_OUT);
+
         let account_addr = signer::address_of(account);
         if (!coin::is_account_registered<Y>(account_addr)) {
             coin::register<Y>(account);
         };
-        coin::deposit(account_addr, coin_out);
+        coin::deposit<Y>(account_addr, coin_out);
     }
 
     /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
@@ -76,7 +80,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, W, C2>(coin_w_needed);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_IN);
 
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
 
@@ -110,11 +114,13 @@ module multirouter::router {
             coin_out
         };
 
+        assert!(coin::value(&coin_out) >= coin_out_val, ERR_INSUFFICIENT_OUT);
+
         let account_addr = signer::address_of(account);
         if (!coin::is_account_registered<Y>(account_addr)) {
             coin::register<Y>(account);
         };
-        coin::deposit(account_addr, coin_out);
+        coin::deposit<Y>(account_addr, coin_out);
     }
 
     /// Swap coin `X` for coin `Y` WITHOUT CHECKING input and output amount.
@@ -135,7 +141,7 @@ module multirouter::router {
         let coin_z_needed = router_v2::get_amount_in<Z, W, C2>(coin_w_needed);
         let coin_x_needed = router_v2::get_amount_in<X, Z, C1>(coin_z_needed);
 
-        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_AMOUNT);
+        assert!(coin_in_val >= coin_x_needed, ERR_INSUFFICIENT_IN);
 
         let coin_in = coin::withdraw<X>(account, coin_x_needed);
 
@@ -179,10 +185,12 @@ module multirouter::router {
             coin_out
         };
 
+        assert!(coin::value(&coin_out) >= coin_out_val, ERR_INSUFFICIENT_OUT);
+
         let account_addr = signer::address_of(account);
         if (!coin::is_account_registered<Y>(account_addr)) {
             coin::register<Y>(account);
         };
-        coin::deposit(account_addr, coin_out);
+        coin::deposit<Y>(account_addr, coin_out);
     }
 }

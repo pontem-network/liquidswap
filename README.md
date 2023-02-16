@@ -1,6 +1,6 @@
 # Liquidswap
 
-**Liquidswap** is AMM protocol for [Aptos](https://www.aptos.com/) blockchain. 
+**Liquidswap** is AMM protocol for [Aptos](https://aptoslabs.com/) blockchain. 
 
 ## Documentation
 

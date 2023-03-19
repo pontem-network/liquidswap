@@ -1,16 +1,10 @@
 #[test_only]
-module test_coin_admin::test_coins {
-    use std::string::utf8;
+module test_coin_admin::extended_test_coins {
     use std::signer;
+    use std::string::utf8;
 
-    use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability};
     use aptos_framework::account;
-
-    struct BTC {}
-
-    struct USDT {}
-
-    struct USDC {}
+    use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability};
 
     struct ETH {}
 
@@ -50,33 +44,6 @@ module test_coin_admin::test_coins {
 
     // Register all known coins in one func.
     public fun register_coins(coin_admin: &signer) {
-        let (usdt_burn_cap, usdt_freeze_cap, usdt_mint_cap) =
-            coin::initialize<USDT>(
-                coin_admin,
-                utf8(b"USDT"),
-                utf8(b"USDT"),
-                6,
-                true
-            );
-
-        let (btc_burn_cap, btc_freeze_cap, btc_mint_cap) =
-            coin::initialize<BTC>(
-                coin_admin,
-                utf8(b"BTC"),
-                utf8(b"BTC"),
-                8,
-                true
-            );
-
-        let (usdc_burn_cap, usdc_freeze_cap, usdc_mint_cap) =
-            coin::initialize<USDC>(
-                coin_admin,
-                utf8(b"USDC"),
-                utf8(b"USDC"),
-                4,
-                true,
-            );
-
         let (eth_burn_cap, eth_freeze_cap, eth_mint_cap) =
             coin::initialize<ETH>(
                 coin_admin,
@@ -95,34 +62,16 @@ module test_coin_admin::test_coins {
                 true
             );
 
-        move_to(coin_admin, Capabilities<USDT> {
-            mint_cap: usdt_mint_cap,
-            burn_cap: usdt_burn_cap,
-        });
-
-        move_to(coin_admin, Capabilities<BTC> {
-            mint_cap: btc_mint_cap,
-            burn_cap: btc_burn_cap,
-        });
-
-        move_to(coin_admin, Capabilities<USDC> {
-            mint_cap: usdc_mint_cap,
-            burn_cap: usdc_burn_cap,
-        });
-
-        move_to(coin_admin, Capabilities<ETH>{
+        move_to(coin_admin, Capabilities<ETH> {
             mint_cap: eth_mint_cap,
             burn_cap: eth_burn_cap
         });
 
-        move_to(coin_admin, Capabilities<DAI>{
+        move_to(coin_admin, Capabilities<DAI> {
             mint_cap: dai_mint_cap,
             burn_cap: dai_burn_cap
         });
 
-        coin::destroy_freeze_cap(usdt_freeze_cap);
-        coin::destroy_freeze_cap(usdc_freeze_cap);
-        coin::destroy_freeze_cap(btc_freeze_cap);
         coin::destroy_freeze_cap(eth_freeze_cap);
         coin::destroy_freeze_cap(dai_freeze_cap);
     }

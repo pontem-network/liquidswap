@@ -115,7 +115,12 @@ module liquidswap::scripts_v2 {
         );
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_y);
+
+        // register coin if not registered
+        if (!coin::is_account_registered<Y>(account_addr)) {
+            coin::register<Y>(account);
+        };
+        coin::deposit<Y>(account_addr, coin_y);
     }
 
     /// Swap maximum coin `X` for exact coin `Y`.
@@ -134,8 +139,14 @@ module liquidswap::scripts_v2 {
         );
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_x);
-        coin::deposit(account_addr, coin_y);
+        
+        // register coin if not registered
+        if (!coin::is_account_registered<Y>(account_addr)) {
+            coin::register<Y>(account);
+        };
+        //
+        coin::deposit<X>(account_addr, coin_x);
+        coin::deposit<Y>(account_addr, coin_y);
     }
 
     /// Swap `coin_in` of X for a `coin_out` of Y.
@@ -152,6 +163,11 @@ module liquidswap::scripts_v2 {
         let coin_y = router_v2::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_y);
+
+        // register coin if not registered
+        if (!coin::is_account_registered<Y>(account_addr)) {
+            coin::register<Y>(account);
+        };
+        coin::deposit<Y>(account_addr, coin_y);
     }
 }

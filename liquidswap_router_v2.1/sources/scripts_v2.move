@@ -3,6 +3,7 @@ module liquidswap::scripts_v2 {
     use std::signer;
 
     use aptos_framework::coin;
+    use aptos_framework::aptos_account;
 
     use liquidswap::router_v2;
     use liquidswap_lp::lp_coin::LP;
@@ -65,13 +66,9 @@ module liquidswap::scripts_v2 {
 
         let account_addr = signer::address_of(account);
 
-        if (!coin::is_account_registered<LP<X, Y, Curve>>(account_addr)) {
-            coin::register<LP<X, Y, Curve>>(account);
-        };
-
         coin::deposit(account_addr, coin_x_remainder);
         coin::deposit(account_addr, coin_y_remainder);
-        coin::deposit(account_addr, lp_coins);
+        aptos_account::deposit_coins(account_addr, lp_coins);
     }
 
     /// Remove (burn) liquidity coins `LP` from account, get `X` and`Y` coins back.
@@ -95,8 +92,8 @@ module liquidswap::scripts_v2 {
         );
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_x);
-        coin::deposit(account_addr, coin_y);
+        aptos_account::deposit_coins(account_addr, coin_x);
+        aptos_account::deposit_coins(account_addr, coin_y);
     }
 
     /// Swap exact coin `X` for at least minimum coin `Y`.
@@ -115,7 +112,7 @@ module liquidswap::scripts_v2 {
         );
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_y);
+        aptos_account::deposit_coins(account_addr, coin_y);
     }
 
     /// Swap maximum coin `X` for exact coin `Y`.
@@ -135,7 +132,7 @@ module liquidswap::scripts_v2 {
 
         let account_addr = signer::address_of(account);
         coin::deposit(account_addr, coin_x);
-        coin::deposit(account_addr, coin_y);
+        aptos_account::deposit_coins(account_addr, coin_y);
     }
 
     /// Swap `coin_in` of X for a `coin_out` of Y.
@@ -152,6 +149,6 @@ module liquidswap::scripts_v2 {
         let coin_y = router_v2::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
 
         let account_addr = signer::address_of(account);
-        coin::deposit(account_addr, coin_y);
+        aptos_account::deposit_coins(account_addr, coin_y);
     }
 }

@@ -173,6 +173,7 @@ module liquidswap::router_v2 {
 
     // Getters.
 
+    #[view]
     /// Get decimals scales for stable curve, for uncorrelated curve would return zeros.
     /// Returns `X` and `Y` coins decimals scales.
     public fun get_decimals_scales<X, Y, Curve>(): (u64, u64) {
@@ -184,6 +185,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get current cumulative prices in liquidity pool `X`/`Y`.
     /// Returns (X price, Y price, block_timestamp).
     public fun get_cumulative_prices<X, Y, Curve>(): (u128, u128, u64) {
@@ -195,6 +197,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get reserves of liquidity pool (`X` and `Y`).
     /// Returns current reserves (`X`, `Y`).
     public fun get_reserves_size<X, Y, Curve>(): (u64, u64) {
@@ -206,6 +209,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get fee for specific pool together with denominator (numerator, denominator).
     public fun get_fees_config<X, Y, Curve>(): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -215,6 +219,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get fee for specific pool.
     public fun get_fee<X, Y, Curve>(): u64 {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -224,6 +229,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get DAO fee for specific pool together with denominator (numerator, denominator).
     public fun get_dao_fees_config<X, Y, Curve>(): (u64, u64) {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -233,6 +239,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Get DAO fee for specific pool.
     public fun get_dao_fee<X, Y, Curve>(): u64 {
         if (coin_helper::is_sorted<X, Y>()) {
@@ -242,6 +249,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Check swap for pair `X` and `Y` exists.
     /// If pool exists returns true, otherwise false.
     public fun is_swap_exists<X, Y, Curve>(): bool {
@@ -254,6 +262,7 @@ module liquidswap::router_v2 {
 
     // Math.
 
+    #[view]
     /// Calculate optimal amounts of `X`, `Y` coins to add as a new liquidity.
     /// * `x_desired` - provided value of coins `X`.
     /// * `y_desired` - provided value of coins `Y`.
@@ -287,6 +296,7 @@ module liquidswap::router_v2 {
         }
     }
 
+    #[view]
     /// Return amount of liquidity (LP) need for `coin_in`.
     /// * `coin_in` - amount to swap.
     /// * `reserve_in` - reserves of coin to swap.
@@ -302,6 +312,7 @@ module liquidswap::router_v2 {
         (res as u64)
     }
 
+    #[view]
     /// Convert `LP` coins to `X` and `Y` coins, useful to calculate amount the user recieve after removing liquidity.
     /// * `lp_to_burn_val` - amount of `LP` coins to burn.
     /// Returns both `X` and `Y` coins amounts.
@@ -319,6 +330,7 @@ module liquidswap::router_v2 {
         (x_to_return_val, y_to_return_val)
     }
 
+    #[view]
     /// Get amount out for `amount_in` of X coins (see generic).
     /// So if Coins::USDC is X and Coins::USDT is Y, it will get amount of USDT you will get after swap `amount_x` USDC.
     /// !Important!: This function can eat a lot of gas if you querying it for stable curve pool, so be aware.
@@ -337,6 +349,7 @@ module liquidswap::router_v2 {
         )
     }
 
+    #[view]
     /// Get amount in for `amount_out` of X coins (see generic).
     /// So if Coins::USDT is X and Coins::USDC is Y, you pass how much USDC you want to get and
     /// it returns amount of USDT you have to swap (include fees).

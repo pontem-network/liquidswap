@@ -1,18 +1,21 @@
-/// The current module contains pre-deplopyed scripts v2 for LiquidSwap.
-module liquidswap::scripts_v2 {
+/// The current module contains pre-deplopyed scripts v3 for LiquidSwap.
+/// New version doesn't require to register coins before swap and
+/// allows to transfer coins after swap to another account.
+module liquidswap::scripts_v3 {
+    use std::option::{Self, Option};
     use std::signer;
 
     use aptos_framework::coin;
     use aptos_framework::aptos_account;
 
-    use liquidswap::router_v2;
+    use liquidswap::router_v3;
     use liquidswap_lp::lp_coin::LP;
 
     /// Register a new liquidity pool for `X`/`Y` pair.
     ///
     /// Note: X, Y generic coin parameters must be sorted.
     public entry fun register_pool<X, Y, Curve>(account: &signer) {
-        router_v2::register_pool<X, Y, Curve>(account);
+        router_v3::register_pool<X, Y, Curve>(account);
     }
 
     /// Register a new liquidity pool `X`/`Y` and immediately add liquidity.
@@ -29,7 +32,7 @@ module liquidswap::scripts_v2 {
         coin_y_val: u64,
         coin_y_val_min: u64,
     ) {
-        router_v2::register_pool<X, Y, Curve>(account);
+        router_v3::register_pool<X, Y, Curve>(account);
         add_liquidity<X, Y, Curve>(
             account,
             coin_x_val,
@@ -57,7 +60,7 @@ module liquidswap::scripts_v2 {
         let coin_y = coin::withdraw<Y>(account, coin_y_val);
 
         let (coin_x_remainder, coin_y_remainder, lp_coins) =
-            router_v2::add_liquidity<X, Y, Curve>(
+            router_v3::add_liquidity<X, Y, Curve>(
                 coin_x,
                 coin_x_val_min,
                 coin_y,
@@ -85,7 +88,7 @@ module liquidswap::scripts_v2 {
     ) {
         let lp_coins = coin::withdraw<LP<X, Y, Curve>>(account, lp_val);
 
-        let (coin_x, coin_y) = router_v2::remove_liquidity<X, Y, Curve>(
+        let (coin_x, coin_y) = router_v3::remove_liquidity<X, Y, Curve>(
             lp_coins,
             min_x_out_val,
             min_y_out_val,
@@ -99,56 +102,78 @@ module liquidswap::scripts_v2 {
     /// Swap exact coin `X` for at least minimum coin `Y`.
     /// * `coin_val` - amount of coins `X` to swap.
     /// * `coin_out_min_val` - minimum expected amount of coins `Y` to get.
+    /// * `recipient` - optional recipient, can be another account address.
     public entry fun swap<X, Y, Curve>(
         account: &signer,
         coin_val: u64,
         coin_out_min_val: u64,
+        recipient: Option<address>,
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val);
 
-        let coin_y = router_v2::swap_exact_coin_for_coin<X, Y, Curve>(
+        let coin_y = router_v3::swap_exact_coin_for_coin<X, Y, Curve>(
             coin_x,
             coin_out_min_val,
         );
 
-        let account_addr = signer::address_of(account);
-        aptos_account::deposit_coins(account_addr, coin_y);
+        if (option::is_some(&recipient)) {
+            let recipient_addr = option::destroy_some(recipient);
+            aptos_account::deposit_coins(recipient_addr, coin_y);
+        } else {
+            let account_addr = signer::address_of(account);
+            aptos_account::deposit_coins(account_addr, coin_y);
+        }
     }
 
     /// Swap maximum coin `X` for exact coin `Y`.
     /// * `coin_val_max` - how much of coins `X` can be used to get `Y` coin.
     /// * `coin_out` - how much of coins `Y` should be returned.
+    /// * `recipient` - optional recipient, can be another account address.
     public entry fun swap_into<X, Y, Curve>(
         account: &signer,
         coin_val_max: u64,
         coin_out: u64,
+        recipient: Option<address>,
     ) {
         let coin_x = coin::withdraw<X>(account, coin_val_max);
 
-        let (coin_x, coin_y) = router_v2::swap_coin_for_exact_coin<X, Y, Curve>(
+        let (coin_x, coin_y) = router_v3::swap_coin_for_exact_coin<X, Y, Curve>(
             coin_x,
             coin_out,
         );
 
         let account_addr = signer::address_of(account);
         coin::deposit(account_addr, coin_x);
-        aptos_account::deposit_coins(account_addr, coin_y);
+
+        if (option::is_some(&recipient)) {
+            let recipient_addr = option::destroy_some(recipient);
+            aptos_account::deposit_coins(recipient_addr, coin_y);
+        } else {
+            aptos_account::deposit_coins(account_addr, coin_y);
+        }
     }
 
     /// Swap `coin_in` of X for a `coin_out` of Y.
     /// Does not check optimality of the swap, and fails if the `X` to `Y` price ratio cannot be satisfied.
     /// * `coin_in` - how much of coins `X` to swap.
     /// * `coin_out` - how much of coins `Y` should be returned.
+    /// * `recipient` - optional recipient, can be another account address.
     public entry fun swap_unchecked<X, Y, Curve>(
         account: &signer,
         coin_in: u64,
         coin_out: u64,
+        recipient: Option<address>,
     ) {
         let coin_x = coin::withdraw<X>(account, coin_in);
 
-        let coin_y = router_v2::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
+        let coin_y = router_v3::swap_coin_for_coin_unchecked<X, Y, Curve>(coin_x, coin_out);
 
-        let account_addr = signer::address_of(account);
-        aptos_account::deposit_coins(account_addr, coin_y);
+        if (option::is_some(&recipient)) {
+            let recipient_addr = option::destroy_some(recipient);
+            aptos_account::deposit_coins(recipient_addr, coin_y);
+        } else {
+            let account_addr = signer::address_of(account);
+            aptos_account::deposit_coins(account_addr, coin_y);
+        }
     }
 }

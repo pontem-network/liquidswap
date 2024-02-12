@@ -1,6 +1,6 @@
 [package]
-name = "LiquidswapRouterV2.1"
-version = "1.0.0"
+name = "LiquidswapRouterV3"
+version = "3.0.0"
 upgrade_policy = "immutable"
 
 [dependencies.Liquidswap]

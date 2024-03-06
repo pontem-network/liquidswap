@@ -1,6 +1,6 @@
 [package]
 name = "Liquidswap"
-version = "0.4.4"
+version = "0.4.5"
 upgrade_policy = "immutable"
 
 [addresses]
@@ -35,8 +35,8 @@ subdir = "aptos-move/framework/aptos-framework"
 
 [dependencies.UQ64x64]
 git = "https://github.com/pontem-network/UQ64x64.git"
-rev = "v0.3.8"
+rev = "v0.3.9"
 
 [dependencies.U256]
 git = "https://github.com/pontem-network/U256.git"
-rev = "v0.3.9"
+rev = "v0.3.10"

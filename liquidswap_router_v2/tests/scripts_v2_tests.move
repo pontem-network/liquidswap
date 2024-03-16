@@ -151,6 +151,27 @@ module liquidswap::scripts_v2_tests {
         assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
     }
 
+    // test swap with unregistered target coins
+    #[test]
+    public entry fun test_swap_exact_btc_for_usdt_unregistered() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
+
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts_v2::swap<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            900,
+        );
+
+        assert!(coin::balance<BTC>(lp_owner_addr) == 0, 1);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
+    }
+
     #[test]
     public entry fun test_swap_btc_for_exact_usdt() {
         let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
@@ -158,6 +179,26 @@ module liquidswap::scripts_v2_tests {
         let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
         coin::register<BTC>(&lp_owner);
         coin::register<USDT>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts_v2::swap_into<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            700,
+        );
+
+        assert!(coin::balance<BTC>(lp_owner_addr) == 2, 1);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 700, 2);
+    }
+
+    #[test]
+    public entry fun test_swap_btc_for_exact_usdt_unregistered() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
+
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
 
         let lp_owner_addr = signer::address_of(&lp_owner);
         coin::deposit(lp_owner_addr, btc_coins_to_swap);
@@ -193,7 +234,28 @@ module liquidswap::scripts_v2_tests {
         assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
 
     }
+    
+    #[test]
+    public entry fun test_unchecked_swap_common_unregistered() {
+        let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);
 
+        let btc_coins_to_swap = test_coins::mint<BTC>(&coin_admin, 10);
+        coin::register<BTC>(&lp_owner);
+
+        let lp_owner_addr = signer::address_of(&lp_owner);
+        coin::deposit(lp_owner_addr, btc_coins_to_swap);
+
+        scripts_v2::swap_unchecked<BTC, USDT, Uncorrelated>(
+            &lp_owner,
+            10,
+            907,
+        );
+
+        assert!(coin::balance<BTC>(lp_owner_addr) == 0, 1);
+        assert!(coin::balance<USDT>(lp_owner_addr) == 907, 2);
+
+    }
+    
     #[test]
     public entry fun test_unchecked_swap_can_use_worse_price() {
         let (coin_admin, lp_owner) = register_pool_with_existing_liquidity(101, 10100);

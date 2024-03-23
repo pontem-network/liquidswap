@@ -1,0 +1,15 @@
+[package]
+name = "LiquidswapRouterV4"
+version = "1.0.0"
+
+[addresses]
+router_v4 = "0x44"
+test_user = "0x555"
+
+[dependencies.Liquidswap]
+local = ".."
+
+[dependencies.Econia]
+git = "https://github.com/econia-labs/econia.git"
+rev = "main"
+subdir = "src/move/econia"
